@@ -21,6 +21,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Service;
 import com.surveysolutions.analytics.surveysolutions.SurveySolutionsService;
 
@@ -106,9 +107,10 @@ public class QuestionAnalyticsService {
         Map<String, Set<Integer>> answeredInterviewNumbers = new HashMap<>();
         for (InterviewResponse response : fetchAnswers(interviews)) {
             InterviewAnswer answer = response.answer();
+            String answerValue = answerText(answer.answer());
             if (variables.contains(answer.variableName())
-                    && answer.answer() != null
-                    && !answer.answer().isBlank()) {
+                    && answerValue != null
+                    && !answerValue.isBlank()) {
                 answeredInterviewNumbers
                         .computeIfAbsent(answer.variableName(), ignored -> new HashSet<>())
                         .add(response.interviewNumber());
@@ -201,28 +203,29 @@ public class QuestionAnalyticsService {
 
         for (InterviewResponse response : answers) {
             InterviewAnswer answer = response.answer();
+            String answerValue = answerText(answer.answer());
             if (!question.variableName().equals(answer.variableName())
-                    || answer.answer() == null
-                    || answer.answer().isBlank()) {
+                    || answerValue == null
+                    || answerValue.isBlank()) {
                 continue;
             }
             responseCount++;
             answeredInterviews.add(Integer.toString(response.interviewNumber()));
-            observations.add(new AnswerObservation(response.interviewNumber(), answer.answer()));
+            observations.add(new AnswerObservation(response.interviewNumber(), answerValue));
 
             if (numericQuestion) {
                 try {
-                    numericValues.add(new BigDecimal(answer.answer().trim()));
+                    numericValues.add(new BigDecimal(answerValue.trim()));
                 } catch (NumberFormatException exception) {
                     nonNumericResponseCount++;
                 }
             } else if (!hideValues) {
                 if (dateQuestion) {
-                    counts.merge(dateLabel(answer.answer().trim()), 1L, Long::sum);
+                    counts.merge(dateLabel(answerValue.trim()), 1L, Long::sum);
                     distributionCount++;
                 } else {
                     List<String> answerLabels = answerLabels(
-                            answer.answer().trim(), optionLabels, multipleChoice);
+                            answerValue.trim(), optionLabels, multipleChoice);
                     for (String label : answerLabels) {
                         counts.merge(label, 1L, Long::sum);
                         distributionCount++;
@@ -278,6 +281,13 @@ public class QuestionAnalyticsService {
                 percentile05,
                 percentile95,
                 nonNumericResponseCount);
+    }
+
+    private String answerText(Object answer) {
+        if (answer instanceof JsonNode node) {
+            return node.isTextual() ? node.asText() : node.toString();
+        }
+        return answer == null ? null : answer.toString();
     }
 
     private List<AnswerCount> numericHistogram(

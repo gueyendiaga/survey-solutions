@@ -33,9 +33,12 @@ export class App implements OnInit {
   protected readonly questions = signal<QuestionSummary[]>([]);
   protected readonly selectedQuestion = signal<QuestionSummary | null>(null);
   protected readonly questionAnalytics = signal<QuestionAnalytics | null>(null);
+  protected readonly answerChartType = signal<'bar' | 'pie'>('bar');
   protected readonly completeness = signal<CompletenessOverview | null>(null);
   protected readonly completenessLoading = signal(false);
   protected readonly completenessError = signal<string | null>(null);
+  protected readonly exporting = signal<'csv' | 'xlsx' | null>(null);
+  protected readonly exportError = signal<string | null>(null);
 
   constructor(private readonly api: DashboardApiService) {}
 
@@ -130,6 +133,43 @@ export class App implements OnInit {
     if (questionnaire) {
       this.loadCompleteness(questionnaire);
     }
+  }
+
+  protected downloadExport(format: 'csv' | 'xlsx'): void {
+    const questionnaire = this.currentQuestionnaire();
+    if (!questionnaire || this.exporting()) {
+      return;
+    }
+
+    this.exporting.set(format);
+    this.exportError.set(null);
+    this.api
+      .exportData(questionnaire.questionnaireId, questionnaire.version, format)
+      .subscribe({
+        next: (file) => {
+          const url = URL.createObjectURL(file);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `survey-solutions-${questionnaire.questionnaireId}-v${questionnaire.version}.${format}`;
+          link.click();
+          URL.revokeObjectURL(url);
+          this.exporting.set(null);
+        },
+        error: (error: unknown) => {
+          this.exporting.set(null);
+          this.exportError.set(
+            'Export impossible. Vérifiez la connexion à HQ et le volume des données.'
+          );
+          if (error instanceof HttpErrorResponse && error.error instanceof Blob) {
+            void error.error.text().then((body) => {
+              const detail = this.problemDetail(body);
+              if (detail) {
+                this.exportError.set(detail);
+              }
+            });
+          }
+        }
+      });
   }
 
   protected completenessFor(question: QuestionSummary): QuestionCompleteness | null {
@@ -246,44 +286,87 @@ export class App implements OnInit {
     return fallback;
   }
 
-  protected readonly answerOptions = (analytics: QuestionAnalytics) => ({
-    animation: false,
-    grid: { left: 48, right: 24, top: 20, bottom: 76, containLabel: true },
-    tooltip: {
-      trigger: 'axis' as const,
-      axisPointer: { type: 'shadow' as const },
-      formatter: (items: { dataIndex: number; value: number }[]) => {
-        const answer = analytics.distribution[items[0].dataIndex];
-        return `${answer.label}<br/><strong>${answer.count.toLocaleString('fr-FR')}</strong> réponse(s) · ${answer.percentage}%`;
+  private problemDetail(body: string): string | null {
+    try {
+      const problem: unknown = JSON.parse(body);
+      if (problem !== null && typeof problem === 'object' && 'detail' in problem) {
+        const detail = problem.detail;
+        return typeof detail === 'string' ? detail : null;
       }
-    },
-    xAxis: {
-      type: 'category' as const,
-      data: analytics.distribution.map((item) => item.label),
-      axisLabel: {
-        color: '#8190a5',
-        rotate: analytics.distribution.some((item) => item.label.length > 12) ? 25 : 0,
-        interval: 0,
-        hideOverlap: true
+    } catch (error: unknown) {
+      if (!(error instanceof SyntaxError)) {
+        throw error;
+      }
+    }
+    return null;
+  }
+
+  protected readonly answerOptions = (analytics: QuestionAnalytics) => {
+    if (this.answerChartType() === 'pie') {
+      return {
+        animation: false,
+        tooltip: {
+          trigger: 'item' as const,
+          formatter: (item: { name: string; value: number; percent: number }) =>
+            `${item.name}<br/><strong>${item.value.toLocaleString('fr-FR')}</strong> réponse(s) · ${item.percent}%`
+        },
+        series: [
+          {
+            type: 'pie' as const,
+            radius: '68%',
+            data: analytics.distribution.map((item) => ({
+              name: item.label,
+              value: item.count
+            })),
+            label: {
+              color: '#526176',
+              formatter: '{b}\n{d}%'
+            },
+            itemStyle: { borderColor: '#fff', borderWidth: 2 }
+          }
+        ]
+      };
+    }
+
+    return {
+      animation: false,
+      grid: { left: 48, right: 24, top: 20, bottom: 76, containLabel: true },
+      tooltip: {
+        trigger: 'axis' as const,
+        axisPointer: { type: 'shadow' as const },
+        formatter: (items: { dataIndex: number; value: number }[]) => {
+          const answer = analytics.distribution[items[0].dataIndex];
+          return `${answer.label}<br/><strong>${answer.count.toLocaleString('fr-FR')}</strong> réponse(s) · ${answer.percentage}%`;
+        }
       },
-      axisLine: { lineStyle: { color: '#dce3ec' } },
-      axisTick: { show: false }
-    },
-    yAxis: {
-      type: 'value' as const,
-      minInterval: 1,
-      axisLabel: { color: '#8190a5' },
-      splitLine: { lineStyle: { color: '#edf1f6' } }
-    },
-    series: [
-      {
-        type: 'bar' as const,
-        data: analytics.distribution.map((item) => item.count),
-        barMaxWidth: 40,
-        itemStyle: { color: '#2563eb', borderRadius: [5, 5, 0, 0] }
-      }
-    ]
-  });
+      xAxis: {
+        type: 'category' as const,
+        data: analytics.distribution.map((item) => item.label),
+        axisLabel: {
+          color: '#8190a5',
+          rotate: analytics.distribution.some((item) => item.label.length > 12) ? 25 : 0,
+          interval: 0,
+          hideOverlap: true
+        },
+        axisLine: { lineStyle: { color: '#dce3ec' } },
+        axisTick: { show: false }
+      },
+      yAxis: {
+        type: 'value' as const,
+        minInterval: 1,
+        axisLabel: { color: '#8190a5' },
+        splitLine: { lineStyle: { color: '#edf1f6' } }
+      },
+      series: [
+        {
+          type: 'bar' as const,
+          data: analytics.distribution.map((item) => item.count),
+          barMaxWidth: 40,
+          itemStyle: { color: '#2563eb', borderRadius: [5, 5, 0, 0] }
+        }
+      ]
+    };
+  };
 
   protected statusLabel(status: string): string {
     const labels: Record<string, string> = {

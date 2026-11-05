@@ -161,6 +161,34 @@ class SurveySolutionsServiceTest {
         server.verify();
     }
 
+    @Test
+    void retainsStructuredAnswersAndAdditionalRosterFieldsForExport() {
+        UUID interviewId = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://hq.test");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo("http://hq.test/api/v1/interviews/" + interviewId))
+                .andRespond(withSuccess(
+                        """
+                        {
+                          "Answers": [{
+                            "VariableName": "location",
+                            "Answer": {"latitude": 48.8, "longitude": 2.3},
+                            "RosterVector": [1, 2]
+                          }]
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON));
+
+        var details = new SurveySolutionsService(builder.build()).getInterviewDetails(interviewId);
+
+        assertThat(details.answers()).singleElement().satisfies(answer -> {
+            assertThat(answer.answer()).isInstanceOf(java.util.Map.class);
+            assertThat(answer.additionalFields()).containsKey("RosterVector");
+            assertThat(answer.additionalFields().get("RosterVector").toString()).isEqualTo("[1,2]");
+        });
+        server.verify();
+    }
+
     private String questionnairePage(int page, int totalCount) {
         return """
                 {

@@ -137,6 +137,13 @@ describe('App', () => {
     expect(fixture.nativeElement.querySelector('.question-list-item')?.textContent).toContain('age');
     expect(fixture.nativeElement.querySelector('.question-kpi-grid')?.textContent).toContain('20');
     expect(fixture.nativeElement.querySelector('.distribution-table')?.textContent).toContain('100');
+    const pieChartButton = fixture.nativeElement.querySelector(
+      '[aria-label="Afficher un graphique circulaire"]'
+    ) as HTMLButtonElement;
+    expect(pieChartButton.getAttribute('aria-pressed')).toBe('false');
+    pieChartButton.click();
+    fixture.detectChanges();
+    expect(pieChartButton.getAttribute('aria-pressed')).toBe('true');
     expect(fixture.nativeElement.querySelector('.response-list-panel')?.textContent).toContain('20');
     expect(fixture.nativeElement.querySelector('.response-list-panel')?.textContent).toContain('Interview 1');
   });
@@ -156,6 +163,54 @@ describe('App', () => {
 
     expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain('Questionnaires');
     expect(fixture.nativeElement.querySelector('.open-questionnaire-button')).not.toBeNull();
+  });
+
+  it('downloads the selected questionnaire responses as CSV', () => {
+    spyOn(URL, 'createObjectURL').and.returnValue('blob:export');
+    spyOn(URL, 'revokeObjectURL');
+
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    http.expectOne('/api/dashboard').flush(dashboardResponse());
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('a[href="#questionnaires"]') as HTMLAnchorElement).click();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.open-questionnaire-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    http.expectOne(
+      '/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1/question-list'
+    ).flush([
+      {
+        id: 'question-1',
+        variableName: 'age',
+        questionText: 'Quel âge ?',
+        label: 'Âge',
+        type: 'Numeric',
+        breadcrumbs: [],
+        optionCount: 0
+      }
+    ]);
+    fixture.detectChanges();
+    http.expectOne(
+      '/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1/question-completeness'
+    ).flush({ interviewCount: 0, variables: [] });
+    fixture.detectChanges();
+
+    spyOn(HTMLAnchorElement.prototype, 'click');
+    (fixture.nativeElement.querySelector('.export-button') as HTMLButtonElement).click();
+    const exportRequest = http.expectOne(
+      (request) => request.url ===
+        '/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1/export' &&
+        request.params.get('format') === 'csv'
+    );
+    expect(exportRequest.request.responseType).toBe('blob');
+    exportRequest.flush(new Blob(['csv data'], { type: 'text/csv' }));
+    fixture.detectChanges();
+
+    expect(URL.createObjectURL).toHaveBeenCalled();
+    expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:export');
   });
 
   function dashboardResponse() {

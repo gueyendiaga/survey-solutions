@@ -1,7 +1,13 @@
 package com.surveysolutions.analytics.surveysolutions;
 
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class SurveySolutionsDtos {
     private SurveySolutionsDtos() {}
@@ -43,9 +49,37 @@ public final class SurveySolutionsDtos {
     public record InterviewDetails(
             @JsonProperty("Answers") List<InterviewAnswer> answers) {}
 
-    public record InterviewAnswer(
-            @JsonProperty("VariableName") String variableName,
-            @JsonProperty("Answer") String answer) {}
+    public static final class InterviewAnswer {
+        private final String variableName;
+        private final Object answer;
+        private final Map<String, JsonNode> additionalFields = new LinkedHashMap<>();
+
+        @JsonCreator
+        public InterviewAnswer(
+                @JsonProperty("VariableName") String variableName,
+                @JsonProperty("Answer") Object answer) {
+            this.variableName = variableName;
+            this.answer = answer;
+        }
+
+        public String variableName() {
+            return variableName;
+        }
+
+        public Object answer() {
+            return answer;
+        }
+
+        @JsonAnySetter
+        public void addAdditionalField(String name, JsonNode value) {
+            additionalFields.put(name, value);
+        }
+
+        @JsonAnyGetter
+        public Map<String, JsonNode> additionalFields() {
+            return Map.copyOf(additionalFields);
+        }
+    }
 
     public record Question(
             @JsonProperty("Id") String id,

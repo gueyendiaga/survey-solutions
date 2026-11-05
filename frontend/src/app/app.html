@@ -350,16 +350,38 @@
               · version {{ currentQuestionnaire()?.version }}
             </p>
           </div>
-          <button
-            class="refresh-button"
-            type="button"
-            (click)="reloadQuestions()"
-            [disabled]="loading()"
-          >
-            <span [class.spinning]="loading()">↻</span>
-            Actualiser
-          </button>
+          <div class="questionnaire-actions">
+            <button
+              class="export-button"
+              type="button"
+              (click)="downloadExport('csv')"
+              [disabled]="loading() || exporting() !== null"
+            >
+              {{ exporting() === 'csv' ? 'Préparation…' : 'Exporter CSV' }}
+            </button>
+            <button
+              class="export-button"
+              type="button"
+              (click)="downloadExport('xlsx')"
+              [disabled]="loading() || exporting() !== null"
+            >
+              {{ exporting() === 'xlsx' ? 'Préparation…' : 'Exporter Excel' }}
+            </button>
+            <button
+              class="refresh-button"
+              type="button"
+              (click)="reloadQuestions()"
+              [disabled]="loading()"
+            >
+              <span [class.spinning]="loading()">↻</span>
+              Actualiser
+            </button>
+          </div>
         </section>
+
+        @if (exportError()) {
+          <section class="export-error" role="alert">{{ exportError() }}</section>
+        }
 
         @if (error()) {
           <section class="error-banner" role="alert">
@@ -600,7 +622,37 @@
                           {{ analytics.mean !== null ? 'Intervalles numériques' : 'Comptes et pourcentage des réponses observées' }}
                         </p>
                       </div>
-                      <span class="table-count">{{ analytics.distribution.length }} valeur(s)</span>
+                      <div class="distribution-controls">
+                        <div class="chart-type-switch" role="group" aria-label="Type de graphique">
+                          <button
+                            type="button"
+                            class="chart-type-button"
+                            [class.active]="answerChartType() === 'bar'"
+                            [attr.aria-pressed]="answerChartType() === 'bar'"
+                            aria-label="Afficher un graphique en barres"
+                            title="Graphique en barres"
+                            (click)="answerChartType.set('bar')"
+                          >
+                            <svg viewBox="0 0 16 16" aria-hidden="true">
+                              <path d="M2 14V8h3v6H2Zm4.5 0V3h3v11h-3Zm4.5 0V6h3v8h-3Z" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            class="chart-type-button"
+                            [class.active]="answerChartType() === 'pie'"
+                            [attr.aria-pressed]="answerChartType() === 'pie'"
+                            aria-label="Afficher un graphique circulaire"
+                            title="Graphique circulaire"
+                            (click)="answerChartType.set('pie')"
+                          >
+                            <svg viewBox="0 0 16 16" aria-hidden="true">
+                              <path d="M7.25 1.1A6.9 6.9 0 1 0 14.9 8H8V1.1h-.75ZM9.5 1.35V6.5h5.15A6.92 6.92 0 0 0 9.5 1.35Z" />
+                            </svg>
+                          </button>
+                        </div>
+                        <span class="table-count">{{ analytics.distribution.length }} valeur(s)</span>
+                      </div>
                     </div>
                     <app-dashboard-chart [options]="answerOptions(analytics)" [height]="330" />
                     <div class="distribution-table">

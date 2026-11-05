@@ -79,4 +79,12 @@ export class DashboardApiService {
       )
       .pipe(map((response) => normalizeKeys(response) as CompletenessOverview));
   }
+
+  exportData(questionnaireId: string, version: number, format: 'csv' | 'xlsx'): Observable<Blob> {
+    const params = new HttpParams().set('format', format);
+    return this.http.get(
+      `${this.baseUrl}/questionnaires/${questionnaireId}/${version}/export`,
+      { params, responseType: 'blob' }
+    );
+  }
 }
