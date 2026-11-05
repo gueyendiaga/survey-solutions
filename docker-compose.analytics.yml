@@ -1,0 +1,23 @@
+name: survey-analytics
+
+services:
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment:
+      SURVEY_SOLUTIONS_BASE_URL: ${SURVEY_SOLUTIONS_BASE_URL:-http://host.docker.internal:8080}
+      SURVEY_SOLUTIONS_USERNAME: ${SURVEY_SOLUTIONS_USERNAME:?Set SURVEY_SOLUTIONS_USERNAME in .env.analytics}
+      SURVEY_SOLUTIONS_PASSWORD: ${SURVEY_SOLUTIONS_PASSWORD:?Set SURVEY_SOLUTIONS_PASSWORD in .env.analytics}
+      ANALYTICS_ALLOWED_ORIGIN: ${ANALYTICS_ALLOWED_ORIGIN:-http://localhost:8088}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:8088:80"

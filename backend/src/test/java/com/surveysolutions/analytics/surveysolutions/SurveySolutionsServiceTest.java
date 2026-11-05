@@ -1,0 +1,183 @@
+package com.surveysolutions.analytics.surveysolutions;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
+
+import java.util.UUID;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.web.client.RestClient;
+
+class SurveySolutionsServiceTest {
+    @Test
+    void mapsTheDocumentedQuestionnaireEnvelopeAndFollowsPageNumbers() {
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://hq.test");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo("http://hq.test/api/v1/questionnaires?limit=40&offset=1"))
+                .andRespond(withSuccess(questionnairePage(1, 2), MediaType.APPLICATION_JSON));
+        server.expect(requestTo("http://hq.test/api/v1/questionnaires?limit=40&offset=2"))
+                .andRespond(withSuccess(questionnairePage(2, 2), MediaType.APPLICATION_JSON));
+
+        SurveySolutionsService service = new SurveySolutionsService(builder.build());
+
+        assertThat(service.getQuestionnaires())
+                .extracting(SurveySolutionsDtos.Questionnaire::questionnaireIdentity)
+                .containsExactly("survey$1", "survey$2");
+        server.verify();
+    }
+
+    @Test
+    void readsInterviewStatusesUsingTheDocumentedQuestionnaireFilters() {
+        UUID questionnaireId = UUID.fromString("588daf2d-0c72-4b89-bec9-254459a68983");
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://hq.test");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo(
+                        "http://hq.test/api/v1/interviews?pageSize=100&page=1"
+                                + "&questionnaireId=" + questionnaireId + "&questionnaireVersion=1"))
+                .andRespond(withSuccess(
+                        """
+                        {
+                          "Interviews": [{
+                            "InterviewId": "123e4567-e89b-12d3-a456-426614174000",
+                            "QuestionnaireId": "588daf2d-0c72-4b89-bec9-254459a68983",
+                            "QuestionnaireVersion": 1,
+                            "ResponsibleId": "123e4567-e89b-12d3-a456-426614174001",
+                            "Status": "Completed",
+                            "LastEntryDate": "2026-11-03T10:38:49.13373"
+                          }],
+                          "TotalCount": 1,
+                          "Limit": 100,
+                          "Offset": 1
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON));
+
+        var interviews = new SurveySolutionsService(builder.build())
+                .getInterviews(questionnaireId, 1L);
+
+        assertThat(interviews).hasSize(1);
+        assertThat(interviews.get(0).status()).isEqualTo("Completed");
+        assertThat(interviews.get(0).responsibleId())
+                .isEqualTo("123e4567-e89b-12d3-a456-426614174001");
+        server.verify();
+    }
+
+    @Test
+    void discoversVariablesFromQuestionnaireDocumentWhenStatisticsEndpointIsEmpty() {
+        UUID questionnaireId = UUID.fromString("588daf2d-0c72-4b89-bec9-254459a68983");
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://hq.test");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo(
+                        "http://hq.test/api/v1/statistics/questions"
+                                + "?questionnaireId=" + questionnaireId + "&version=1"))
+                .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+        server.expect(requestTo(
+                        "http://hq.test/api/v1/questionnaires/" + questionnaireId + "/1/document"))
+                .andRespond(withSuccess(
+                        """
+                        {
+                          "$type": "QuestionnaireDocument",
+                          "Title": "Survey",
+                          "Children": [{
+                            "$type": "Group",
+                            "Title": "Section A",
+                            "Children": [
+                              {
+                                "$type": "SingleQuestion",
+                                "PublicKey": "question-id",
+                                "VariableName": "choice",
+                                "QuestionText": "Select one",
+                                "QuestionType": 0,
+                                "VariableLabel": "Choice",
+                                "Answers": [{
+                                  "AnswerCode": 1,
+                                  "AnswerText": "Yes",
+                                  "AnswerValue": "yes"
+                                }]
+                              },
+                              {
+                                "$type": "TextQuestion",
+                                "PublicKey": "text-id",
+                                "VariableName": "comment",
+                                "QuestionText": "Comment",
+                                "QuestionType": 7,
+                                "VariableLabel": "Comment",
+                                "Answers": []
+                              }
+                            ]
+                          }]
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON));
+
+        var questions = new SurveySolutionsService(builder.build())
+                .getQuestions(questionnaireId, 1);
+
+        assertThat(questions).hasSize(2);
+        assertThat(questions.get(0).variableName()).isEqualTo("choice");
+        assertThat(questions.get(0).type()).isEqualTo("SingleOption");
+        assertThat(questions.get(0).breadcrumbs()).containsExactly("Section A");
+        assertThat(questions.get(0).answers())
+                .containsExactly(new SurveySolutionsDtos.QuestionOption(1, "Yes", "yes"));
+        assertThat(questions.get(1).variableName()).isEqualTo("comment");
+        assertThat(questions.get(1).type()).isEqualTo("Text");
+        server.verify();
+    }
+
+    @Test
+    void mapsNumericQuestionTypeFromOfficialQuestionnaireEnum() {
+        UUID questionnaireId = UUID.fromString("588daf2d-0c72-4b89-bec9-254459a68983");
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://hq.test");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo(
+                        "http://hq.test/api/v1/statistics/questions"
+                                + "?questionnaireId=" + questionnaireId + "&version=1"))
+                .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+        server.expect(requestTo(
+                        "http://hq.test/api/v1/questionnaires/" + questionnaireId + "/1/document"))
+                .andRespond(withSuccess(
+                        """
+                        {
+                          "$type": "QuestionnaireDocument",
+                          "Children": [{
+                            "$type": "TextQuestion",
+                            "PublicKey": "numeric-id",
+                            "VariableName": "household_size",
+                            "QuestionText": "Household size",
+                            "QuestionType": 4,
+                            "Answers": []
+                          }]
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON));
+
+        var questions = new SurveySolutionsService(builder.build())
+                .getQuestions(questionnaireId, 1);
+
+        assertThat(questions).singleElement()
+                .satisfies(question -> assertThat(question.type()).isEqualTo("Numeric"));
+        server.verify();
+    }
+
+    private String questionnairePage(int page, int totalCount) {
+        return """
+                {
+                  "Questionnaires": [{
+                    "QuestionnaireIdentity": "survey$%d",
+                    "QuestionnaireId": "588daf2d-0c72-4b89-bec9-254459a68983",
+                    "Version": %d,
+                    "Title": "Test",
+                    "Variable": "test",
+                    "LastEntryDate": "2026-11-03T10:38:49.13373",
+                    "IsAudioRecordingEnabled": false,
+                    "WebModeEnabled": false
+                  }],
+                  "Limit": 40,
+                  "TotalCount": %d,
+                  "Offset": %d
+                }
+                """.formatted(page, page, totalCount, page);
+    }
+}

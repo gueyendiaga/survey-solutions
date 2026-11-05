@@ -1,0 +1,12 @@
+server:
+  port: 8081
+  error:
+    include-message: never
+
+survey-solutions:
+  base-url: ${SURVEY_SOLUTIONS_BASE_URL:http://localhost:8080}
+  username: ${SURVEY_SOLUTIONS_USERNAME:}
+  password: ${SURVEY_SOLUTIONS_PASSWORD:}
+  allowed-origin: ${ANALYTICS_ALLOWED_ORIGIN:http://localhost:4200}
+  connect-timeout: 5s
+  read-timeout: 30s

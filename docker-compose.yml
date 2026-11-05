@@ -1,0 +1,39 @@
+
+services:
+  hq:
+    image: surveysolutions/surveysolutions:latest
+    platform: linux/amd64
+    container_name: survey-hq
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    environment:
+      ASPNETCORE_URLS: "http://+:80"
+      HQ_Headquarters__TenantName: "hq"
+      # HQ_Headquarters__BaseUrl: "http://localhost:8080"
+      HQ_Headquarters__BaseUrl: "http://10.90.1.42:8080"
+      HQ_ConnectionStrings__DefaultConnection: "Persist Security Info=true;Server=db;Port=5432;User Id=postgres;Password=SurveyLocal2026;Database=SurveySolutions"
+      JwtBearer__Enabled: "true"
+      JwtBearer__SecretKey: "${JWT_SECRET_KEY}"
+    volumes:
+      - ./data/app:/app/AppData
+
+  db:
+    image: postgres:16
+    container_name: survey-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: SurveyLocal2026
+      POSTGRES_DB: SurveySolutions
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d SurveySolutions"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
