@@ -25,8 +25,7 @@
       href="#questionnaires"
       (click)="showQuestionnaires($event)"
       [attr.aria-current]="view() === 'questionnaires' ? 'page' : null"
-      aria-label="Afficher le catalogue des questionnaires"
-    >
+      aria-label="Afficher le catalogue des questionnaires">
       <span class="nav-icon">▤</span>
       <span>Questionnaires</span>
       <span class="nav-count">{{ questionnaires().length }}</span>
@@ -37,8 +36,7 @@
       href="#questions"
       (click)="showQuestions($event)"
       [attr.aria-current]="view() === 'questions' ? 'page' : null"
-      aria-label="Explorer les questions et réponses d’un questionnaire"
-    >
+      aria-label="Explorer les questions et réponses d’un questionnaire">
       <span class="nav-icon">▥</span>
       <span>Questions & réponses</span>
     </a>
@@ -355,24 +353,21 @@
               class="export-button"
               type="button"
               (click)="downloadExport('csv')"
-              [disabled]="loading() || exporting() !== null"
-            >
+              [disabled]="loading() || exporting() !== null">
               {{ exporting() === 'csv' ? 'Préparation…' : 'Exporter CSV' }}
             </button>
             <button
               class="export-button"
               type="button"
               (click)="downloadExport('xlsx')"
-              [disabled]="loading() || exporting() !== null"
-            >
+              [disabled]="loading() || exporting() !== null">
               {{ exporting() === 'xlsx' ? 'Préparation…' : 'Exporter Excel' }}
             </button>
             <button
               class="refresh-button"
               type="button"
               (click)="reloadQuestions()"
-              [disabled]="loading()"
-            >
+              [disabled]="loading()">
               <span [class.spinning]="loading()">↻</span>
               Actualiser
             </button>
@@ -415,8 +410,7 @@
                 type="button"
                 class="refresh-button"
                 (click)="reloadCompleteness()"
-                [disabled]="completenessLoading()"
-              >
+                [disabled]="completenessLoading()">
                 <span [class.spinning]="completenessLoading()">↻</span>
                 Actualiser
               </button>
@@ -510,8 +504,7 @@
                     class="question-list-item"
                     [class.selected]="selectedQuestion()?.variableName === question.variableName"
                     type="button"
-                    (click)="selectQuestion(question)"
-                  >
+                    (click)="selectQuestion(question)">
                     <span class="variable-name">{{ question.variableName }}</span>
                     <span class="question-list-label">{{ question.label || question.questionText || 'Question sans libellé' }}</span>
                     <span class="question-list-type">{{ question.type || 'Question' }}</span>
@@ -631,8 +624,7 @@
                             [attr.aria-pressed]="answerChartType() === 'bar'"
                             aria-label="Afficher un graphique en barres"
                             title="Graphique en barres"
-                            (click)="answerChartType.set('bar')"
-                          >
+                            (click)="answerChartType.set('bar')">
                             <svg viewBox="0 0 16 16" aria-hidden="true">
                               <path d="M2 14V8h3v6H2Zm4.5 0V3h3v11h-3Zm4.5 0V6h3v8h-3Z" />
                             </svg>
@@ -644,8 +636,7 @@
                             [attr.aria-pressed]="answerChartType() === 'pie'"
                             aria-label="Afficher un graphique circulaire"
                             title="Graphique circulaire"
-                            (click)="answerChartType.set('pie')"
-                          >
+                            (click)="answerChartType.set('pie')">
                             <svg viewBox="0 0 16 16" aria-hidden="true">
                               <path d="M7.25 1.1A6.9 6.9 0 1 0 14.9 8H8V1.1h-.75ZM9.5 1.35V6.5h5.15A6.92 6.92 0 0 0 9.5 1.35Z" />
                             </svg>
