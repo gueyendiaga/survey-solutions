@@ -1,17 +1,22 @@
 package com.surveysolutions.analytics.questions;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static com.surveysolutions.analytics.surveysolutions.SurveySolutionsDtos.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import com.surveysolutions.analytics.config.SurveySolutionsProperties;
 import com.surveysolutions.analytics.surveysolutions.SurveySolutionsService;
 
 class QuestionAnalyticsServiceTest {
@@ -22,7 +27,7 @@ class QuestionAnalyticsServiceTest {
     private final SurveySolutionsService surveySolutions = mock(SurveySolutionsService.class);
     private final ExecutorService executor = Executors.newFixedThreadPool(2);
     private final QuestionAnalyticsService service =
-            new QuestionAnalyticsService(surveySolutions, executor);
+            new QuestionAnalyticsService(surveySolutions, executor, new SurveySolutionsProperties());
 
     @AfterEach
     void stopExecutor() {
@@ -57,8 +62,8 @@ class QuestionAnalyticsServiceTest {
         assertEquals(new BigDecimal("10"), result.percentile05());
         assertEquals(new BigDecimal("20"), result.percentile95());
         assertEquals(List.of(
-                new QuestionAnalyticsDtos.AnswerObservation(1, "10"),
-                new QuestionAnalyticsDtos.AnswerObservation(2, "20")), result.observations());
+                new QuestionAnalyticsDtos.AnswerObservation(1, null, "10"),
+                new QuestionAnalyticsDtos.AnswerObservation(2, null, "20")), result.observations());
         assertEquals(2, result.distribution().stream().mapToLong(
                 QuestionAnalyticsDtos.AnswerCount::count).sum());
     }
@@ -138,9 +143,10 @@ class QuestionAnalyticsServiceTest {
                 service.analyze(QUESTIONNAIRE_ID, 1, VARIABLE);
 
         assertEquals(1, result.responseCount());
+        assertEquals(QuestionAnalyticsDtos.PercentageBase.RESPONDENTS, result.percentageBase());
         assertEquals(List.of(
-                new QuestionAnalyticsDtos.AnswerCount("A", 1, 50.0),
-                new QuestionAnalyticsDtos.AnswerCount("B", 1, 50.0)), result.distribution());
+                new QuestionAnalyticsDtos.AnswerCount("A", 1, 100.0),
+                new QuestionAnalyticsDtos.AnswerCount("B", 1, 100.0)), result.distribution());
     }
 
     @Test
@@ -173,6 +179,88 @@ class QuestionAnalyticsServiceTest {
                 result.variables());
     }
 
+    @Test
+    void excludesInterviewsWhoseStatusIsNotConfiguredForAnalysis() {
+        Question question = question("SingleOption", List.of(new QuestionOption(1, "Oui", null)));
+        when(surveySolutions.getQuestions(QUESTIONNAIRE_ID, 1)).thenReturn(List.of(question));
+        when(surveySolutions.getInterviews(QUESTIONNAIRE_ID, 1L)).thenReturn(List.of(
+                interview(1, "ApprovedByHeadquarters"),
+                interview(2, "InterviewerAssigned"),
+                interview(3, "RejectedBySupervisor")));
+        when(surveySolutions.getInterviewDetails(uuid(1))).thenReturn(details(answer("1")));
+
+        QuestionAnalyticsDtos.QuestionAnalytics result =
+                service.analyze(QUESTIONNAIRE_ID, 1, VARIABLE);
+
+        assertEquals(1, result.interviewCount());
+        assertEquals(0, result.interviewWithoutAnswerCount());
+        assertEquals(2, result.excludedInterviewCount());
+        assertEquals(List.of("Completed", "ApprovedBySupervisor", "ApprovedByHeadquarters"),
+                result.includedStatuses());
+        verify(surveySolutions, never()).getInterviewDetails(uuid(2));
+        verify(surveySolutions, never()).getInterviewDetails(uuid(3));
+    }
+
+    @Test
+    void keepsNumericSpecialValuesOutOfDescriptiveStatistics() {
+        Question question = question("Numeric", List.of(
+                new QuestionOption(98, "Ne sait pas", "98"),
+                new QuestionOption(99, "Refus", "99")));
+        when(surveySolutions.getQuestions(QUESTIONNAIRE_ID, 1)).thenReturn(List.of(question));
+        when(surveySolutions.getInterviews(QUESTIONNAIRE_ID, 1L))
+                .thenReturn(List.of(interview(1), interview(2), interview(3), interview(4)));
+        when(surveySolutions.getInterviewDetails(uuid(1))).thenReturn(details(answer("20")));
+        when(surveySolutions.getInterviewDetails(uuid(2))).thenReturn(details(answer("40")));
+        when(surveySolutions.getInterviewDetails(uuid(3))).thenReturn(details(answer("98")));
+        when(surveySolutions.getInterviewDetails(uuid(4))).thenReturn(details(answer("98.0")));
+
+        QuestionAnalyticsDtos.QuestionAnalytics result =
+                service.analyze(QUESTIONNAIRE_ID, 1, VARIABLE);
+
+        assertEquals(4, result.responseCount());
+        assertEquals(new BigDecimal("30.00"), result.mean());
+        assertEquals(new BigDecimal("40"), result.maximum());
+        assertEquals(List.of(
+                new QuestionAnalyticsDtos.AnswerCount("Ne sait pas", 2, 50.0),
+                new QuestionAnalyticsDtos.AnswerCount("Refus", 0, 0.0)), result.specialValues());
+        assertEquals(2, result.distribution().stream().mapToLong(
+                QuestionAnalyticsDtos.AnswerCount::count).sum());
+    }
+
+    @Test
+    void attachesTheHqInterviewKeyToObservationsWhenAvailable() {
+        Question question = question("Text", List.of());
+        when(surveySolutions.getQuestions(QUESTIONNAIRE_ID, 1)).thenReturn(List.of(question));
+        when(surveySolutions.getInterviews(QUESTIONNAIRE_ID, 1L))
+                .thenReturn(List.of(interview(1), interview(2)));
+        when(surveySolutions.getInterviewKeys(QUESTIONNAIRE_ID, 1)).thenReturn(Map.of(
+                "00000000000000000000000000000001", "01-50-90-18"));
+        when(surveySolutions.getInterviewDetails(uuid(1))).thenReturn(details(answer("a")));
+        when(surveySolutions.getInterviewDetails(uuid(2))).thenReturn(details(answer("b")));
+
+        QuestionAnalyticsDtos.QuestionAnalytics result =
+                service.analyze(QUESTIONNAIRE_ID, 1, VARIABLE);
+
+        assertEquals("01-50-90-18", result.observations().get(0).interviewKey());
+        assertNull(result.observations().get(1).interviewKey());
+    }
+
+    @Test
+    void stillAnalyzesWhenInterviewKeysCannotBeRead() {
+        Question question = question("Text", List.of());
+        when(surveySolutions.getQuestions(QUESTIONNAIRE_ID, 1)).thenReturn(List.of(question));
+        when(surveySolutions.getInterviews(QUESTIONNAIRE_ID, 1L)).thenReturn(List.of(interview(1)));
+        when(surveySolutions.getInterviewKeys(QUESTIONNAIRE_ID, 1))
+                .thenThrow(new IllegalStateException("GraphQL indisponible"));
+        when(surveySolutions.getInterviewDetails(uuid(1))).thenReturn(details(answer("a")));
+
+        QuestionAnalyticsDtos.QuestionAnalytics result =
+                service.analyze(QUESTIONNAIRE_ID, 1, VARIABLE);
+
+        assertEquals(1, result.responseCount());
+        assertNull(result.observations().get(0).interviewKey());
+    }
+
     private Question question(String type, List<QuestionOption> options) {
         return question(VARIABLE, type, options);
     }
@@ -183,8 +271,12 @@ class QuestionAnalyticsServiceTest {
     }
 
     private Interview interview(int id) {
+        return interview(id, "Completed");
+    }
+
+    private Interview interview(int id, String status) {
         return new Interview(uuid(id).toString(), QUESTIONNAIRE_ID.toString(),
-                1, null, "Completed", null);
+                1, null, status, null);
     }
 
     private UUID uuid(int value) {

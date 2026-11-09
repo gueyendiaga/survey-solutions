@@ -427,6 +427,14 @@ export class App implements OnInit {
     return labels[status] ?? status;
   }
 
+  protected hasSpecialValues(analytics: QuestionAnalytics): boolean {
+    return (analytics.specialValues ?? []).length > 0;
+  }
+
+  protected statusList(statuses: string[] | null | undefined): string {
+    return (statuses ?? []).map((status) => this.statusLabel(status)).join(', ');
+  }
+
   protected readonly statusOptions = (dashboard: Dashboard) => ({
     animation: false,
     grid: { left: 190, right: 24, top: 16, bottom: 24 },

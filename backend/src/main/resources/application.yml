@@ -10,3 +10,4 @@ survey-solutions:
   allowed-origin: ${ANALYTICS_ALLOWED_ORIGIN:http://localhost:4200}
   connect-timeout: 5s
   read-timeout: 30s
+  analysis-statuses: ${ANALYTICS_STATUSES:Completed,ApprovedBySupervisor,ApprovedByHeadquarters}

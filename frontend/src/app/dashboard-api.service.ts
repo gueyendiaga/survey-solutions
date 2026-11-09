@@ -44,7 +44,6 @@ export class DashboardApiService {
     if (version !== undefined) {
       params = params.set('version', version);
     }
-    console.log('DashboardApiService.dashboard', { baseUrl: this.baseUrl, questionnaireId, version, params: params.toString() });
     return this.http
       .get<unknown>(`${this.baseUrl}/dashboard`, { params })
       .pipe(map((response) => normalizeKeys(response) as Dashboard));

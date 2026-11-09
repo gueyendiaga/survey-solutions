@@ -74,12 +74,3 @@ Pour le développement local, le backend requiert Maven 3.9+ et Java 17; le lanc
 - `GET /api/questionnaires/{uuid}/{version}/questions` : métadonnées des questions HQ.
 
 Les appels amont paginés sont parcourus jusqu'au total déclaré par HQ. En cas d'erreur API, d'autorisation ou de pagination incomplète, le backend renvoie une erreur explicite plutôt qu'un total partiel présenté comme complet.
-
-
-docker compose --env-file .env.analytics -f docker-compose.analytics.yml up --build -d
-
-## URL HEADQUARTERS : http://localhost:8080
-
-## Admin user
-Username: gueye25
-Password: jks89skfARLSEfb

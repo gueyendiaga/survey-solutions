@@ -429,6 +429,12 @@
             } @else if (completeness(); as overview) {
               <div class="quality-summary">
                 <span><strong>{{ overview.interviewCount | number: '1.0-0' : 'fr-FR' }}</strong> interviews examinées</span>
+                <span class="scope-note">
+                  Statuts inclus : {{ statusList(overview.includedStatuses) }}
+                  @if (overview.excludedInterviewCount) {
+                    · {{ overview.excludedInterviewCount | number: '1.0-0' : 'fr-FR' }} interview(s) d’autres statuts exclue(s)
+                  }
+                </span>
               </div>
               @if (overview.variables.length) {
                 @if (selectedQuestion(); as question) {
@@ -547,7 +553,12 @@
                   <article class="kpi-card">
                     <div class="kpi-label">Interviews examinées</div>
                     <strong class="kpi-value">{{ analytics.interviewCount | number: '1.0-0' : 'fr-FR' }}</strong>
-                    <span class="kpi-note">Pour cette version du questionnaire</span>
+                    <span class="kpi-note" [title]="'Statuts inclus : ' + statusList(analytics.includedStatuses)">
+                      {{ statusList(analytics.includedStatuses) }}
+                      @if (analytics.excludedInterviewCount) {
+                        · {{ analytics.excludedInterviewCount | number: '1.0-0' : 'fr-FR' }} exclue(s)
+                      }
+                    </span>
                   </article>
                   <article class="kpi-card">
                     <div class="kpi-label">Interviews avec réponse</div>
@@ -610,7 +621,11 @@
                           {{ analytics.mean !== null ? 'Distribution des valeurs' : 'Répartition des réponses' }}
                         </h2>
                         <p>
-                          {{ analytics.mean !== null ? 'Intervalles numériques' : 'Comptes et pourcentage des réponses observées' }}
+                          @if (analytics.percentageBase === 'RESPONDENTS') {
+                            Choix multiples : % des réponses ayant coché chaque modalité (le total peut dépasser 100 %)
+                          } @else {
+                            {{ analytics.mean !== null ? 'Intervalles numériques' : 'Comptes et pourcentage des réponses observées' }}
+                          }
                         </p>
                       </div>
                       <div class="distribution-controls">
@@ -702,7 +717,7 @@
                     <div class="panel-heading">
                       <div>
                         <h2>Réponses saisies</h2>
-                        <p>Valeurs reçues de Headquarters, sans nom ni identifiant personnel</p>
+                        <p>Valeurs reçues de Headquarters. La clé HQ permet de retrouver l’interview pour le contrôle qualité.</p>
                       </div>
                       <span class="table-count">{{ analytics.observations.length }} réponse(s)</span>
                     </div>
@@ -711,6 +726,7 @@
                         <thead>
                           <tr>
                             <th>INTERVIEW</th>
+                            <th>CLÉ HQ</th>
                             <th>RÉPONSE DE L’ENQUÊTÉ</th>
                           </tr>
                         </thead>
@@ -718,7 +734,38 @@
                           @for (observation of analytics.observations; track $index) {
                             <tr>
                               <td>Interview {{ observation.interviewNumber }}</td>
+                              <td class="interview-key">{{ observation.interviewKey ?? '—' }}</td>
                               <td class="raw-answer">{{ observation.value }}</td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                }
+                @if (hasSpecialValues(analytics)) {
+                  <section class="panel answer-distribution-panel special-values-panel">
+                    <div class="panel-heading">
+                      <div>
+                        <h2>Valeurs spéciales</h2>
+                        <p>Codes de non-réponse (ex. Ne sait pas, Refus) exclus de la moyenne, de la médiane et des percentiles</p>
+                      </div>
+                    </div>
+                    <div class="distribution-table">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>VALEUR SPÉCIALE</th>
+                            <th>NOMBRE</th>
+                            <th>% DES RÉPONSES</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (special of analytics.specialValues; track special.label) {
+                            <tr>
+                              <td>{{ special.label }}</td>
+                              <td>{{ special.count | number: '1.0-0' : 'fr-FR' }}</td>
+                              <td>{{ special.percentage | number: '1.0-2' : 'fr-FR' }} %</td>
                             </tr>
                           }
                         </tbody>

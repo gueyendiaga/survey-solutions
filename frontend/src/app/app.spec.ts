@@ -110,7 +110,7 @@ describe('App', () => {
       answeredInterviewCount: 1,
       interviewWithoutAnswerCount: 0,
       responseCount: 1,
-      observations: [{ interviewNumber: 1, value: '20' }],
+      observations: [{ interviewNumber: 1, interviewKey: '01-50-90-18', value: '20' }],
       distribution: [{ label: '20', count: 1, percentage: 100 }],
       minimum: 20,
       maximum: 20,
@@ -119,7 +119,11 @@ describe('App', () => {
       sum: 20,
       percentile05: 20,
       percentile95: 20,
-      nonNumericResponseCount: 0
+      nonNumericResponseCount: 0,
+      percentageBase: 'NUMERIC_VALUES',
+      specialValues: [{ label: 'Ne sait pas', count: 1, percentage: 50 }],
+      includedStatuses: ['Completed', 'ApprovedByHeadquarters'],
+      excludedInterviewCount: 3
     });
     fixture.detectChanges();
 
@@ -130,6 +134,11 @@ describe('App', () => {
     expect(fixture.nativeElement.querySelector('.question-list-item')?.textContent).toContain('age');
     expect(fixture.nativeElement.querySelector('.question-kpi-grid')?.textContent).toContain('20');
     expect(fixture.nativeElement.querySelector('.distribution-table')?.textContent).toContain('100');
+    expect(fixture.nativeElement.querySelector('.question-kpi-grid')?.textContent)
+      .toContain('Terminées, Approuvées par HQ');
+    expect(fixture.nativeElement.querySelector('.question-kpi-grid')?.textContent).toContain('3 exclue(s)');
+    expect(fixture.nativeElement.querySelector('.special-values-panel')?.textContent).toContain('Ne sait pas');
+    expect(fixture.nativeElement.querySelector('.interview-key')?.textContent).toContain('01-50-90-18');
     const pieChartButton = fixture.nativeElement.querySelector(
       '[aria-label="Afficher un graphique circulaire"]'
     ) as HTMLButtonElement;

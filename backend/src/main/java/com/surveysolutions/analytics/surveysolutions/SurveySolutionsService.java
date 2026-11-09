@@ -3,9 +3,12 @@ package com.surveysolutions.analytics.surveysolutions;
 import static com.surveysolutions.analytics.surveysolutions.SurveySolutionsDtos.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import com.fasterxml.jackson.databind.JsonNode;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -165,13 +168,12 @@ public class SurveySolutionsService {
         JsonNode answerNodes = node.get("Answers");
         if (answerNodes != null && answerNodes.isArray()) {
             answerNodes.forEach(answer -> {
-                JsonNode code = answer.get("AnswerCode");
                 JsonNode answerText = answer.get("AnswerText");
                 JsonNode value = answer.get("AnswerValue");
-                if (code != null && code.canConvertToInt()
-                        && answerText != null && answerText.isTextual()) {
+                Integer code = optionCode(answer.get("AnswerCode"), value);
+                if (code != null && answerText != null && answerText.isTextual()) {
                     answers.add(new QuestionOption(
-                            code.asInt(),
+                            code,
                             answerText.asText(),
                             value == null || value.isNull() ? null : value.asText()));
                 }
@@ -187,6 +189,76 @@ public class SurveySolutionsService {
                 questionType,
                 List.copyOf(breadcrumbs),
                 List.copyOf(answers));
+    }
+
+    /**
+     * Le document HQ ne renseigne pas toujours AnswerCode (par exemple pour les options ajoutées
+     * après la première) : AnswerValue porte alors le code de la modalité.
+     */
+    private Integer optionCode(JsonNode code, JsonNode value) {
+        if (code != null && code.canConvertToInt()) {
+            return code.asInt();
+        }
+        if (value != null && value.isTextual()) {
+            try {
+                return new java.math.BigDecimal(value.asText().trim()).intValueExact();
+            } catch (NumberFormatException | ArithmeticException ignored) {
+                return null;
+            }
+        }
+        return value != null && value.canConvertToInt() ? value.asInt() : null;
+    }
+
+    /**
+     * Renvoie la clé lisible (InterviewKey, ex. 01-50-90-18) de chaque interview d'une version,
+     * indexée par identifiant normalisé (sans tirets, minuscules). L'API REST v1 ne fournit pas
+     * cette clé : elle est lue en une requête paginée sur l'API GraphQL de HQ.
+     */
+    public Map<String, String> getInterviewKeys(UUID questionnaireId, long version) {
+        Map<String, String> keys = new HashMap<>();
+        String query = """
+                query($questionnaireId: UUID!, $version: Long!, $skip: Int!, $take: Int!) {
+                  interviews(skip: $skip, take: $take, where: {
+                    questionnaireId: { eq: $questionnaireId },
+                    questionnaireVersion: { eq: $version } }) {
+                    nodes { id key }
+                  }
+                }""";
+        for (int page = 0; page < MAX_PAGES; page++) {
+            Map<String, Object> variables = Map.of(
+                    "questionnaireId", questionnaireId.toString(),
+                    "version", version,
+                    "skip", page * INTERVIEW_PAGE_SIZE,
+                    "take", INTERVIEW_PAGE_SIZE);
+            JsonNode response = client.post()
+                    .uri("/graphql")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("query", query, "variables", variables))
+                    .retrieve()
+                    .body(JsonNode.class);
+            if (response == null || response.has("errors")) {
+                throw new IllegalStateException("HQ GraphQL n'a pas renvoyé les clés d'interview.");
+            }
+            JsonNode nodes = response.path("data").path("interviews").path("nodes");
+            if (!nodes.isArray()) {
+                throw new IllegalStateException("HQ GraphQL a renvoyé des clés d'interview invalides.");
+            }
+            nodes.forEach(node -> {
+                String id = node.path("id").asText("");
+                String key = node.path("key").asText("");
+                if (!id.isBlank() && !key.isBlank()) {
+                    keys.put(normalizeInterviewId(id), key);
+                }
+            });
+            if (nodes.size() < INTERVIEW_PAGE_SIZE) {
+                return Map.copyOf(keys);
+            }
+        }
+        throw new IllegalStateException("La pagination HQ dépasse la limite de sécurité de 1000 pages.");
+    }
+
+    public static String normalizeInterviewId(String interviewId) {
+        return interviewId == null ? "" : interviewId.replace("-", "").toLowerCase(java.util.Locale.ROOT);
     }
 
     private String questionType(JsonNode node) {

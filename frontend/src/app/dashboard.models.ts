@@ -48,8 +48,13 @@ export interface AnswerCount {
 
 export interface AnswerObservation {
   interviewNumber: number;
+  /** Clé HQ lisible (ex. 01-50-90-18), absente si HQ ne l'a pas fournie. */
+  interviewKey: string | null;
   value: string;
 }
+
+/** RESPONSES : la somme fait 100 %. RESPONDENTS (choix multiples) : % des réponses non vides. */
+export type PercentageBase = 'RESPONSES' | 'RESPONDENTS' | 'NUMERIC_VALUES';
 
 export interface QuestionCompleteness {
   question: QuestionSummary;
@@ -61,6 +66,8 @@ export interface QuestionCompleteness {
 export interface CompletenessOverview {
   interviewCount: number;
   variables: QuestionCompleteness[];
+  includedStatuses: string[];
+  excludedInterviewCount: number;
 }
 
 export interface QuestionAnalytics {
@@ -79,4 +86,8 @@ export interface QuestionAnalytics {
   percentile05: number | null;
   percentile95: number | null;
   nonNumericResponseCount: number;
+  percentageBase: PercentageBase;
+  specialValues: AnswerCount[];
+  includedStatuses: string[];
+  excludedInterviewCount: number;
 }
