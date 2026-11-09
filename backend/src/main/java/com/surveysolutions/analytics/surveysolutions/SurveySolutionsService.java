@@ -3,7 +3,6 @@ package com.surveysolutions.analytics.surveysolutions;
 import static com.surveysolutions.analytics.surveysolutions.SurveySolutionsDtos.*;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -210,55 +209,38 @@ public class SurveySolutionsService {
     }
 
     /**
-     * Renvoie la clé lisible (InterviewKey, ex. 01-50-90-18) de chaque interview d'une version,
-     * indexée par identifiant normalisé (sans tirets, minuscules). L'API REST v1 ne fournit pas
-     * cette clé : elle est lue en une requête paginée sur l'API GraphQL de HQ.
+     * Empreinte des données d'une version (nombre d'interviews et dernière modification), lue en
+     * une requête GraphQL. Si elle n'a pas changé depuis la dernière synchronisation, l'export
+     * HQ n'est pas relancé.
      */
-    public Map<String, String> getInterviewKeys(UUID questionnaireId, long version) {
-        Map<String, String> keys = new HashMap<>();
+    public String getDataFingerprint(UUID questionnaireId, long version) {
         String query = """
-                query($questionnaireId: UUID!, $version: Long!, $skip: Int!, $take: Int!) {
-                  interviews(skip: $skip, take: $take, where: {
+                query($questionnaireId: UUID!, $version: Long!) {
+                  interviews(take: 1, where: {
                     questionnaireId: { eq: $questionnaireId },
-                    questionnaireVersion: { eq: $version } }) {
-                    nodes { id key }
+                    questionnaireVersion: { eq: $version } },
+                    order: [{ updateDateUtc: DESC }]) {
+                    filteredCount
+                    nodes { updateDateUtc }
                   }
                 }""";
-        for (int page = 0; page < MAX_PAGES; page++) {
-            Map<String, Object> variables = Map.of(
-                    "questionnaireId", questionnaireId.toString(),
-                    "version", version,
-                    "skip", page * INTERVIEW_PAGE_SIZE,
-                    "take", INTERVIEW_PAGE_SIZE);
-            JsonNode response = client.post()
-                    .uri("/graphql")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(Map.of("query", query, "variables", variables))
-                    .retrieve()
-                    .body(JsonNode.class);
-            if (response == null || response.has("errors")) {
-                throw new IllegalStateException("HQ GraphQL n'a pas renvoyé les clés d'interview.");
-            }
-            JsonNode nodes = response.path("data").path("interviews").path("nodes");
-            if (!nodes.isArray()) {
-                throw new IllegalStateException("HQ GraphQL a renvoyé des clés d'interview invalides.");
-            }
-            nodes.forEach(node -> {
-                String id = node.path("id").asText("");
-                String key = node.path("key").asText("");
-                if (!id.isBlank() && !key.isBlank()) {
-                    keys.put(normalizeInterviewId(id), key);
-                }
-            });
-            if (nodes.size() < INTERVIEW_PAGE_SIZE) {
-                return Map.copyOf(keys);
-            }
+        JsonNode response = client.post()
+                .uri("/graphql")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("query", query, "variables", Map.of(
+                        "questionnaireId", questionnaireId.toString(),
+                        "version", version)))
+                .retrieve()
+                .body(JsonNode.class);
+        if (response == null || response.has("errors")) {
+            throw new IllegalStateException("HQ GraphQL n'a pas renvoyé l'état des interviews.");
         }
-        throw new IllegalStateException("La pagination HQ dépasse la limite de sécurité de 1000 pages.");
-    }
-
-    public static String normalizeInterviewId(String interviewId) {
-        return interviewId == null ? "" : interviewId.replace("-", "").toLowerCase(java.util.Locale.ROOT);
+        JsonNode interviews = response.path("data").path("interviews");
+        if (!interviews.has("filteredCount")) {
+            throw new IllegalStateException("HQ GraphQL a renvoyé un état d'interviews invalide.");
+        }
+        return interviews.path("filteredCount").asLong() + "|"
+                + interviews.path("nodes").path(0).path("updateDateUtc").asText("");
     }
 
     private String questionType(JsonNode node) {

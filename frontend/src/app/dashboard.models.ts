@@ -48,18 +48,36 @@ export interface AnswerCount {
 
 export interface AnswerObservation {
   interviewNumber: number;
-  /** Clé HQ lisible (ex. 01-50-90-18), absente si HQ ne l'a pas fournie. */
+  /** Clé HQ lisible (ex. 01-50-90-18). */
   interviewKey: string | null;
+  /** Identifiant de ligne de roster ; vide au niveau principal. */
+  rowKey: string;
   value: string;
+}
+
+/** État de l'import des données d'une version dans la base Analytics. */
+export interface SyncStatus {
+  inProgress: boolean;
+  lastSuccessAt: string | null;
+  interviewCount: number | null;
+  lastStatus: 'RUNNING' | 'SUCCEEDED' | 'FAILED' | null;
+  lastError: string | null;
 }
 
 /** RESPONSES : la somme fait 100 %. RESPONDENTS (choix multiples) : % des réponses non vides. */
 export type PercentageBase = 'RESPONSES' | 'RESPONDENTS' | 'NUMERIC_VALUES';
 
+/** Comptes en unités d'observation : interviews, ou lignes de roster pour une variable de roster. */
 export interface QuestionCompleteness {
   question: QuestionSummary;
+  level: string | null;
+  answeredCount: number;
+  /** Question active mais sans réponse. */
+  missingCount: number;
+  /** Question désactivée par une condition. */
+  notApplicableCount: number;
   answeredInterviewCount: number;
-  interviewWithoutAnswerCount: number;
+  /** answered / (answered + missing), hors non applicables. */
   responseRate: number;
 }
 
@@ -68,14 +86,17 @@ export interface CompletenessOverview {
   variables: QuestionCompleteness[];
   includedStatuses: string[];
   excludedInterviewCount: number;
+  syncedAt: string | null;
 }
 
 export interface QuestionAnalytics {
   question: QuestionSummary;
   interviewCount: number;
   answeredInterviewCount: number;
-  interviewWithoutAnswerCount: number;
   responseCount: number;
+  missingCount: number;
+  notApplicableCount: number;
+  responseRate: number;
   observations: AnswerObservation[];
   distribution: AnswerCount[];
   minimum: number | null;
@@ -90,4 +111,5 @@ export interface QuestionAnalytics {
   specialValues: AnswerCount[];
   includedStatuses: string[];
   excludedInterviewCount: number;
+  syncedAt: string | null;
 }

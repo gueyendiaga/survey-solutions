@@ -32,7 +32,7 @@ public class SurveySolutionsClientConfig {
                 (username + ":" + password).getBytes(StandardCharsets.UTF_8));
 
         return builder
-                .baseUrl(properties.getBaseUrl())
+                .baseUrl(properties.getApiBaseUrl())
                 .requestFactory(requestFactory)
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Basic " + credentials)
                 .defaultHeader(HttpHeaders.ACCEPT, "application/json")

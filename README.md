@@ -28,9 +28,9 @@ Pour arrêter uniquement Analytics, exécuter `docker compose --env-file .env.an
 - `ANALYTICS_ALLOWED_ORIGIN` : origine autorisée pour les requêtes du frontend.
 - `.env.analytics` est ignoré par Git. Ne pas y mettre de secret dans un fichier versionné.
 
-Les exports sont générés à la demande et n'exécutent que des requêtes GET. Les statistiques utilisent les statuts renvoyés par HQ; l'évolution temporelle compte les interviews selon leur `LastEntryDate` et doit donc être lue comme une activité de mise à jour, pas comme une date de complétion.
+Le backend n'écrit rien dans HQ : il lit l'API et crée seulement des jobs d'export (`POST /api/v2/export`), comme le bouton « Export » de HQ. Les statistiques utilisent les statuts renvoyés par HQ; l'évolution temporelle compte les interviews selon leur `LastEntryDate` et doit donc être lue comme une activité de mise à jour, pas comme une date de complétion.
 
-Ce MVP lit les agrégats à la demande : il n'utilise pas PostgreSQL, ne conserve aucune réponse individuelle et n'inclut ni authentification propre à la plateforme ni administration. Le port web est limité à `127.0.0.1`; ne pas l'exposer sur un réseau ou en production avant d'ajouter l'authentification et les contrôles d'accès.
+Les réponses des interviews sont importées dans une base PostgreSQL dédiée (`analytics-db`, non exposée sur le réseau, volume `analytics-db`). Elle contient des microdonnées : appliquer les mêmes règles d'accès, de sauvegarde et de conservation qu'à HQ. L'application n'inclut encore ni authentification propre ni administration. Le port web est limité à `127.0.0.1`; ne pas l'exposer sur un réseau ou en production avant d'ajouter l'authentification et les contrôles d'accès.
 
 L'explorateur applique le [contrat API HQ](https://docs.mysurvey.solutions/headquarters/api/survey-solutions-api/) et utilise le Swagger de l'instance pour les routes et paramètres disponibles. Il liste les questions de `GET /api/v1/statistics/questions`; si HQ renvoie une liste vide, il les découvre dans le document de questionnaire de `GET /api/v1/questionnaires/{id}/{version}/document`. Les types numériques du document sont interprétés selon l'énumération Survey Solutions : `0` choix unique, `3` choix multiples, `4` numérique, `5` date/heure, `6` GPS, `7` texte, `9` liste de texte, `10` code-barres, `11` multimédia, `12` zone et `13` audio.
 
@@ -40,9 +40,21 @@ Les réponses individuelles peuvent contenir des informations personnelles ou se
 
 L'explorateur permet de télécharger les réponses du questionnaire sélectionné en CSV ou Excel (`.xlsx`). Chaque ligne représente une réponse renvoyée par HQ; les répétitions (notamment les rosters) restent sur des lignes distinctes. Les valeurs structurées sont présentées sous forme lisible (par exemple `Latitude : 48.8 ; Longitude : 2.3`) plutôt qu'en JSON brut, et les champs additionnels sont rendus en paires nom-valeur. Les réponses multimédia sont exportées comme valeurs/références renvoyées par l'API; les fichiers binaires ne sont pas téléchargés. L'export lit au plus 5 000 interviews et échoue explicitement au-delà. Excel limite une cellule à 32 767 caractères; les valeurs plus longues restent exportables en CSV. Les exports contiennent des réponses potentiellement sensibles : les mêmes précautions d'accès et de stockage que pour les données HQ s'appliquent.
 
-Chaque analyse lit les détails de toutes les interviews du questionnaire, avec au plus quatre appels concurrents. Une limite de sécurité de 5 000 interviews est appliquée; au-delà, l'API Analytics renvoie une erreur explicite plutôt qu'une analyse partielle. Pour de grands questionnaires, prévoir une stratégie de cache ou de traitement asynchrone.
+### Synchronisation et calcul des indicateurs
+
+Les indicateurs par variable et la complétude sont calculés sur la base Analytics, alimentée par l'[Export API](https://docs.mysurvey.solutions/headquarters/api/survey-solutions-api/) au format tabulaire :
+
+1. toutes les `ANALYTICS_SYNC_INTERVAL` (30 minutes par défaut), le backend compare pour chaque version le nombre d'interviews et leur dernière modification (une requête GraphQL) avec la dernière synchronisation ; seules les versions modifiées sont réexportées ;
+2. ouvrir une version jamais importée lance aussitôt sa synchronisation, et le bouton « Synchroniser maintenant » en force une ;
+3. l'archive est lue fichier par fichier (fichier principal et un fichier par roster) puis remplace atomiquement les données de la version.
+
+Conventions de l'export reprises dans les indicateurs : cellule vide = question **non applicable** (désactivée par un filtre), `-999999999` / `##N/A##` = question posée **sans réponse**. Le taux de réponse vaut réponses / (réponses + sans réponse) : les non applicables n'en font pas partie. Pour une variable de roster, l'unité est la ligne (membre, parcelle…) et non l'interview. Les choix multiples sont lus par code (`variable__code`), indépendamment de la traduction. Seuls les statuts d'interview listés dans `ANALYTICS_STATUSES` entrent dans les calculs.
+
+`SURVEY_SOLUTIONS_WORKSPACE` désigne le workspace HQ interrogé (`primary` par défaut ; vide pour une instance HQ sans workspaces). L'export CSV/Excel de l'explorateur lit encore HQ en direct et reste limité à 5 000 interviews.
 
 ## Développement local
+
+Le backend lancé hors Docker attend PostgreSQL sur `localhost:5433` (base, utilisateur `analytics`, mot de passe `ANALYTICS_DB_PASSWORD`) ; `ANALYTICS_DB_URL` permet d'en choisir une autre. Les migrations Flyway créent le schéma au démarrage.
 
 Le backend écoute sur `http://localhost:8081`; le proxy Angular transmet `/api` vers ce port :
 
@@ -72,5 +84,9 @@ Pour le développement local, le backend requiert Maven 3.9+ et Java 17; le lanc
 - `GET /api/questionnaires/{uuid}/{version}/question-analytics?variableName={variable}` : agrégats d'une variable.
 - `GET /api/questionnaires/{uuid}/{version}/export?format=csv|xlsx` : export des réponses du questionnaire en CSV ou Excel.
 - `GET /api/questionnaires/{uuid}/{version}/questions` : métadonnées des questions HQ.
+- `GET /api/questionnaires/{uuid}/{version}/sync` : état de la synchronisation (en cours, date des données, dernière erreur).
+- `POST /api/questionnaires/{uuid}/{version}/sync` : lance une synchronisation (réponse 202).
+
+Tant qu'une version n'a jamais été importée, `question-completeness` et `question-analytics` renvoient 409 avec `syncPending: true` et déclenchent la synchronisation.
 
 Les appels amont paginés sont parcourus jusqu'au total déclaré par HQ. En cas d'erreur API, d'autorisation ou de pagination incomplète, le backend renvoie une erreur explicite plutôt qu'un total partiel présenté comme complet.

@@ -229,7 +229,7 @@ class SurveySolutionsServiceTest {
     }
 
     @Test
-    void readsInterviewKeysFromGraphqlIndexedByNormalizedId() {
+    void buildsDataFingerprintFromGraphqlCountAndLastUpdate() {
         UUID questionnaireId = UUID.fromString("588daf2d-0c72-4b89-bec9-254459a68983");
         RestClient.Builder builder = RestClient.builder().baseUrl("http://hq.test");
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
@@ -238,17 +238,15 @@ class SurveySolutionsServiceTest {
                         .jsonPath("$.variables.questionnaireId").value(questionnaireId.toString()))
                 .andRespond(withSuccess(
                         """
-                        {"data": {"interviews": {"nodes": [
-                          {"id": "6513786b9ed14deab9cdf1edd247f6de", "key": "01-50-90-18"}
-                        ]}}}
+                        {"data": {"interviews": {"filteredCount": 3,
+                          "nodes": [{"updateDateUtc": "2026-11-05T08:42:20.035Z"}]}}}
                         """,
                         MediaType.APPLICATION_JSON));
 
-        var keys = new SurveySolutionsService(builder.build())
-                .getInterviewKeys(questionnaireId, 1);
+        String fingerprint = new SurveySolutionsService(builder.build())
+                .getDataFingerprint(questionnaireId, 1);
 
-        assertThat(keys.get(SurveySolutionsService.normalizeInterviewId(
-                "6513786b-9ed1-4dea-b9cd-f1edd247f6de"))).isEqualTo("01-50-90-18");
+        assertThat(fingerprint).isEqualTo("3|2026-11-05T08:42:20.035Z");
         server.verify();
     }
 

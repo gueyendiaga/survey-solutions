@@ -372,6 +372,47 @@
           </div>
         </section>
 
+        <section
+          class="sync-banner"
+          [class.sync-running]="syncStatus()?.inProgress"
+          [class.sync-failed]="!syncStatus()?.inProgress && syncStatus()?.lastStatus === 'FAILED'"
+          aria-live="polite">
+          <div class="sync-text">
+            @if (syncStatus()?.inProgress) {
+              <span class="loading-spinner"></span>
+              <div>
+                <strong>Synchronisation en cours…</strong>
+                <span>Export des interviews depuis HQ puis import dans la base Analytics.</span>
+              </div>
+            } @else if (syncStatus()?.lastSuccessAt) {
+              <div>
+                <strong>
+                  Données importées le {{ syncStatus()!.lastSuccessAt | date: 'd MMMM y à HH:mm' : '' : 'fr-FR' }}
+                </strong>
+                <span>
+                  {{ syncStatus()!.interviewCount ?? 0 | number: '1.0-0' : 'fr-FR' }} interview(s) · mise à jour automatique
+                  quand HQ reçoit de nouvelles données
+                </span>
+              </div>
+            } @else {
+              <div>
+                <strong>Aucune donnée importée pour cette version</strong>
+                <span>Lancez une synchronisation pour calculer les indicateurs.</span>
+              </div>
+            }
+            @if (!syncStatus()?.inProgress && syncStatus()?.lastStatus === 'FAILED') {
+              <span class="sync-error">Dernière tentative en échec : {{ syncStatus()?.lastError }}</span>
+            }
+          </div>
+          <button
+            type="button"
+            class="export-button sync-button"
+            (click)="startSync()"
+            [disabled]="syncRequesting() || syncStatus()?.inProgress">
+            Synchroniser maintenant
+          </button>
+        </section>
+
         @if (exportError()) {
           <section class="export-error" role="alert">{{ exportError() }}</section>
         }
@@ -447,7 +488,7 @@
                         </div>
                         @if (!overview.interviewCount) {
                           <span class="quality-status">Sans données</span>
-                        } @else if (item.interviewWithoutAnswerCount) {
+                        } @else if (item.missingCount) {
                           <span class="quality-status review-needed">À examiner</span>
                         } @else {
                           <span class="quality-status complete">Complet</span>
@@ -462,12 +503,16 @@
                         </div>
                         <div class="completeness-counts">
                           <div>
-                            <span>Interviews avec réponse</span>
-                            <strong>{{ item.answeredInterviewCount | number: '1.0-0' : 'fr-FR' }}</strong>
+                            <span>{{ unitLabel(item.level) }} avec réponse</span>
+                            <strong>{{ item.answeredCount | number: '1.0-0' : 'fr-FR' }}</strong>
                           </div>
                           <div>
-                            <span>Interviews sans réponse</span>
-                            <strong>{{ item.interviewWithoutAnswerCount | number: '1.0-0' : 'fr-FR' }}</strong>
+                            <span>Sans réponse (question posée)</span>
+                            <strong>{{ item.missingCount | number: '1.0-0' : 'fr-FR' }}</strong>
+                          </div>
+                          <div>
+                            <span>Non applicable (filtre)</span>
+                            <strong>{{ item.notApplicableCount | number: '1.0-0' : 'fr-FR' }}</strong>
                           </div>
                         </div>
                       } @else {
@@ -482,9 +527,9 @@
                   </div>
                 }
                 <p class="quality-note">
-                  Une non-réponse n’indique pas toujours une anomalie : elle peut être attendue selon les filtres
-                  ou conditions de saut du questionnaire. Les taux sont calculés sur toutes les interviews HQ,
-                  sans distinction de statut. Les indicateurs affichés concernent uniquement la question sélectionnée.
+                  Les questions désactivées par un filtre ou une condition de saut sont comptées « non applicables »
+                  et exclues du taux de réponse, qui ne porte que sur les questions effectivement posées et sur les
+                  statuts d’interview indiqués ci-dessus.
                 </p>
               } @else {
                 <div class="empty-state table-empty">
@@ -542,6 +587,13 @@
                 </section>
               }
 
+              @if (!loading() && !questionAnalytics() && syncStatus()?.inProgress) {
+                <section class="panel loading-panel question-loading">
+                  <span class="loading-spinner"></span>
+                  <strong>Import des données en cours…</strong>
+                  <span>Les indicateurs s’afficheront automatiquement à la fin de la synchronisation.</span>
+                </section>
+              }
               @if (loading() && !questionAnalytics()) {
                 <section class="panel loading-panel question-loading">
                   <span class="loading-spinner"></span>
@@ -563,7 +615,11 @@
                   <article class="kpi-card">
                     <div class="kpi-label">Interviews avec réponse</div>
                     <strong class="kpi-value">{{ analytics.answeredInterviewCount | number: '1.0-0' : 'fr-FR' }}</strong>
-                    <span class="kpi-note">{{ analytics.interviewWithoutAnswerCount }} sans réponse trouvée</span>
+                    <span class="kpi-note">
+                      {{ analytics.missingCount | number: '1.0-0' : 'fr-FR' }} sans réponse ·
+                      {{ analytics.notApplicableCount | number: '1.0-0' : 'fr-FR' }} non applicable(s) ·
+                      taux {{ analytics.responseRate | number: '1.0-2' : 'fr-FR' }} %
+                    </span>
                   </article>
                   <article class="kpi-card">
                     <div class="kpi-label">Réponses observées</div>
@@ -727,6 +783,7 @@
                           <tr>
                             <th>INTERVIEW</th>
                             <th>CLÉ HQ</th>
+                            <th>LIGNE</th>
                             <th>RÉPONSE DE L’ENQUÊTÉ</th>
                           </tr>
                         </thead>
@@ -735,6 +792,7 @@
                             <tr>
                               <td>Interview {{ observation.interviewNumber }}</td>
                               <td class="interview-key">{{ observation.interviewKey ?? '—' }}</td>
+                              <td>{{ observation.rowKey || '—' }}</td>
                               <td class="raw-answer">{{ observation.value }}</td>
                             </tr>
                           }
@@ -779,8 +837,8 @@
                   </p>
                 }
                 <p class="analysis-footnote">
-                  Le backend lit les interviews en parallèle (4 requêtes simultanées), sans enregistrer leurs réponses.
-                  Les questions en roster peuvent produire plusieurs réponses par interview.
+                  Indicateurs calculés sur la base Analytics, alimentée par l’export HQ.
+                  Pour une question de roster, chaque ligne (membre, parcelle…) compte comme une réponse.
                 </p>
               }
             </div>

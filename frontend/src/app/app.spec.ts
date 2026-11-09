@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { By } from '@angular/platform-browser';
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { App } from './app';
 import { DashboardChartComponent } from './dashboard-chart';
 
@@ -53,6 +53,13 @@ describe('App', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain('Questions & réponses');
+    http.expectOne('/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1/sync').flush({
+      inProgress: false,
+      lastSuccessAt: '2026-11-09T10:00:00Z',
+      interviewCount: 2,
+      lastStatus: 'SUCCEEDED',
+      lastError: null
+    });
     http.expectOne(
       '/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1/question-list'
     ).flush([
@@ -83,11 +90,17 @@ describe('App', () => {
             breadcrumbs: [],
             optionCount: 0
           },
+          level: 'survey',
+          answeredCount: 1,
+          missingCount: 1,
+          notApplicableCount: 3,
           answeredInterviewCount: 1,
-          interviewWithoutAnswerCount: 1,
           responseRate: 50
         }
-      ]
+      ],
+      includedStatuses: ['Completed'],
+      excludedInterviewCount: 0,
+      syncedAt: '2026-11-09T10:00:00Z'
     });
     fixture.detectChanges();
 
@@ -108,9 +121,11 @@ describe('App', () => {
       },
       interviewCount: 1,
       answeredInterviewCount: 1,
-      interviewWithoutAnswerCount: 0,
       responseCount: 1,
-      observations: [{ interviewNumber: 1, interviewKey: '01-50-90-18', value: '20' }],
+      missingCount: 0,
+      notApplicableCount: 2,
+      responseRate: 100,
+      observations: [{ interviewNumber: 1, interviewKey: '01-50-90-18', rowKey: '', value: '20' }],
       distribution: [{ label: '20', count: 1, percentage: 100 }],
       minimum: 20,
       maximum: 20,
@@ -139,6 +154,11 @@ describe('App', () => {
     expect(fixture.nativeElement.querySelector('.question-kpi-grid')?.textContent).toContain('3 exclue(s)');
     expect(fixture.nativeElement.querySelector('.special-values-panel')?.textContent).toContain('Ne sait pas');
     expect(fixture.nativeElement.querySelector('.interview-key')?.textContent).toContain('01-50-90-18');
+    expect(fixture.nativeElement.querySelector('.sync-banner')?.textContent).toContain('2 interview(s)');
+    expect(fixture.nativeElement.querySelector('.completeness-counts')?.textContent)
+      .toContain('Non applicable (filtre)');
+    expect(fixture.nativeElement.querySelector('.question-kpi-grid')?.textContent)
+      .toContain('2 non applicable(s)');
     const pieChartButton = fixture.nativeElement.querySelector(
       '[aria-label="Afficher un graphique circulaire"]'
     ) as HTMLButtonElement;
@@ -197,6 +217,13 @@ describe('App', () => {
     fixture.detectChanges();
     (fixture.nativeElement.querySelector('.open-questionnaire-button') as HTMLButtonElement).click();
     fixture.detectChanges();
+    http.expectOne('/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1/sync').flush({
+      inProgress: false,
+      lastSuccessAt: '2026-11-09T10:00:00Z',
+      interviewCount: 2,
+      lastStatus: 'SUCCEEDED',
+      lastError: null
+    });
     http.expectOne(
       '/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1/question-list'
     ).flush([
@@ -230,8 +257,10 @@ describe('App', () => {
       },
       interviewCount: 0,
       answeredInterviewCount: 0,
-      interviewWithoutAnswerCount: 0,
       responseCount: 0,
+      missingCount: 0,
+      notApplicableCount: 0,
+      responseRate: 0,
       observations: [],
       distribution: [],
       minimum: null,
@@ -260,6 +289,53 @@ describe('App', () => {
     expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled();
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:export');
   });
+
+  it('waits for the data import and reloads indicators when it finishes', fakeAsync(() => {
+    const base = '/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1';
+    const syncPending = { status: 409, statusText: 'Conflict' };
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    http.expectOne('/api/dashboard').flush(dashboardResponse());
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('a[href="#questionnaires"]') as HTMLAnchorElement).click();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.open-questionnaire-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    http.expectOne(`${base}/sync`).flush({
+      inProgress: false, lastSuccessAt: null, interviewCount: null, lastStatus: null, lastError: null
+    });
+    http.expectOne(`${base}/question-list`).flush([{
+      id: 'question-1', variableName: 'age', questionText: 'Quel âge ?', label: 'Âge',
+      type: 'Numeric', breadcrumbs: [], optionCount: 0
+    }]);
+    fixture.detectChanges();
+    http.expectOne(`${base}/question-completeness`)
+      .flush({ detail: 'Synchronisation en cours', syncPending: true }, syncPending);
+    http.expectOne((request) => request.url === `${base}/question-analytics`)
+      .flush({ detail: 'Synchronisation en cours', syncPending: true }, syncPending);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.sync-banner')?.textContent)
+      .toContain('Synchronisation en cours');
+    expect(fixture.nativeElement.querySelector('.error-banner')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Import des données en cours');
+
+    tick(3000);
+    http.expectOne(`${base}/sync`).flush({
+      inProgress: false,
+      lastSuccessAt: '2026-11-09T10:00:00Z',
+      interviewCount: 1,
+      lastStatus: 'SUCCEEDED',
+      lastError: null
+    });
+    fixture.detectChanges();
+
+    http.expectOne(`${base}/question-completeness`)
+      .flush({ interviewCount: 0, variables: [], includedStatuses: [], excludedInterviewCount: 0 });
+    http.expectOne((request) => request.url === `${base}/question-analytics`);
+    expect(fixture.nativeElement.querySelector('.sync-banner')?.textContent).toContain('1 interview(s)');
+  }));
 
   function dashboardResponse() {
     return {

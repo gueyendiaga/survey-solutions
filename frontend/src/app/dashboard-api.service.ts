@@ -6,7 +6,8 @@ import {
   Dashboard,
   QuestionAnalytics,
   Questionnaire,
-  QuestionSummary
+  QuestionSummary,
+  SyncStatus
 } from './dashboard.models';
 
 function normalizeKeys(value: unknown): unknown {
@@ -78,6 +79,18 @@ export class DashboardApiService {
         `${this.baseUrl}/questionnaires/${questionnaireId}/${version}/question-completeness`
       )
       .pipe(map((response) => normalizeKeys(response) as CompletenessOverview));
+  }
+
+  syncStatus(questionnaireId: string, version: number): Observable<SyncStatus> {
+    return this.http
+      .get<unknown>(`${this.baseUrl}/questionnaires/${questionnaireId}/${version}/sync`)
+      .pipe(map((response) => normalizeKeys(response) as SyncStatus));
+  }
+
+  startSync(questionnaireId: string, version: number): Observable<SyncStatus> {
+    return this.http
+      .post<unknown>(`${this.baseUrl}/questionnaires/${questionnaireId}/${version}/sync`, null)
+      .pipe(map((response) => normalizeKeys(response) as SyncStatus));
   }
 
   exportData(questionnaireId: string, version: number, format: 'csv' | 'xlsx'): Observable<Blob> {

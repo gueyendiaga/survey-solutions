@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientResponseException;
+import com.surveysolutions.analytics.questions.DataNotSynchronizedException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -17,6 +18,14 @@ public class ApiExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     ProblemDetail handleInvalidRequest(IllegalArgumentException exception) {
         return problem(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+
+    /** 409 + syncPending : le frontend affiche l'état de synchronisation et réessaie. */
+    @ExceptionHandler(DataNotSynchronizedException.class)
+    ProblemDetail handleDataNotSynchronized(DataNotSynchronizedException exception) {
+        ProblemDetail problem = problem(HttpStatus.CONFLICT, exception.getMessage());
+        problem.setProperty("syncPending", true);
+        return problem;
     }
 
     @ExceptionHandler(RestClientResponseException.class)
