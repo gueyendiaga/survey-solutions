@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -72,7 +73,13 @@ public class TabularExportParser {
             Integer rejectionsHq,
             Integer interviewerCount,
             Long durationSeconds,
-            Integer unansweredCount) {}
+            Integer unansweredCount,
+            /** Enquêteur ayant terminé l'interview, ou à défaut son dernier enquêteur responsable. */
+            String interviewerName,
+            Instant createdAt,
+            /** Première complétion par l'enquêteur (action Completed) ; null si jamais terminée. */
+            Instant completedAt,
+            Instant lastActionAt) {}
 
     public record UnitRecord(
             UUID interviewId,
@@ -85,6 +92,27 @@ public class TabularExportParser {
         void interview(InterviewRecord interview);
 
         void unit(UnitRecord unit);
+    }
+
+    /** Codes d'action de interview__actions.tab utilisés pour le suivi terrain. */
+    private static final int ACTION_COMPLETED = 3;
+    private static final int ACTION_CREATED = 12;
+    /** Code de rôle « enquêteur » dans les colonnes role et responsible__role. */
+    private static final int ROLE_INTERVIEWER = 1;
+
+    private static final class History {
+        private String interviewer;
+        private String completedBy;
+        private Instant createdAt;
+        private Instant firstAction;
+        private Instant completedAt;
+        private Instant lastAction;
+        private Instant lastCompletion;
+        private Instant lastInterviewerResponsibility;
+
+        private String interviewerName() {
+            return completedBy != null ? completedBy : interviewer;
+        }
     }
 
     private record Diagnostics(
@@ -103,6 +131,7 @@ public class TabularExportParser {
         try (ZipFile archive = new ZipFile(zip.toFile(), StandardCharsets.UTF_8)) {
             List<ZipEntry> dataFiles = new ArrayList<>();
             ZipEntry diagnosticsFile = null;
+            ZipEntry actionsFile = null;
             for (ZipEntry entry : Collections.list(archive.entries())) {
                 String name = entry.getName();
                 if (entry.isDirectory() || name.contains("/") || !name.endsWith(".tab")) {
@@ -110,6 +139,8 @@ public class TabularExportParser {
                 }
                 if (name.equals("interview__diagnostics.tab")) {
                     diagnosticsFile = entry;
+                } else if (name.equals("interview__actions.tab")) {
+                    actionsFile = entry;
                 } else if (SERVICE_FILE_PREFIXES.stream().noneMatch(name::startsWith)) {
                     dataFiles.add(entry);
                 }
@@ -118,12 +149,16 @@ public class TabularExportParser {
             Map<UUID, Diagnostics> diagnostics = diagnosticsFile == null
                     ? Map.of()
                     : readDiagnostics(archive, diagnosticsFile);
+            Map<UUID, History> histories = actionsFile == null
+                    ? Map.of()
+                    : readHistories(archive, actionsFile);
             ZipEntry mainFile = findMainFile(archive, dataFiles, mainLevel);
 
             Set<UUID> interviews = new java.util.HashSet<>();
             readTable(archive, mainFile, (header, row) -> {
                 UUID interviewId = interviewId(value(header, row, "interview__id"));
                 Diagnostics diag = diagnostics.get(interviewId);
+                History history = histories.get(interviewId);
                 sink.interview(new InterviewRecord(
                         interviewId,
                         value(header, row, "interview__key"),
@@ -135,7 +170,12 @@ public class TabularExportParser {
                         diag == null ? null : diag.rejectionsHq(),
                         diag == null ? null : diag.interviewerCount(),
                         diag == null ? null : diag.durationSeconds(),
-                        diag == null ? null : diag.unansweredCount()));
+                        diag == null ? null : diag.unansweredCount(),
+                        history == null ? null : history.interviewerName(),
+                        history == null ? null
+                                : history.createdAt != null ? history.createdAt : history.firstAction,
+                        history == null ? null : history.completedAt,
+                        history == null ? null : history.lastAction));
                 interviews.add(interviewId);
             });
 
@@ -191,6 +231,68 @@ public class TabularExportParser {
                         duration(value(header, row, "interview__duration")),
                         integer(value(header, row, "n_questions_unanswered")))));
         return diagnostics;
+    }
+
+    /**
+     * Parcourt l'historique des actions. Les dates de l'export sont en UTC. L'enquêteur retenu est
+     * celui de la dernière complétion, sinon le dernier responsable de rôle enquêteur.
+     */
+    private Map<UUID, History> readHistories(ZipFile archive, ZipEntry file) throws IOException {
+        Map<UUID, History> histories = new HashMap<>();
+        readTable(archive, file, (header, row) -> {
+            Instant at = timestamp(value(header, row, "date"), value(header, row, "time"));
+            Integer action = integer(value(header, row, "action"));
+            if (at == null || action == null) {
+                return;
+            }
+            History history = histories.computeIfAbsent(
+                    interviewId(value(header, row, "interview__id")), ignored -> new History());
+            if (history.firstAction == null || at.isBefore(history.firstAction)) {
+                history.firstAction = at;
+            }
+            if (history.lastAction == null || at.isAfter(history.lastAction)) {
+                history.lastAction = at;
+            }
+            if (action == ACTION_CREATED && (history.createdAt == null || at.isBefore(history.createdAt))) {
+                history.createdAt = at;
+            }
+            if (action == ACTION_COMPLETED) {
+                if (history.completedAt == null || at.isBefore(history.completedAt)) {
+                    history.completedAt = at;
+                }
+                Integer role = integer(value(header, row, "role"));
+                String originator = value(header, row, "originator");
+                if (role != null && role == ROLE_INTERVIEWER && !originator.isBlank()
+                        && (history.lastCompletion == null || !at.isBefore(history.lastCompletion))) {
+                    history.lastCompletion = at;
+                    history.completedBy = originator;
+                }
+            }
+            Integer responsibleRole = integer(value(header, row, "responsible__role"));
+            String responsible = value(header, row, "responsible__name");
+            if (responsibleRole != null && responsibleRole == ROLE_INTERVIEWER && !responsible.isBlank()
+                    && (history.lastInterviewerResponsibility == null
+                            || !at.isBefore(history.lastInterviewerResponsibility))) {
+                history.lastInterviewerResponsibility = at;
+                history.interviewer = responsible;
+            }
+        });
+        return histories;
+    }
+
+    static Instant timestamp(String date, String time) {
+        if (date == null || date.isBlank()) {
+            return null;
+        }
+        try {
+            java.time.LocalDate day = java.time.LocalDate.parse(date.trim());
+            java.time.LocalTime clock = time == null || time.isBlank()
+                    ? java.time.LocalTime.MIDNIGHT
+                    : java.time.LocalTime.parse(time.trim());
+            return day.atTime(clock).toInstant(java.time.ZoneOffset.UTC);
+        } catch (java.time.format.DateTimeParseException exception) {
+            return null;
+        }
     }
 
     private interface RowHandler {

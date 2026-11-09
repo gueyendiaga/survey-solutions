@@ -1,12 +1,19 @@
 import { CommonModule, DatePipe, DecimalPipe, registerLocaleData } from '@angular/common';
 import localeFr from '@angular/common/locales/fr';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewEncapsulation, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DashboardChartComponent } from './dashboard-chart';
+import { FieldworkPanelComponent } from './fieldwork-panel';
+import { FilterBarComponent } from './filter-bar';
 import { DashboardApiService } from './dashboard-api.service';
 import {
+  AnalysisFilters,
   CompletenessOverview,
+  FieldworkOverview,
+  FilterOptions,
+  NO_FILTERS,
+  QuestionOption,
   Dashboard,
   QuestionAnalytics,
   QuestionCompleteness,
@@ -21,9 +28,20 @@ registerLocaleData(localeFr);
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, DatePipe, DecimalPipe, FormsModule, DashboardChartComponent],
+  imports: [
+    CommonModule,
+    DatePipe,
+    DecimalPipe,
+    FormsModule,
+    DashboardChartComponent,
+    FieldworkPanelComponent,
+    FilterBarComponent
+  ],
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.css',
+  // Feuille de style commune à l'application : les composants enfants (suivi terrain, filtres)
+  // réutilisent ses classes (panel, kpi-card, distribution-table…).
+  encapsulation: ViewEncapsulation.None
 })
 export class App implements OnInit, OnDestroy {
   protected readonly questionnaires = signal<Questionnaire[]>([]);
@@ -31,7 +49,7 @@ export class App implements OnInit, OnDestroy {
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly selectedKey = signal('');
-  protected readonly view = signal<'dashboard' | 'questionnaires' | 'questions'>('dashboard');
+  protected readonly view = signal<'dashboard' | 'questionnaires' | 'questions' | 'fieldwork'>('dashboard');
   protected readonly currentQuestionnaire = signal<Questionnaire | null>(null);
   protected readonly questions = signal<QuestionSummary[]>([]);
   protected readonly selectedQuestion = signal<QuestionSummary | null>(null);
@@ -45,6 +63,12 @@ export class App implements OnInit, OnDestroy {
   protected readonly syncStatus = signal<SyncStatus | null>(null);
   protected readonly syncRequesting = signal(false);
   private syncPollTimer: ReturnType<typeof setTimeout> | null = null;
+  protected readonly filters = signal<AnalysisFilters>(NO_FILTERS);
+  protected readonly filterOptions = signal<FilterOptions | null>(null);
+  protected readonly variableOptions = signal<QuestionOption[]>([]);
+  protected readonly fieldwork = signal<FieldworkOverview | null>(null);
+  protected readonly fieldworkError = signal<string | null>(null);
+  protected readonly statusLabelFn = (status: string): string => this.statusLabel(status);
 
   constructor(private readonly api: DashboardApiService) {}
 
@@ -119,6 +143,12 @@ export class App implements OnInit, OnDestroy {
   }
 
   private reloadAnalyses(questionnaire: Questionnaire): void {
+    this.loadFilterOptions(questionnaire);
+    if (this.view() === 'fieldwork') {
+      this.loadFieldwork(questionnaire);
+    } else {
+      this.fieldwork.set(null);
+    }
     this.loadCompleteness(questionnaire);
     const question = this.selectedQuestion();
     if (question) {
@@ -214,6 +244,85 @@ export class App implements OnInit, OnDestroy {
   protected showQuestionnaires(event: Event): void {
     event.preventDefault();
     this.view.set('questionnaires');
+  }
+
+  protected showFieldwork(event: Event): void {
+    event.preventDefault();
+    const questionnaire = this.currentQuestionnaire();
+    if (!questionnaire) {
+      this.view.set('questionnaires');
+      return;
+    }
+    this.view.set('fieldwork');
+    if (!this.fieldwork()) {
+      this.loadFieldwork(questionnaire);
+    }
+  }
+
+  protected reloadFieldwork(): void {
+    const questionnaire = this.currentQuestionnaire();
+    if (questionnaire) {
+      this.loadFieldwork(questionnaire);
+    }
+  }
+
+  /** Applique les filtres au suivi terrain, à la complétude et à la question sélectionnée. */
+  protected applyFilters(filters: AnalysisFilters): void {
+    const questionnaire = this.currentQuestionnaire();
+    this.filters.set(filters);
+    if (!questionnaire) {
+      return;
+    }
+    this.fieldwork.set(null);
+    if (this.view() === 'fieldwork') {
+      this.loadFieldwork(questionnaire);
+    }
+    this.loadCompleteness(questionnaire);
+    const question = this.selectedQuestion();
+    if (question) {
+      this.selectQuestion(question);
+    }
+  }
+
+  protected loadVariableOptions(variable: string | null): void {
+    const questionnaire = this.currentQuestionnaire();
+    this.variableOptions.set([]);
+    if (!variable || !questionnaire) {
+      return;
+    }
+    this.api.questionOptions(questionnaire.questionnaireId, questionnaire.version, variable).subscribe({
+      next: (options) => this.variableOptions.set(options),
+      error: () => this.variableOptions.set([])
+    });
+  }
+
+  private loadFilterOptions(questionnaire: Questionnaire): void {
+    this.api.filterOptions(questionnaire.questionnaireId, questionnaire.version).subscribe({
+      next: (options) => {
+        if (this.currentQuestionnaire() === questionnaire) {
+          this.filterOptions.set(options);
+        }
+      },
+      error: () => this.filterOptions.set(null)
+    });
+  }
+
+  private loadFieldwork(questionnaire: Questionnaire): void {
+    this.fieldwork.set(null);
+    this.fieldworkError.set(null);
+    this.api.fieldwork(questionnaire.questionnaireId, questionnaire.version, this.filters()).subscribe({
+      next: (overview) => {
+        if (this.currentQuestionnaire() === questionnaire) {
+          this.fieldwork.set(overview);
+        }
+      },
+      error: (error: unknown) => {
+        if (this.handleSyncPending(error, questionnaire)) {
+          return;
+        }
+        this.fieldworkError.set(this.apiErrorMessage(error, 'Impossible de calculer le suivi terrain.'));
+      }
+    });
   }
 
   protected showQuestions(event: Event): void {
@@ -314,8 +423,18 @@ export class App implements OnInit, OnDestroy {
     this.questions.set([]);
     this.stopSyncPolling();
     this.syncStatus.set(null);
+    this.filters.set(NO_FILTERS);
+    this.filterOptions.set(null);
+    this.variableOptions.set([]);
+    this.fieldwork.set(null);
+    this.fieldworkError.set(null);
     this.loadSyncStatus(questionnaire);
-    this.view.set('questions');
+    this.loadFilterOptions(questionnaire);
+    if (this.view() === 'fieldwork') {
+      this.loadFieldwork(questionnaire);
+    } else {
+      this.view.set('questions');
+    }
     this.loading.set(true);
     this.error.set(null);
     this.api.questions(questionnaire.questionnaireId, questionnaire.version).subscribe({
@@ -342,7 +461,7 @@ export class App implements OnInit, OnDestroy {
     this.completenessLoading.set(true);
     this.completenessError.set(null);
     this.api
-      .questionCompleteness(questionnaire.questionnaireId, questionnaire.version)
+      .questionCompleteness(questionnaire.questionnaireId, questionnaire.version, this.filters())
       .subscribe({
         next: (overview) => {
           this.completeness.set(overview);
@@ -374,7 +493,8 @@ export class App implements OnInit, OnDestroy {
       .questionAnalytics(
         questionnaire.questionnaireId,
         questionnaire.version,
-        question.variableName
+        question.variableName,
+        this.filters()
       )
       .subscribe({
         next: (analytics) => {

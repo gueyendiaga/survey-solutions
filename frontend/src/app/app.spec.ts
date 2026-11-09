@@ -60,6 +60,8 @@ describe('App', () => {
       lastStatus: 'SUCCEEDED',
       lastError: null
     });
+    http.expectOne('/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1/filter-options')
+      .flush({ supervisors: ['sup1'], interviewers: ['enq1'], statuses: ['Completed'] });
     http.expectOne(
       '/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1/question-list'
     ).flush([
@@ -224,6 +226,8 @@ describe('App', () => {
       lastStatus: 'SUCCEEDED',
       lastError: null
     });
+    http.expectOne('/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1/filter-options')
+      .flush({ supervisors: ['sup1'], interviewers: ['enq1'], statuses: ['Completed'] });
     http.expectOne(
       '/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1/question-list'
     ).flush([
@@ -305,6 +309,7 @@ describe('App', () => {
     http.expectOne(`${base}/sync`).flush({
       inProgress: false, lastSuccessAt: null, interviewCount: null, lastStatus: null, lastError: null
     });
+    http.expectOne(`${base}/filter-options`).flush({ supervisors: [], interviewers: [], statuses: [] });
     http.expectOne(`${base}/question-list`).flush([{
       id: 'question-1', variableName: 'age', questionText: 'Quel âge ?', label: 'Âge',
       type: 'Numeric', breadcrumbs: [], optionCount: 0
@@ -331,11 +336,97 @@ describe('App', () => {
     });
     fixture.detectChanges();
 
+    http.expectOne(`${base}/filter-options`).flush({ supervisors: [], interviewers: [], statuses: [] });
     http.expectOne(`${base}/question-completeness`)
       .flush({ interviewCount: 0, variables: [], includedStatuses: [], excludedInterviewCount: 0 });
     http.expectOne((request) => request.url === `${base}/question-analytics`);
     expect(fixture.nativeElement.querySelector('.sync-banner')?.textContent).toContain('1 interview(s)');
   }));
+
+  it('shows fieldwork progress and sends the applied filters', fakeAsync(() => {
+    const base = '/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1';
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    http.expectOne('/api/dashboard').flush(dashboardResponse());
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('a[href="#questionnaires"]') as HTMLAnchorElement).click();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.open-questionnaire-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    http.expectOne(`${base}/sync`).flush({
+      inProgress: false, lastSuccessAt: '2026-11-09T10:00:00Z', interviewCount: 4,
+      lastStatus: 'SUCCEEDED', lastError: null
+    });
+    http.expectOne(`${base}/filter-options`)
+      .flush({ supervisors: ['sup1'], interviewers: ['enq1', 'enq2'], statuses: ['Completed'] });
+    http.expectOne(`${base}/question-list`).flush([]);
+    http.expectOne(`${base}/question-completeness`)
+      .flush({ interviewCount: 0, variables: [], includedStatuses: [], excludedInterviewCount: 0 });
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('a[href="#fieldwork"]') as HTMLAnchorElement).click();
+    fixture.detectChanges();
+    http.expectOne(`${base}/fieldwork`).flush(fieldworkResponse());
+    fixture.detectChanges();
+
+    const panel = fixture.nativeElement.querySelector('app-fieldwork-panel') as HTMLElement;
+    expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain('Suivi terrain');
+    expect(panel.textContent).toContain('66,7 % de l’objectif');
+    expect(panel.querySelector('.team-row')?.textContent).toContain('sup1');
+    expect(panel.querySelector('.interviewer-row.not-started')?.textContent).toContain('enq2');
+
+    tick();
+    fixture.detectChanges();
+    const interviewer = fixture.nativeElement.querySelector('select[name="interviewer"]') as HTMLSelectElement;
+    interviewer.value = interviewer.options[1].value;
+    interviewer.dispatchEvent(new Event('change'));
+    const from = fixture.nativeElement.querySelector('input[name="from"]') as HTMLInputElement;
+    from.value = '2026-11-01';
+    from.dispatchEvent(new Event('input'));
+    tick();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.filter-apply') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const request = http.expectOne((req) => req.url === `${base}/fieldwork`);
+    expect(request.request.params.get('interviewer')).toBe('enq1');
+    expect(request.request.params.get('from')).toBe('2026-11-01');
+    expect(request.request.params.has('statuses')).toBeFalse();
+    request.flush({ ...fieldworkResponse(), filtersApplied: true });
+    http.expectOne((req) => req.url === `${base}/question-completeness` && req.params.get('interviewer') === 'enq1')
+      .flush({ interviewCount: 0, variables: [], includedStatuses: [], excludedInterviewCount: 0 });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.fieldwork-note')?.textContent).toContain('Filtres actifs');
+  }));
+
+  function fieldworkResponse() {
+    return {
+      syncedAt: '2026-11-09T10:00:00Z',
+      filtersApplied: false,
+      target: 6,
+      unlimitedAssignments: 0,
+      completed: 4,
+      approved: 4,
+      rejected: 0,
+      inProgress: 0,
+      completionRate: 66.67,
+      statuses: [{ status: 'ApprovedByHeadquarters', count: 4 }],
+      daily: [{ date: '2026-11-03', completed: 1, cumulative: 1 }, { date: '2026-11-05', completed: 3, cumulative: 4 }],
+      teams: [{
+        supervisor: 'sup1', target: 6, completed: 4, approved: 4, rejected: 0, inProgress: 0, withErrors: 0,
+        completionRate: 66.67,
+        interviewers: [
+          { interviewer: 'enq1', target: 5, total: 4, completed: 4, approved: 4, rejected: 0, inProgress: 0,
+            withErrors: 0, rejections: 0, completionRate: 80, medianDurationMinutes: 12.5, activeDays: 2,
+            completedPerActiveDay: 2, lastCompletion: '2026-11-05' },
+          { interviewer: 'enq2', target: 1, total: 0, completed: 0, approved: 0, rejected: 0, inProgress: 0,
+            withErrors: 0, rejections: 0, completionRate: 0, medianDurationMinutes: null, activeDays: 0,
+            completedPerActiveDay: null, lastCompletion: null }
+        ]
+      }]
+    };
+  }
 
   function dashboardResponse() {
     return {

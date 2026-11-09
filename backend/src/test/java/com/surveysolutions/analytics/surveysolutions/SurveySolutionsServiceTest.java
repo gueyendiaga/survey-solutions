@@ -250,6 +250,29 @@ class SurveySolutionsServiceTest {
         server.verify();
     }
 
+    @Test
+    void pagesThroughAssignmentsUsingARowOffset() {
+        UUID questionnaireId = UUID.fromString("588daf2d-0c72-4b89-bec9-254459a68983");
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://hq.test");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        String first = "{\"Assignments\":[" + assignment(3) + "," + assignment(4) + "],\"TotalCount\":3}";
+        String second = "{\"Assignments\":[" + assignment(5) + "],\"TotalCount\":3}";
+        server.expect(requestTo(org.hamcrest.Matchers.containsString("Offset=0")))
+                .andRespond(withSuccess(first, MediaType.APPLICATION_JSON));
+        server.expect(requestTo(org.hamcrest.Matchers.containsString("Offset=2")))
+                .andRespond(withSuccess(second, MediaType.APPLICATION_JSON));
+
+        var assignments = new SurveySolutionsService(builder.build()).getAssignments(questionnaireId, 1);
+
+        assertThat(assignments).extracting(SurveySolutionsDtos.Assignment::id).containsExactly(3, 4, 5);
+        server.verify();
+    }
+
+    private String assignment(int id) {
+        return "{\"Id\":" + id + ",\"ResponsibleName\":\"enq\",\"Quantity\":2,"
+                + "\"InterviewsCount\":1,\"Archived\":false}";
+    }
+
     private String questionnairePage(int page, int totalCount) {
         return """
                 {

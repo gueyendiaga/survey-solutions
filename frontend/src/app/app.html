@@ -39,6 +39,16 @@
       <span class="nav-icon">▥</span>
       <span>Questions & réponses</span>
     </a>
+    <a
+      class="nav-item nav-muted"
+      [class.active]="view() === 'fieldwork'"
+      href="#fieldwork"
+      (click)="showFieldwork($event)"
+      [attr.aria-current]="view() === 'fieldwork' ? 'page' : null"
+      aria-label="Suivre la collecte par équipe et par enquêteur">
+      <span class="nav-icon">▦</span>
+      <span>Suivi terrain</span>
+    </a>
 
     <div class="sidebar-footer">
       <div class="connection-dot"></div>
@@ -54,7 +64,7 @@
       <div class="breadcrumbs">
         Espace de travail <span>/</span>
         <strong>
-          {{ view() === 'dashboard' ? 'Vue d’ensemble' : view() === 'questionnaires' ? 'Questionnaires' : 'Questions & réponses' }}
+          {{ view() === 'dashboard' ? 'Vue d’ensemble' : view() === 'questionnaires' ? 'Questionnaires' : view() === 'fieldwork' ? 'Suivi terrain' : 'Questions & réponses' }}
         </strong>
       </div>
       <div class="topbar-right">
@@ -339,8 +349,8 @@
       } @else {
         <section class="page-heading question-explorer-heading">
           <div>
-            <div class="eyebrow">ANALYSE DYNAMIQUE</div>
-            <h1>Questions & réponses</h1>
+            <div class="eyebrow">{{ view() === 'fieldwork' ? 'SUIVI DE COLLECTE' : 'ANALYSE DYNAMIQUE' }}</div>
+            <h1>{{ view() === 'fieldwork' ? 'Suivi terrain' : 'Questions & réponses' }}</h1>
             <p>
               {{ currentQuestionnaire()?.title }}
               · version {{ currentQuestionnaire()?.version }}
@@ -416,6 +426,37 @@
         @if (exportError()) {
           <section class="export-error" role="alert">{{ exportError() }}</section>
         }
+
+        <app-filter-bar
+          [filters]="filters()"
+          [options]="filterOptions()"
+          [questions]="questions()"
+          [variableOptions]="variableOptions()"
+          [statusLabel]="statusLabelFn"
+          (filtersChange)="applyFilters($event)"
+          (variableSelected)="loadVariableOptions($event)" />
+
+        @if (view() === 'fieldwork') {
+          @if (fieldworkError()) {
+            <section class="error-banner" role="alert">
+              <span>{{ fieldworkError() }}</span>
+              <button type="button" class="retry-button" (click)="reloadFieldwork()">Réessayer</button>
+            </section>
+          } @else if (fieldwork(); as overview) {
+            <app-fieldwork-panel [overview]="overview" />
+          } @else if (syncStatus()?.inProgress) {
+            <section class="panel loading-panel question-loading">
+              <span class="loading-spinner"></span>
+              <strong>Import des données en cours…</strong>
+              <span>Le suivi terrain s’affichera automatiquement à la fin de la synchronisation.</span>
+            </section>
+          } @else {
+            <section class="panel loading-panel question-loading">
+              <span class="loading-spinner"></span>
+              <strong>Calcul du suivi terrain…</strong>
+            </section>
+          }
+        } @else {
 
         @if (error()) {
           <section class="error-banner" role="alert">
@@ -843,6 +884,7 @@
               }
             </div>
           </section>
+        }
         }
       }
     </div>

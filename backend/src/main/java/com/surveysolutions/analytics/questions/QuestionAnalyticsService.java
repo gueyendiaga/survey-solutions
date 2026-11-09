@@ -25,6 +25,7 @@ import com.surveysolutions.analytics.store.AnalyticsRepository;
 import com.surveysolutions.analytics.store.AnalyticsRepository.SyncRun;
 import com.surveysolutions.analytics.store.AnalyticsRepository.VariableCompleteness;
 import com.surveysolutions.analytics.store.AnalyticsRepository.VariableObservation;
+import com.surveysolutions.analytics.store.InterviewFilter;
 import com.surveysolutions.analytics.store.SyncService;
 import com.surveysolutions.analytics.store.TabularExportParser;
 import com.surveysolutions.analytics.surveysolutions.SurveySolutionsService;
@@ -51,7 +52,8 @@ public class QuestionAnalyticsService {
             int excludedCount,
             long missingCount,
             long notApplicableCount,
-            Instant syncedAt) {}
+            Instant syncedAt,
+            List<String> includedStatuses) {}
 
     public QuestionAnalyticsService(
             SurveySolutionsService surveySolutions,
@@ -84,7 +86,8 @@ public class QuestionAnalyticsService {
     public QuestionAnalytics analyze(
             UUID questionnaireId,
             long version,
-            String variableName) {
+            String variableName,
+            InterviewFilter requested) {
         requireVersion(version);
         if (variableName == null || variableName.isBlank()) {
             throw new IllegalArgumentException("La variable de question est obligatoire.");
@@ -96,9 +99,10 @@ public class QuestionAnalyticsService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Cette variable n'existe pas dans la version sélectionnée."));
         SyncRun syncRun = requireSynchronizedData(questionnaireId, version);
+        InterviewFilter filter = requested.withDefaultStatuses(analysisStatuses);
 
         List<VariableObservation> rows = repository.observations(
-                questionnaireId, version, variableName, analysisStatuses);
+                questionnaireId, version, variableName, filter);
         Map<UUID, Integer> interviewNumbers = new HashMap<>();
         List<Response> responses = new ArrayList<>();
         long missing = 0;
@@ -114,21 +118,26 @@ public class QuestionAnalyticsService {
             }
         }
 
-        int interviewCount = repository.countInterviews(questionnaireId, version, analysisStatuses);
+        int interviewCount = repository.countInterviews(questionnaireId, version, filter);
         int excluded = repository.countAllInterviews(questionnaireId, version) - interviewCount;
         return aggregate(question, new AnalysisScope(
-                interviewCount, excluded, missing, notApplicable, syncRun.finishedAt()), responses);
+                interviewCount, excluded, missing, notApplicable, syncRun.finishedAt(),
+                filter.statuses()), responses);
     }
 
-    public CompletenessOverview completeness(UUID questionnaireId, long version) {
+    public CompletenessOverview completeness(
+            UUID questionnaireId,
+            long version,
+            InterviewFilter requested) {
         requireVersion(version);
         List<QuestionSummary> questions = getQuestions(questionnaireId, version);
         SyncRun syncRun = requireSynchronizedData(questionnaireId, version);
+        InterviewFilter filter = requested.withDefaultStatuses(analysisStatuses);
 
-        int interviewCount = repository.countInterviews(questionnaireId, version, analysisStatuses);
+        int interviewCount = repository.countInterviews(questionnaireId, version, filter);
         int excluded = repository.countAllInterviews(questionnaireId, version) - interviewCount;
         Map<String, VariableCompleteness> byVariable = new HashMap<>();
-        repository.completeness(questionnaireId, version, analysisStatuses)
+        repository.completeness(questionnaireId, version, filter)
                 .forEach(item -> byVariable.put(item.variable(), item));
 
         List<QuestionCompleteness> completeness = questions.stream()
@@ -148,7 +157,7 @@ public class QuestionAnalyticsService {
                 })
                 .toList();
         return new CompletenessOverview(
-                interviewCount, completeness, analysisStatuses, excluded, syncRun.finishedAt());
+                interviewCount, completeness, filter.statuses(), excluded, syncRun.finishedAt());
     }
 
     /**
@@ -327,7 +336,7 @@ public class QuestionAnalyticsService {
                 nonNumericResponseCount,
                 percentageBase,
                 specialValues,
-                analysisStatuses,
+                scope.includedStatuses(),
                 scope.excludedCount(),
                 scope.syncedAt());
     }

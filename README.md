@@ -50,6 +50,21 @@ Les indicateurs par variable et la complétude sont calculés sur la base Analyt
 
 Conventions de l'export reprises dans les indicateurs : cellule vide = question **non applicable** (désactivée par un filtre), `-999999999` / `##N/A##` = question posée **sans réponse**. Le taux de réponse vaut réponses / (réponses + sans réponse) : les non applicables n'en font pas partie. Pour une variable de roster, l'unité est la ligne (membre, parcelle…) et non l'interview. Les choix multiples sont lus par code (`variable__code`), indépendamment de la traduction. Seuls les statuts d'interview listés dans `ANALYTICS_STATUSES` entrent dans les calculs.
 
+### Suivi terrain
+
+À chaque synchronisation, le backend importe aussi les affectations actives de la version (`/api/v1/assignments`) et la composition des équipes (`/api/v1/supervisors/{id}/interviewers`). L'historique de l'export (`interview__actions.tab`) donne pour chaque interview :
+- l'enquêteur, c'est-à-dire celui de la dernière complétion, ou à défaut le dernier enquêteur responsable ;
+- la date de création ;
+- la date de première complétion.
+
+Définitions :
+- **objectif** : somme des quotas des affectations actives ; les affectations sans quota sont comptées à part ;
+- **réalisées** : interviews terminées au moins une fois par un enquêteur, quel que soit leur statut actuel ;
+- **taux** : réalisées / objectif ;
+- **par jour** : réalisées / nombre de jours où l'enquêteur a terminé au moins une interview.
+
+Les objectifs ne dépendent ni de la période ni de la zone filtrées, seulement de l'équipe ou de l'enquêteur.
+
 `SURVEY_SOLUTIONS_WORKSPACE` désigne le workspace HQ interrogé (`primary` par défaut ; vide pour une instance HQ sans workspaces). L'export CSV/Excel de l'explorateur lit encore HQ en direct et reste limité à 5 000 interviews.
 
 ## Développement local
@@ -86,6 +101,11 @@ Pour le développement local, le backend requiert Maven 3.9+ et Java 17; le lanc
 - `GET /api/questionnaires/{uuid}/{version}/questions` : métadonnées des questions HQ.
 - `GET /api/questionnaires/{uuid}/{version}/sync` : état de la synchronisation (en cours, date des données, dernière erreur).
 - `POST /api/questionnaires/{uuid}/{version}/sync` : lance une synchronisation (réponse 202).
+
+- `GET /api/questionnaires/{uuid}/{version}/fieldwork` : suivi terrain (objectif des affectations, interviews réalisées, approuvées, rejetées, en cours, progression journalière, détail par équipe et par enquêteur).
+- `GET /api/questionnaires/{uuid}/{version}/filter-options` : superviseurs, enquêteurs et statuts proposés dans les filtres.
+
+`fieldwork`, `question-completeness` et `question-analytics` acceptent les mêmes filtres : `from` et `to` (date de complétion, AAAA-MM-JJ, UTC), `supervisor`, `interviewer`, `statuses` (liste séparée par des virgules, sinon `ANALYTICS_STATUSES`), et `variable` + `value` (code de modalité, par exemple une région) pour ne garder que les interviews dont une réponse a cette valeur.
 
 Tant qu'une version n'a jamais été importée, `question-completeness` et `question-analytics` renvoient 409 avec `syncPending: true` et déclenchent la synchronisation.
 

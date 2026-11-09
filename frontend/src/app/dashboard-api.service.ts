@@ -2,7 +2,11 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { map, Observable } from 'rxjs';
 import {
+  AnalysisFilters,
   CompletenessOverview,
+  FieldworkOverview,
+  FilterOptions,
+  QuestionOption,
   Dashboard,
   QuestionAnalytics,
   Questionnaire,
@@ -23,6 +27,29 @@ function normalizeKeys(value: unknown): unknown {
     );
   }
   return value;
+}
+
+/** Statuts envoyés pour le choix « tous les statuts » de la barre de filtres. */
+const ALL_STATUSES = [
+  'SupervisorAssigned', 'InterviewerAssigned', 'Restarted', 'Completed', 'RejectedBySupervisor',
+  'ApprovedBySupervisor', 'RejectedByHeadquarters', 'ApprovedByHeadquarters'
+];
+
+export function filterParams(filters: AnalysisFilters, base = new HttpParams()): HttpParams {
+  let params = base;
+  const simple: (keyof AnalysisFilters)[] = ['from', 'to', 'supervisor', 'interviewer', 'variable', 'value'];
+  for (const key of simple) {
+    const value = filters[key];
+    if (value) {
+      params = params.set(key, value);
+    }
+  }
+  if (filters.status === 'ALL') {
+    params = params.set('statuses', ALL_STATUSES.join(','));
+  } else if (filters.status) {
+    params = params.set('statuses', filters.status);
+  }
+  return params;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -59,9 +86,10 @@ export class DashboardApiService {
   questionAnalytics(
     questionnaireId: string,
     version: number,
-    variableName: string
+    variableName: string,
+    filters: AnalysisFilters
   ): Observable<QuestionAnalytics> {
-    const params = new HttpParams().set('variableName', variableName);
+    const params = filterParams(filters, new HttpParams().set('variableName', variableName));
     return this.http
       .get<unknown>(
         `${this.baseUrl}/questionnaires/${questionnaireId}/${version}/question-analytics`,
@@ -72,13 +100,47 @@ export class DashboardApiService {
 
   questionCompleteness(
     questionnaireId: string,
-    version: number
+    version: number,
+    filters: AnalysisFilters
   ): Observable<CompletenessOverview> {
     return this.http
       .get<unknown>(
-        `${this.baseUrl}/questionnaires/${questionnaireId}/${version}/question-completeness`
+        `${this.baseUrl}/questionnaires/${questionnaireId}/${version}/question-completeness`,
+        { params: filterParams(filters) }
       )
       .pipe(map((response) => normalizeKeys(response) as CompletenessOverview));
+  }
+
+  fieldwork(
+    questionnaireId: string,
+    version: number,
+    filters: AnalysisFilters
+  ): Observable<FieldworkOverview> {
+    return this.http
+      .get<unknown>(`${this.baseUrl}/questionnaires/${questionnaireId}/${version}/fieldwork`, {
+        params: filterParams(filters)
+      })
+      .pipe(map((response) => normalizeKeys(response) as FieldworkOverview));
+  }
+
+  filterOptions(questionnaireId: string, version: number): Observable<FilterOptions> {
+    return this.http
+      .get<unknown>(`${this.baseUrl}/questionnaires/${questionnaireId}/${version}/filter-options`)
+      .pipe(map((response) => normalizeKeys(response) as FilterOptions));
+  }
+
+  /** Modalités d'une variable à choix unique (codes et libellés du questionnaire HQ). */
+  questionOptions(
+    questionnaireId: string,
+    version: number,
+    variableName: string
+  ): Observable<QuestionOption[]> {
+    return this.http
+      .get<unknown>(`${this.baseUrl}/questionnaires/${questionnaireId}/${version}/questions`)
+      .pipe(
+        map((response) => normalizeKeys(response) as { variableName: string; answers: QuestionOption[] | null }[]),
+        map((questions) => questions.find((question) => question.variableName === variableName)?.answers ?? [])
+      );
   }
 
   syncStatus(questionnaireId: string, version: number): Observable<SyncStatus> {
