@@ -1,15 +1,39 @@
 name: survey-analytics
 
 services:
+  analytics-db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: analytics
+      POSTGRES_USER: analytics
+      POSTGRES_PASSWORD: ${ANALYTICS_DB_PASSWORD:?Set ANALYTICS_DB_PASSWORD in .env.analytics}
+    volumes:
+      - analytics-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U analytics -d analytics"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: ./backend
     restart: unless-stopped
+    depends_on:
+      analytics-db:
+        condition: service_healthy
     environment:
+      ANALYTICS_DB_URL: jdbc:postgresql://analytics-db:5432/analytics
+      ANALYTICS_DB_USERNAME: analytics
+      ANALYTICS_DB_PASSWORD: ${ANALYTICS_DB_PASSWORD}
+      SURVEY_SOLUTIONS_WORKSPACE: ${SURVEY_SOLUTIONS_WORKSPACE:-primary}
+      ANALYTICS_SYNC_INTERVAL: ${ANALYTICS_SYNC_INTERVAL:-PT30M}
       SURVEY_SOLUTIONS_BASE_URL: ${SURVEY_SOLUTIONS_BASE_URL:-http://host.docker.internal:8080}
       SURVEY_SOLUTIONS_USERNAME: ${SURVEY_SOLUTIONS_USERNAME:?Set SURVEY_SOLUTIONS_USERNAME in .env.analytics}
       SURVEY_SOLUTIONS_PASSWORD: ${SURVEY_SOLUTIONS_PASSWORD:?Set SURVEY_SOLUTIONS_PASSWORD in .env.analytics}
       ANALYTICS_ALLOWED_ORIGIN: ${ANALYTICS_ALLOWED_ORIGIN:-http://localhost:8088}
+      ANALYTICS_STATUSES: ${ANALYTICS_STATUSES:-Completed,ApprovedBySupervisor,ApprovedByHeadquarters}
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -21,3 +45,6 @@ services:
       - backend
     ports:
       - "127.0.0.1:8088:80"
+
+volumes:
+  analytics-db:

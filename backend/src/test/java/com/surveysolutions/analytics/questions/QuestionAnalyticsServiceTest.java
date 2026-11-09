@@ -1,205 +1,218 @@
 package com.surveysolutions.analytics.questions;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import static com.surveysolutions.analytics.surveysolutions.SurveySolutionsDtos.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import com.surveysolutions.analytics.config.SurveySolutionsProperties;
+import com.surveysolutions.analytics.store.AnalyticsRepository;
+import com.surveysolutions.analytics.store.AnalyticsRepository.SyncRun;
+import com.surveysolutions.analytics.store.AnalyticsRepository.VariableCompleteness;
+import com.surveysolutions.analytics.store.AnalyticsRepository.VariableObservation;
+import com.surveysolutions.analytics.store.SyncService;
 import com.surveysolutions.analytics.surveysolutions.SurveySolutionsService;
 
 class QuestionAnalyticsServiceTest {
     private static final UUID QUESTIONNAIRE_ID =
             UUID.fromString("588daf2d-0c72-4b89-bec9-254459a68983");
     private static final String VARIABLE = "test_variable";
+    private static final List<String> STATUSES =
+            List.of("Completed", "ApprovedBySupervisor", "ApprovedByHeadquarters");
+    private static final Instant SYNCED_AT = Instant.parse("2026-11-09T10:00:00Z");
 
     private final SurveySolutionsService surveySolutions = mock(SurveySolutionsService.class);
-    private final ExecutorService executor = Executors.newFixedThreadPool(2);
-    private final QuestionAnalyticsService service =
-            new QuestionAnalyticsService(surveySolutions, executor);
+    private final AnalyticsRepository repository = mock(AnalyticsRepository.class);
+    private final SyncService sync = mock(SyncService.class);
+    private final QuestionAnalyticsService service = new QuestionAnalyticsService(
+            surveySolutions, repository, sync, new SurveySolutionsProperties());
+    private final List<VariableObservation> observations = new ArrayList<>();
 
-    @AfterEach
-    void stopExecutor() {
-        executor.shutdownNow();
+    @BeforeEach
+    void synchronizedVersion() {
+        when(sync.latestSuccessfulSync(QUESTIONNAIRE_ID, 1)).thenReturn(Optional.of(new SyncRun(
+                1, QUESTIONNAIRE_ID, 1, "SUCCEEDED", "MANUAL", SYNCED_AT, SYNCED_AT, 3, 3, "3|x", null)));
+        when(repository.observations(eq(QUESTIONNAIRE_ID), eq(1L), eq(VARIABLE), anyList()))
+                .thenReturn(observations);
     }
 
     @Test
-    void computesNumericStatisticsAndCountsInterviewsWithoutAnswers() {
-        Question question = question("Numeric", List.of());
-        List<Interview> interviews = List.of(interview(1), interview(2), interview(3));
-        when(surveySolutions.getQuestions(QUESTIONNAIRE_ID, 1)).thenReturn(List.of(question));
-        when(surveySolutions.getInterviews(QUESTIONNAIRE_ID, 1L)).thenReturn(interviews);
-        when(surveySolutions.getInterviewDetails(uuid(1)))
-                .thenReturn(details(answer("10")));
-        when(surveySolutions.getInterviewDetails(uuid(2)))
-                .thenReturn(details(answer("20")));
-        when(surveySolutions.getInterviewDetails(uuid(3)))
-                .thenReturn(details());
+    void computesNumericStatisticsAndSeparatesMissingFromNotApplicable() {
+        question("Numeric", List.of());
+        interviews(4, 4);
+        answered(1, "10");
+        answered(2, "20");
+        observe(3, "M", null);
+        observe(4, "D", null);
 
-        QuestionAnalyticsDtos.QuestionAnalytics result =
-                service.analyze(QUESTIONNAIRE_ID, 1, VARIABLE);
+        QuestionAnalyticsDtos.QuestionAnalytics result = service.analyze(QUESTIONNAIRE_ID, 1, VARIABLE);
 
-        assertEquals(3, result.interviewCount());
-        assertEquals(2, result.answeredInterviewCount());
-        assertEquals(1, result.interviewWithoutAnswerCount());
-        assertEquals(2, result.responseCount());
-        assertEquals(new BigDecimal("10"), result.minimum());
-        assertEquals(new BigDecimal("20"), result.maximum());
-        assertEquals(new BigDecimal("15.00"), result.mean());
-        assertEquals(new BigDecimal("15.00"), result.median());
-        assertEquals(new BigDecimal("30"), result.sum());
-        assertEquals(new BigDecimal("10"), result.percentile05());
-        assertEquals(new BigDecimal("20"), result.percentile95());
-        assertEquals(List.of(
-                new QuestionAnalyticsDtos.AnswerObservation(1, "10"),
-                new QuestionAnalyticsDtos.AnswerObservation(2, "20")), result.observations());
-        assertEquals(2, result.distribution().stream().mapToLong(
-                QuestionAnalyticsDtos.AnswerCount::count).sum());
+        assertThat(result.interviewCount()).isEqualTo(4);
+        assertThat(result.answeredInterviewCount()).isEqualTo(2);
+        assertThat(result.responseCount()).isEqualTo(2);
+        assertThat(result.missingCount()).isEqualTo(1);
+        assertThat(result.notApplicableCount()).isEqualTo(1);
+        assertThat(result.responseRate()).isEqualTo(66.67);
+        assertThat(result.minimum()).isEqualTo(new BigDecimal("10"));
+        assertThat(result.maximum()).isEqualTo(new BigDecimal("20"));
+        assertThat(result.mean()).isEqualTo(new BigDecimal("15.00"));
+        assertThat(result.median()).isEqualTo(new BigDecimal("15.00"));
+        assertThat(result.sum()).isEqualTo(new BigDecimal("30"));
+        assertThat(result.observations()).containsExactly(
+                new QuestionAnalyticsDtos.AnswerObservation(1, "key-1", "", "10"),
+                new QuestionAnalyticsDtos.AnswerObservation(2, "key-2", "", "20"));
+        assertThat(result.syncedAt()).isEqualTo(SYNCED_AT);
     }
 
     @Test
-    void mapsAnswerCodesToQuestionOptionLabels() {
-        Question question = question("SingleOption", List.of(
+    void mapsExportedOptionCodesToLabels() {
+        question("SingleOption", List.of(
                 new QuestionOption(1, "Oui", null),
                 new QuestionOption(2, "Non", null)));
-        when(surveySolutions.getQuestions(QUESTIONNAIRE_ID, 1)).thenReturn(List.of(question));
-        when(surveySolutions.getInterviews(QUESTIONNAIRE_ID, 1L))
-                .thenReturn(List.of(interview(1), interview(2)));
-        when(surveySolutions.getInterviewDetails(uuid(1))).thenReturn(details(answer("1")));
-        when(surveySolutions.getInterviewDetails(uuid(2))).thenReturn(details(answer("2")));
+        interviews(2, 2);
+        answered(1, "1");
+        answered(2, "2");
 
-        QuestionAnalyticsDtos.QuestionAnalytics result =
-                service.analyze(QUESTIONNAIRE_ID, 1, VARIABLE);
+        QuestionAnalyticsDtos.QuestionAnalytics result = service.analyze(QUESTIONNAIRE_ID, 1, VARIABLE);
 
-        assertEquals(List.of(
+        assertThat(result.distribution()).containsExactly(
                 new QuestionAnalyticsDtos.AnswerCount("Non", 1, 50.0),
-                new QuestionAnalyticsDtos.AnswerCount("Oui", 1, 50.0)), result.distribution());
+                new QuestionAnalyticsDtos.AnswerCount("Oui", 1, 50.0));
     }
 
     @Test
-    void mapsAnswerTextAndAnswerValueToOptionLabels() {
-        Question question = question("SingleOption", List.of(
-                new QuestionOption(1, "Oui", "yes"),
-                new QuestionOption(2, "Non", "no")));
-        when(surveySolutions.getQuestions(QUESTIONNAIRE_ID, 1)).thenReturn(List.of(question));
-        when(surveySolutions.getInterviews(QUESTIONNAIRE_ID, 1L))
-                .thenReturn(List.of(interview(1), interview(2)));
-        when(surveySolutions.getInterviewDetails(uuid(1))).thenReturn(details(answer("OUI")));
-        when(surveySolutions.getInterviewDetails(uuid(2))).thenReturn(details(answer("no")));
-
-        QuestionAnalyticsDtos.QuestionAnalytics result =
-                service.analyze(QUESTIONNAIRE_ID, 1, VARIABLE);
-
-        assertEquals(List.of(
-                new QuestionAnalyticsDtos.AnswerCount("Non", 1, 50.0),
-                new QuestionAnalyticsDtos.AnswerCount("Oui", 1, 50.0)), result.distribution());
-    }
-
-    @Test
-    void showsTheActualAnswerInsteadOfAnUnmappedPlaceholderWhenOptionTextDiffers() {
-        String actualAnswer = "Oui, les entretiens en face à face sont totalement suspendus";
-        Question question = question("SingleOption", List.of(
-                new QuestionOption(1, "Yes, face-to-face interviews are fully suspended", "yes"),
-                new QuestionOption(2, "No", "no")));
-        when(surveySolutions.getQuestions(QUESTIONNAIRE_ID, 1)).thenReturn(List.of(question));
-        when(surveySolutions.getInterviews(QUESTIONNAIRE_ID, 1L))
-                .thenReturn(List.of(interview(1)));
-        when(surveySolutions.getInterviewDetails(uuid(1))).thenReturn(details(answer(actualAnswer)));
-
-        QuestionAnalyticsDtos.QuestionAnalytics result =
-                service.analyze(QUESTIONNAIRE_ID, 1, VARIABLE);
-
-        assertEquals(actualAnswer, result.observations().get(0).value());
-        assertEquals(List.of(
-                new QuestionAnalyticsDtos.AnswerCount(actualAnswer, 1, 100.0),
-                new QuestionAnalyticsDtos.AnswerCount("No", 0, 0.0),
-                new QuestionAnalyticsDtos.AnswerCount(
-                        "Yes, face-to-face interviews are fully suspended", 0, 0.0)),
-                result.distribution());
-    }
-
-    @Test
-    void splitsRecognizedMultipleChoiceCodesBeforeCalculatingPercentages() {
-        Question question = question("MultipleOption", List.of(
+    void reportsMultipleChoicePercentagesRelativeToRespondents() {
+        question("MultyOption", List.of(
                 new QuestionOption(1, "A", null),
                 new QuestionOption(2, "B", null)));
-        when(surveySolutions.getQuestions(QUESTIONNAIRE_ID, 1)).thenReturn(List.of(question));
-        when(surveySolutions.getInterviews(QUESTIONNAIRE_ID, 1L))
-                .thenReturn(List.of(interview(1)));
-        when(surveySolutions.getInterviewDetails(uuid(1))).thenReturn(details(answer("1, 2")));
+        interviews(2, 2);
+        answered(1, "1, 2");
+        answered(2, "1");
 
-        QuestionAnalyticsDtos.QuestionAnalytics result =
-                service.analyze(QUESTIONNAIRE_ID, 1, VARIABLE);
+        QuestionAnalyticsDtos.QuestionAnalytics result = service.analyze(QUESTIONNAIRE_ID, 1, VARIABLE);
 
-        assertEquals(1, result.responseCount());
-        assertEquals(List.of(
-                new QuestionAnalyticsDtos.AnswerCount("A", 1, 50.0),
-                new QuestionAnalyticsDtos.AnswerCount("B", 1, 50.0)), result.distribution());
+        assertThat(result.percentageBase()).isEqualTo(QuestionAnalyticsDtos.PercentageBase.RESPONDENTS);
+        assertThat(result.distribution()).containsExactly(
+                new QuestionAnalyticsDtos.AnswerCount("A", 2, 100.0),
+                new QuestionAnalyticsDtos.AnswerCount("B", 1, 50.0));
     }
 
     @Test
-    void summarizesCompletenessAcrossAllVariablesWithoutCountingDuplicateAnswersTwice() {
-        Question age = question("age", "Numeric", List.of());
-        Question consent = question("consent", "SingleOption", List.of());
-        when(surveySolutions.getQuestions(QUESTIONNAIRE_ID, 1))
-                .thenReturn(List.of(age, consent));
-        when(surveySolutions.getInterviews(QUESTIONNAIRE_ID, 1L))
-                .thenReturn(List.of(interview(1), interview(2), interview(3)));
-        when(surveySolutions.getInterviewDetails(uuid(1))).thenReturn(details(
-                answer("age", "30"),
-                answer("age", "31"),
-                answer("consent", "yes")));
-        when(surveySolutions.getInterviewDetails(uuid(2))).thenReturn(details(
-                answer("age", " "),
-                answer("consent", "")));
-        when(surveySolutions.getInterviewDetails(uuid(3))).thenReturn(details(
-                answer("age", "42")));
+    void keepsNumericSpecialValuesOutOfDescriptiveStatistics() {
+        question("Numeric", List.of(
+                new QuestionOption(98, "Ne sait pas", "98"),
+                new QuestionOption(99, "Refus", "99")));
+        interviews(4, 4);
+        answered(1, "20");
+        answered(2, "40");
+        answered(3, "98");
+        answered(4, "98.0");
 
-        QuestionAnalyticsDtos.CompletenessOverview result =
-                service.completeness(QUESTIONNAIRE_ID, 1);
+        QuestionAnalyticsDtos.QuestionAnalytics result = service.analyze(QUESTIONNAIRE_ID, 1, VARIABLE);
 
-        assertEquals(3, result.interviewCount());
-        assertEquals(List.of(
+        assertThat(result.responseCount()).isEqualTo(4);
+        assertThat(result.mean()).isEqualTo(new BigDecimal("30.00"));
+        assertThat(result.specialValues()).containsExactly(
+                new QuestionAnalyticsDtos.AnswerCount("Ne sait pas", 2, 50.0),
+                new QuestionAnalyticsDtos.AnswerCount("Refus", 0, 0.0));
+    }
+
+    @Test
+    void countsRosterRowsAsSeparateResponsesOfTheSameInterview() {
+        question("Numeric", List.of());
+        interviews(1, 1);
+        observations.add(new VariableObservation(uuid(1), "key-1", "1", "A", "30"));
+        observations.add(new VariableObservation(uuid(1), "key-1", "2", "A", "8"));
+        observations.add(new VariableObservation(uuid(1), "key-1", "3", "M", null));
+
+        QuestionAnalyticsDtos.QuestionAnalytics result = service.analyze(QUESTIONNAIRE_ID, 1, VARIABLE);
+
+        assertThat(result.answeredInterviewCount()).isEqualTo(1);
+        assertThat(result.responseCount()).isEqualTo(2);
+        assertThat(result.missingCount()).isEqualTo(1);
+        assertThat(result.observations()).extracting(QuestionAnalyticsDtos.AnswerObservation::rowKey)
+                .containsExactly("1", "2");
+    }
+
+    @Test
+    void reportsInterviewsExcludedByStatus() {
+        question("Text", List.of());
+        interviews(2, 5);
+
+        QuestionAnalyticsDtos.QuestionAnalytics result = service.analyze(QUESTIONNAIRE_ID, 1, VARIABLE);
+
+        assertThat(result.interviewCount()).isEqualTo(2);
+        assertThat(result.excludedInterviewCount()).isEqualTo(3);
+        assertThat(result.includedStatuses()).isEqualTo(STATUSES);
+        verify(repository).observations(QUESTIONNAIRE_ID, 1L, VARIABLE, STATUSES);
+    }
+
+    @Test
+    void requestsASynchronizationWhenNoDataHasBeenImportedYet() {
+        question("Text", List.of());
+        when(sync.latestSuccessfulSync(QUESTIONNAIRE_ID, 1)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.analyze(QUESTIONNAIRE_ID, 1, VARIABLE))
+                .isInstanceOf(DataNotSynchronizedException.class);
+        verify(sync).requestSync(QUESTIONNAIRE_ID, 1, SyncService.Trigger.ON_DEMAND);
+    }
+
+    @Test
+    void computesCompletenessWithoutCountingNotApplicableAsMissing() {
+        Question age = new Question("q1", "age", "Âge", "", "Numeric", List.of(), List.of());
+        Question consent = new Question("q2", "consent", "Consentement", "", "SingleOption", List.of(), List.of());
+        Question never = new Question("q3", "never", "Jamais exportée", "", "Text", List.of(), List.of());
+        when(surveySolutions.getQuestions(QUESTIONNAIRE_ID, 1)).thenReturn(List.of(age, consent, never));
+        interviews(3, 4);
+        when(repository.completeness(eq(QUESTIONNAIRE_ID), eq(1L), anyList())).thenReturn(List.of(
+                new VariableCompleteness("age", "MEMBRES", 6, 2, 1, 3),
+                new VariableCompleteness("consent", "survey", 2, 0, 1, 2)));
+
+        QuestionAnalyticsDtos.CompletenessOverview result = service.completeness(QUESTIONNAIRE_ID, 1);
+
+        assertThat(result.interviewCount()).isEqualTo(3);
+        assertThat(result.excludedInterviewCount()).isEqualTo(1);
+        assertThat(result.variables()).containsExactly(
                 new QuestionAnalyticsDtos.QuestionCompleteness(
-                        QuestionAnalyticsDtos.QuestionSummary.from(age), 2, 1, 66.67),
+                        QuestionAnalyticsDtos.QuestionSummary.from(age), "MEMBRES", 6, 2, 1, 3, 75.0),
                 new QuestionAnalyticsDtos.QuestionCompleteness(
-                        QuestionAnalyticsDtos.QuestionSummary.from(consent), 1, 2, 33.33)),
-                result.variables());
+                        QuestionAnalyticsDtos.QuestionSummary.from(consent), "survey", 2, 0, 1, 2, 100.0),
+                new QuestionAnalyticsDtos.QuestionCompleteness(
+                        QuestionAnalyticsDtos.QuestionSummary.from(never), null, 0, 0, 0, 0, 0.0));
     }
 
-    private Question question(String type, List<QuestionOption> options) {
-        return question(VARIABLE, type, options);
+    private void question(String type, List<QuestionOption> options) {
+        when(surveySolutions.getQuestions(QUESTIONNAIRE_ID, 1)).thenReturn(List.of(
+                new Question("question-id", VARIABLE, "Question", "Question", type, List.of(), options)));
     }
 
-    private Question question(String variableName, String type, List<QuestionOption> options) {
-        return new Question("question-id", variableName, "Question", "Question",
-                type, List.of(), options);
+    private void interviews(int included, int all) {
+        when(repository.countInterviews(eq(QUESTIONNAIRE_ID), eq(1L), any())).thenReturn(included);
+        when(repository.countAllInterviews(QUESTIONNAIRE_ID, 1L)).thenReturn(all);
     }
 
-    private Interview interview(int id) {
-        return new Interview(uuid(id).toString(), QUESTIONNAIRE_ID.toString(),
-                1, null, "Completed", null);
+    private void answered(int interview, String value) {
+        observe(interview, "A", value);
+    }
+
+    private void observe(int interview, String state, String value) {
+        observations.add(new VariableObservation(uuid(interview), "key-" + interview, "", state, value));
     }
 
     private UUID uuid(int value) {
         return UUID.fromString("00000000-0000-0000-0000-00000000000" + value);
-    }
-
-    private InterviewDetails details(InterviewAnswer... answers) {
-        return new InterviewDetails(List.of(answers));
-    }
-
-    private InterviewAnswer answer(String value) {
-        return answer(VARIABLE, value);
-    }
-
-    private InterviewAnswer answer(String variableName, String value) {
-        return new InterviewAnswer(variableName, value);
     }
 }

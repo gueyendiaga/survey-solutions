@@ -189,6 +189,67 @@ class SurveySolutionsServiceTest {
         server.verify();
     }
 
+    @Test
+    void usesAnswerValueAsOptionCodeWhenAnswerCodeIsMissing() {
+        UUID questionnaireId = UUID.fromString("588daf2d-0c72-4b89-bec9-254459a68983");
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://hq.test");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo(
+                        "http://hq.test/api/v1/statistics/questions"
+                                + "?questionnaireId=" + questionnaireId + "&version=1"))
+                .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+        server.expect(requestTo(
+                        "http://hq.test/api/v1/questionnaires/" + questionnaireId + "/1/document"))
+                .andRespond(withSuccess(
+                        """
+                        {
+                          "$type": "QuestionnaireDocument",
+                          "Children": [{
+                            "$type": "MultyOptionsQuestion",
+                            "PublicKey": "op-id",
+                            "VariableName": "op1",
+                            "QuestionText": "Operations",
+                            "QuestionType": 3,
+                            "Answers": [
+                              {"AnswerCode": 601.0, "AnswerValue": "601", "AnswerText": "Covid"},
+                              {"AnswerCode": null, "AnswerValue": "602", "AnswerText": "Census"}
+                            ]
+                          }]
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON));
+
+        var questions = new SurveySolutionsService(builder.build())
+                .getQuestions(questionnaireId, 1);
+
+        assertThat(questions.get(0).answers()).containsExactly(
+                new SurveySolutionsDtos.QuestionOption(601, "Covid", "601"),
+                new SurveySolutionsDtos.QuestionOption(602, "Census", "602"));
+        server.verify();
+    }
+
+    @Test
+    void buildsDataFingerprintFromGraphqlCountAndLastUpdate() {
+        UUID questionnaireId = UUID.fromString("588daf2d-0c72-4b89-bec9-254459a68983");
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://hq.test");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo("http://hq.test/graphql"))
+                .andExpect(org.springframework.test.web.client.match.MockRestRequestMatchers
+                        .jsonPath("$.variables.questionnaireId").value(questionnaireId.toString()))
+                .andRespond(withSuccess(
+                        """
+                        {"data": {"interviews": {"filteredCount": 3,
+                          "nodes": [{"updateDateUtc": "2026-11-05T08:42:20.035Z"}]}}}
+                        """,
+                        MediaType.APPLICATION_JSON));
+
+        String fingerprint = new SurveySolutionsService(builder.build())
+                .getDataFingerprint(questionnaireId, 1);
+
+        assertThat(fingerprint).isEqualTo("3|2026-11-05T08:42:20.035Z");
+        server.verify();
+    }
+
     private String questionnairePage(int page, int totalCount) {
         return """
                 {

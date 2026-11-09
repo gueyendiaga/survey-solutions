@@ -5,6 +5,7 @@ import static com.surveysolutions.analytics.surveysolutions.SurveySolutionsDtos.
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -18,34 +19,60 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutorService;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Service;
+import com.surveysolutions.analytics.config.SurveySolutionsProperties;
+import com.surveysolutions.analytics.store.AnalyticsRepository;
+import com.surveysolutions.analytics.store.AnalyticsRepository.SyncRun;
+import com.surveysolutions.analytics.store.AnalyticsRepository.VariableCompleteness;
+import com.surveysolutions.analytics.store.AnalyticsRepository.VariableObservation;
+import com.surveysolutions.analytics.store.SyncService;
+import com.surveysolutions.analytics.store.TabularExportParser;
 import com.surveysolutions.analytics.surveysolutions.SurveySolutionsService;
 
+/**
+ * Indicateurs par variable, calculés sur l'entrepôt Analytics alimenté par l'Export API.
+ * Les métadonnées des questions (types, modalités) restent lues dans HQ.
+ */
 @Service
 public class QuestionAnalyticsService {
-    private static final int MAX_INTERVIEWS_PER_ANALYSIS = 5_000;
     private static final int NUMERIC_HISTOGRAM_BUCKETS = 8;
 
     private final SurveySolutionsService surveySolutions;
-    private final ExecutorService executor;
+    private final AnalyticsRepository repository;
+    private final SyncService sync;
+    private final List<String> analysisStatuses;
 
-    private record InterviewResponse(int interviewNumber, InterviewAnswer answer) {}
+    /** Valeur répondue d'une unité (interview ou ligne de roster). */
+    private record Response(int interviewNumber, String interviewKey, String rowKey, String value) {}
+
+    /** Périmètre de l'analyse : interviews retenues et unités sans réponse de la variable. */
+    private record AnalysisScope(
+            int interviewCount,
+            int excludedCount,
+            long missingCount,
+            long notApplicableCount,
+            Instant syncedAt) {}
 
     public QuestionAnalyticsService(
             SurveySolutionsService surveySolutions,
-            ExecutorService analyticsExecutor) {
+            AnalyticsRepository repository,
+            SyncService sync,
+            SurveySolutionsProperties properties) {
         this.surveySolutions = surveySolutions;
-        this.executor = analyticsExecutor;
+        this.repository = repository;
+        this.sync = sync;
+        this.analysisStatuses = properties.getAnalysisStatuses().stream()
+                .map(String::trim)
+                .filter(status -> !status.isEmpty())
+                .toList();
+        if (analysisStatuses.isEmpty()) {
+            throw new IllegalStateException(
+                    "ANALYTICS_STATUSES doit contenir au moins un statut d'interview HQ.");
+        }
     }
 
     public List<QuestionSummary> getQuestions(UUID questionnaireId, long version) {
-        if (version < 1) {
-            throw new IllegalArgumentException("La version doit être supérieure à zéro.");
-        }
+        requireVersion(version);
         return surveySolutions.getQuestions(questionnaireId, version)
                 .stream()
                 .filter(question -> question.variableName() != null
@@ -58,9 +85,7 @@ public class QuestionAnalyticsService {
             UUID questionnaireId,
             long version,
             String variableName) {
-        if (version < 1) {
-            throw new IllegalArgumentException("La version doit être supérieure à zéro.");
-        }
+        requireVersion(version);
         if (variableName == null || variableName.isBlank()) {
             throw new IllegalArgumentException("La variable de question est obligatoire.");
         }
@@ -70,110 +95,109 @@ public class QuestionAnalyticsService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Cette variable n'existe pas dans la version sélectionnée."));
-        List<Interview> interviews = surveySolutions.getInterviews(questionnaireId, version);
-        if (interviews.size() > MAX_INTERVIEWS_PER_ANALYSIS) {
-            throw new IllegalArgumentException(
-                    "Cette analyse demanderait " + interviews.size()
-                            + " lectures d'interviews. La limite de sécurité actuelle est de "
-                            + MAX_INTERVIEWS_PER_ANALYSIS
-                            + "; contactez l'administrateur pour choisir une stratégie adaptée au volume.");
+        SyncRun syncRun = requireSynchronizedData(questionnaireId, version);
+
+        List<VariableObservation> rows = repository.observations(
+                questionnaireId, version, variableName, analysisStatuses);
+        Map<UUID, Integer> interviewNumbers = new HashMap<>();
+        List<Response> responses = new ArrayList<>();
+        long missing = 0;
+        long notApplicable = 0;
+        for (VariableObservation row : rows) {
+            int number = interviewNumbers.computeIfAbsent(
+                    row.interviewId(), ignored -> interviewNumbers.size() + 1);
+            switch (row.state()) {
+                case TabularExportParser.ANSWERED -> responses.add(new Response(
+                        number, row.interviewKey(), row.rowKey(), row.value()));
+                case TabularExportParser.MISSING -> missing++;
+                default -> notApplicable++;
+            }
         }
 
-        List<InterviewResponse> answers = fetchAnswers(interviews);
-        return aggregate(question, interviews.size(), answers);
+        int interviewCount = repository.countInterviews(questionnaireId, version, analysisStatuses);
+        int excluded = repository.countAllInterviews(questionnaireId, version) - interviewCount;
+        return aggregate(question, new AnalysisScope(
+                interviewCount, excluded, missing, notApplicable, syncRun.finishedAt()), responses);
     }
 
     public CompletenessOverview completeness(UUID questionnaireId, long version) {
+        requireVersion(version);
+        List<QuestionSummary> questions = getQuestions(questionnaireId, version);
+        SyncRun syncRun = requireSynchronizedData(questionnaireId, version);
+
+        int interviewCount = repository.countInterviews(questionnaireId, version, analysisStatuses);
+        int excluded = repository.countAllInterviews(questionnaireId, version) - interviewCount;
+        Map<String, VariableCompleteness> byVariable = new HashMap<>();
+        repository.completeness(questionnaireId, version, analysisStatuses)
+                .forEach(item -> byVariable.put(item.variable(), item));
+
+        List<QuestionCompleteness> completeness = questions.stream()
+                .map(question -> {
+                    VariableCompleteness item = byVariable.get(question.variableName());
+                    long answered = item == null ? 0 : item.answeredUnits();
+                    long missing = item == null ? 0 : item.missingUnits();
+                    long notApplicable = item == null ? 0 : item.disabledUnits();
+                    return new QuestionCompleteness(
+                            question,
+                            item == null ? null : item.level(),
+                            answered,
+                            missing,
+                            notApplicable,
+                            item == null ? 0 : item.answeredInterviews(),
+                            rate(answered, answered + missing));
+                })
+                .toList();
+        return new CompletenessOverview(
+                interviewCount, completeness, analysisStatuses, excluded, syncRun.finishedAt());
+    }
+
+    /**
+     * Les analyses lisent l'entrepôt. Sans synchronisation réussie, une synchronisation est
+     * demandée et l'appelant est invité à réessayer.
+     */
+    private SyncRun requireSynchronizedData(UUID questionnaireId, long version) {
+        return sync.latestSuccessfulSync(questionnaireId, version).orElseThrow(() -> {
+            sync.requestSync(questionnaireId, version, SyncService.Trigger.ON_DEMAND);
+            return new DataNotSynchronizedException(
+                    "Les données de cette version sont en cours de synchronisation depuis HQ. "
+                            + "Les indicateurs s'afficheront dès la fin de l'import.");
+        });
+    }
+
+    private static void requireVersion(long version) {
         if (version < 1) {
             throw new IllegalArgumentException("La version doit être supérieure à zéro.");
         }
-
-        List<QuestionSummary> questions = getQuestions(questionnaireId, version);
-        List<Interview> interviews = surveySolutions.getInterviews(questionnaireId, version);
-        if (interviews.size() > MAX_INTERVIEWS_PER_ANALYSIS) {
-            throw new IllegalArgumentException(
-                    "Cette analyse demanderait " + interviews.size()
-                            + " lectures d'interviews. La limite de sécurité actuelle est de "
-                            + MAX_INTERVIEWS_PER_ANALYSIS
-                            + "; contactez l'administrateur pour choisir une stratégie adaptée au volume.");
-        }
-        if (questions.isEmpty()) {
-            return new CompletenessOverview(interviews.size(), List.of());
-        }
-
-        Set<String> variables = questions.stream()
-                .map(QuestionSummary::variableName)
-                .collect(java.util.stream.Collectors.toSet());
-        Map<String, Set<Integer>> answeredInterviewNumbers = new HashMap<>();
-        for (InterviewResponse response : fetchAnswers(interviews)) {
-            InterviewAnswer answer = response.answer();
-            String answerValue = answerText(answer.answer());
-            if (variables.contains(answer.variableName())
-                    && answerValue != null
-                    && !answerValue.isBlank()) {
-                answeredInterviewNumbers
-                        .computeIfAbsent(answer.variableName(), ignored -> new HashSet<>())
-                        .add(response.interviewNumber());
-            }
-        }
-
-        int interviewCount = interviews.size();
-        List<QuestionCompleteness> completeness = questions.stream()
-                .map(question -> {
-                    int answeredCount = answeredInterviewNumbers
-                            .getOrDefault(question.variableName(), Set.of())
-                            .size();
-                    int missingCount = Math.max(0, interviewCount - answeredCount);
-                    double responseRate = interviewCount == 0
-                            ? 0
-                            : Math.round(answeredCount * 10_000.0 / interviewCount) / 100.0;
-                    return new QuestionCompleteness(
-                            question, answeredCount, missingCount, responseRate);
-                })
-                .toList();
-        return new CompletenessOverview(interviewCount, completeness);
     }
 
-    private List<InterviewResponse> fetchAnswers(List<Interview> interviews) {
-        List<CompletableFuture<List<InterviewResponse>>> requests =
-                java.util.stream.IntStream.range(0, interviews.size())
-                .mapToObj(index -> {
-                    Interview interview = interviews.get(index);
-                    return CompletableFuture.supplyAsync(
-                        () -> {
-                            List<InterviewAnswer> answers = surveySolutions.getInterviewDetails(
-                                            UUID.fromString(interview.interviewId()))
-                                    .answers();
-                            return answers.stream()
-                                    .map(answer -> new InterviewResponse(index + 1, answer))
-                                    .toList();
-                        },
-                        executor);
-                })
-                .toList();
-
-        List<InterviewResponse> answers = new ArrayList<>();
-        try {
-            for (CompletableFuture<List<InterviewResponse>> request : requests) {
-                answers.addAll(request.join());
-            }
-        } catch (CompletionException exception) {
-            requests.forEach(request -> request.cancel(true));
-            if (exception.getCause() instanceof RuntimeException runtimeException) {
-                throw runtimeException;
-            }
-            throw exception;
-        }
-        return answers;
+    /** Taux en pourcentage arrondi à deux décimales ; 0 si le dénominateur est nul. */
+    private static double rate(long numerator, long denominator) {
+        return denominator == 0 ? 0 : Math.round(numerator * 10_000.0 / denominator) / 100.0;
     }
 
     private QuestionAnalytics aggregate(
             Question question,
-            int interviewCount,
-            List<InterviewResponse> answers) {
+            AnalysisScope scope,
+            List<Response> answers) {
+        int interviewCount = scope.interviewCount();
+        String questionType = question.type() == null ? "" : question.type().toLowerCase();
+        boolean numericQuestion = isNumeric(questionType);
         Map<String, String> optionLabels = new HashMap<>();
         Map<String, Long> counts = new HashMap<>();
-        if (question.answers() != null) {
+        // Pour une question numérique, les modalités du document sont des valeurs spéciales
+        // (ex. 98 = Ne sait pas, 99 = Refus) : elles sont comptées à part, hors statistiques.
+        Map<BigDecimal, String> specialValueLabels = new HashMap<>();
+        Map<String, Long> specialValueCounts = new java.util.LinkedHashMap<>();
+        if (numericQuestion && question.answers() != null) {
+            for (QuestionOption option : question.answers()) {
+                String label = option.text() == null || option.text().isBlank()
+                        ? Integer.toString(option.answer())
+                        : option.text();
+                specialValueLabels.put(BigDecimal.valueOf(option.answer()), label);
+                specialValueCounts.putIfAbsent(label, 0L);
+            }
+        }
+        if (!numericQuestion && question.answers() != null) {
             for (QuestionOption option : question.answers()) {
                 if (option.text() == null || option.text().isBlank()) {
                     continue;
@@ -193,29 +217,31 @@ public class QuestionAnalyticsService {
         long responseCount = 0;
         long distributionCount = 0;
         int nonNumericResponseCount = 0;
-        String questionType = question.type() == null ? "" : question.type().toLowerCase();
-        boolean numericQuestion = isNumeric(questionType);
         boolean dateQuestion = questionType.contains("date");
         boolean multipleChoice = questionType.contains("multi")
                 || questionType.contains("multy")
                 || questionType.contains("checkbox");
         boolean hideValues = isText(questionType) || isGeospatial(questionType);
 
-        for (InterviewResponse response : answers) {
-            InterviewAnswer answer = response.answer();
-            String answerValue = answerText(answer.answer());
-            if (!question.variableName().equals(answer.variableName())
-                    || answerValue == null
-                    || answerValue.isBlank()) {
+        for (Response response : answers) {
+            String answerValue = response.value();
+            if (answerValue == null || answerValue.isBlank()) {
                 continue;
             }
             responseCount++;
             answeredInterviews.add(Integer.toString(response.interviewNumber()));
-            observations.add(new AnswerObservation(response.interviewNumber(), answerValue));
+            observations.add(new AnswerObservation(
+                    response.interviewNumber(), response.interviewKey(), response.rowKey(), answerValue));
 
             if (numericQuestion) {
                 try {
-                    numericValues.add(new BigDecimal(answerValue.trim()));
+                    BigDecimal value = new BigDecimal(answerValue.trim());
+                    String specialLabel = specialValueLabel(specialValueLabels, value);
+                    if (specialLabel != null) {
+                        specialValueCounts.merge(specialLabel, 1L, Long::sum);
+                    } else {
+                        numericValues.add(value);
+                    }
                 } catch (NumberFormatException exception) {
                     nonNumericResponseCount++;
                 }
@@ -252,8 +278,10 @@ public class QuestionAnalyticsService {
             percentile05 = percentile(numericValues, 0.05);
             percentile95 = percentile(numericValues, 0.95);
             distribution = numericHistogram(numericValues, minimum, maximum);
-        } else {
-            long totalResponseCount = distributionCount;
+        } else if (!numericQuestion) {
+            // Choix multiples : une réponse peut cocher plusieurs modalités. Le pourcentage se
+            // rapporte alors aux réponses non vides (répondants), pas au nombre de cases cochées.
+            long totalResponseCount = multipleChoice ? responseCount : distributionCount;
             distribution = counts.entrySet().stream()
                     .sorted(Map.Entry.<String, Long>comparingByValue().reversed()
                             .thenComparing(Map.Entry::getKey))
@@ -263,14 +291,30 @@ public class QuestionAnalyticsService {
                             totalResponseCount == 0 ? 0
                                     : Math.round(entry.getValue() * 10_000.0 / totalResponseCount) / 100.0))
                     .toList();
+        } else {
+            distribution = List.of();
         }
+
+        long specialValueBase = responseCount;
+        List<AnswerCount> specialValues = specialValueCounts.entrySet().stream()
+                .map(entry -> new AnswerCount(
+                        entry.getKey(),
+                        entry.getValue(),
+                        specialValueBase == 0 ? 0
+                                : Math.round(entry.getValue() * 10_000.0 / specialValueBase) / 100.0))
+                .toList();
+        PercentageBase percentageBase = numericQuestion
+                ? PercentageBase.NUMERIC_VALUES
+                : multipleChoice ? PercentageBase.RESPONDENTS : PercentageBase.RESPONSES;
 
         return new QuestionAnalytics(
                 QuestionSummary.from(question),
                 interviewCount,
                 Math.min(interviewCount, answeredInterviews.size()),
-                Math.max(0, interviewCount - answeredInterviews.size()),
                 responseCount,
+                scope.missingCount(),
+                scope.notApplicableCount(),
+                rate(responseCount, responseCount + scope.missingCount()),
                 List.copyOf(observations),
                 distribution,
                 minimum,
@@ -280,14 +324,24 @@ public class QuestionAnalyticsService {
                 sum,
                 percentile05,
                 percentile95,
-                nonNumericResponseCount);
+                nonNumericResponseCount,
+                percentageBase,
+                specialValues,
+                analysisStatuses,
+                scope.excludedCount(),
+                scope.syncedAt());
     }
 
-    private String answerText(Object answer) {
-        if (answer instanceof JsonNode node) {
-            return node.isTextual() ? node.asText() : node.toString();
+    private String specialValueLabel(Map<BigDecimal, String> labels, BigDecimal value) {
+        if (labels.isEmpty()) {
+            return null;
         }
-        return answer == null ? null : answer.toString();
+        for (Map.Entry<BigDecimal, String> entry : labels.entrySet()) {
+            if (entry.getKey().compareTo(value) == 0) {
+                return entry.getValue();
+            }
+        }
+        return null;
     }
 
     private List<AnswerCount> numericHistogram(

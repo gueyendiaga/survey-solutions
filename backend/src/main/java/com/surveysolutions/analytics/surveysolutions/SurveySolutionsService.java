@@ -4,8 +4,10 @@ import static com.surveysolutions.analytics.surveysolutions.SurveySolutionsDtos.
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import com.fasterxml.jackson.databind.JsonNode;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -165,13 +167,12 @@ public class SurveySolutionsService {
         JsonNode answerNodes = node.get("Answers");
         if (answerNodes != null && answerNodes.isArray()) {
             answerNodes.forEach(answer -> {
-                JsonNode code = answer.get("AnswerCode");
                 JsonNode answerText = answer.get("AnswerText");
                 JsonNode value = answer.get("AnswerValue");
-                if (code != null && code.canConvertToInt()
-                        && answerText != null && answerText.isTextual()) {
+                Integer code = optionCode(answer.get("AnswerCode"), value);
+                if (code != null && answerText != null && answerText.isTextual()) {
                     answers.add(new QuestionOption(
-                            code.asInt(),
+                            code,
                             answerText.asText(),
                             value == null || value.isNull() ? null : value.asText()));
                 }
@@ -187,6 +188,59 @@ public class SurveySolutionsService {
                 questionType,
                 List.copyOf(breadcrumbs),
                 List.copyOf(answers));
+    }
+
+    /**
+     * Le document HQ ne renseigne pas toujours AnswerCode (par exemple pour les options ajoutées
+     * après la première) : AnswerValue porte alors le code de la modalité.
+     */
+    private Integer optionCode(JsonNode code, JsonNode value) {
+        if (code != null && code.canConvertToInt()) {
+            return code.asInt();
+        }
+        if (value != null && value.isTextual()) {
+            try {
+                return new java.math.BigDecimal(value.asText().trim()).intValueExact();
+            } catch (NumberFormatException | ArithmeticException ignored) {
+                return null;
+            }
+        }
+        return value != null && value.canConvertToInt() ? value.asInt() : null;
+    }
+
+    /**
+     * Empreinte des données d'une version (nombre d'interviews et dernière modification), lue en
+     * une requête GraphQL. Si elle n'a pas changé depuis la dernière synchronisation, l'export
+     * HQ n'est pas relancé.
+     */
+    public String getDataFingerprint(UUID questionnaireId, long version) {
+        String query = """
+                query($questionnaireId: UUID!, $version: Long!) {
+                  interviews(take: 1, where: {
+                    questionnaireId: { eq: $questionnaireId },
+                    questionnaireVersion: { eq: $version } },
+                    order: [{ updateDateUtc: DESC }]) {
+                    filteredCount
+                    nodes { updateDateUtc }
+                  }
+                }""";
+        JsonNode response = client.post()
+                .uri("/graphql")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("query", query, "variables", Map.of(
+                        "questionnaireId", questionnaireId.toString(),
+                        "version", version)))
+                .retrieve()
+                .body(JsonNode.class);
+        if (response == null || response.has("errors")) {
+            throw new IllegalStateException("HQ GraphQL n'a pas renvoyé l'état des interviews.");
+        }
+        JsonNode interviews = response.path("data").path("interviews");
+        if (!interviews.has("filteredCount")) {
+            throw new IllegalStateException("HQ GraphQL a renvoyé un état d'interviews invalide.");
+        }
+        return interviews.path("filteredCount").asLong() + "|"
+                + interviews.path("nodes").path(0).path("updateDateUtc").asText("");
     }
 
     private String questionType(JsonNode node) {

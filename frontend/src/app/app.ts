@@ -1,7 +1,7 @@
 import { CommonModule, DatePipe, DecimalPipe, registerLocaleData } from '@angular/common';
 import localeFr from '@angular/common/locales/fr';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DashboardChartComponent } from './dashboard-chart';
 import { DashboardApiService } from './dashboard-api.service';
@@ -11,8 +11,11 @@ import {
   QuestionAnalytics,
   QuestionCompleteness,
   Questionnaire,
-  QuestionSummary
+  QuestionSummary,
+  SyncStatus
 } from './dashboard.models';
+
+const SYNC_POLL_INTERVAL_MS = 3000;
 
 registerLocaleData(localeFr);
 
@@ -22,7 +25,7 @@ registerLocaleData(localeFr);
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
-export class App implements OnInit {
+export class App implements OnInit, OnDestroy {
   protected readonly questionnaires = signal<Questionnaire[]>([]);
   protected readonly dashboard = signal<Dashboard | null>(null);
   protected readonly loading = signal(true);
@@ -39,11 +42,114 @@ export class App implements OnInit {
   protected readonly completenessError = signal<string | null>(null);
   protected readonly exporting = signal<'csv' | 'xlsx' | null>(null);
   protected readonly exportError = signal<string | null>(null);
+  protected readonly syncStatus = signal<SyncStatus | null>(null);
+  protected readonly syncRequesting = signal(false);
+  private syncPollTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private readonly api: DashboardApiService) {}
 
   ngOnInit(): void {
     this.refresh();
+  }
+
+  ngOnDestroy(): void {
+    this.stopSyncPolling();
+  }
+
+  /** Synchronisation manuelle : export HQ puis import, suivi jusqu'à la fin. */
+  protected startSync(): void {
+    const questionnaire = this.currentQuestionnaire();
+    if (!questionnaire || this.syncRequesting()) {
+      return;
+    }
+    this.syncRequesting.set(true);
+    this.api.startSync(questionnaire.questionnaireId, questionnaire.version).subscribe({
+      next: (status) => {
+        this.syncRequesting.set(false);
+        this.syncStatus.set({ ...status, inProgress: true });
+        this.scheduleSyncPoll(questionnaire);
+      },
+      error: (error: unknown) => {
+        this.syncRequesting.set(false);
+        this.error.set(this.apiErrorMessage(error, 'Impossible de lancer la synchronisation.'));
+      }
+    });
+  }
+
+  private loadSyncStatus(questionnaire: Questionnaire): void {
+    this.api.syncStatus(questionnaire.questionnaireId, questionnaire.version).subscribe({
+      next: (status) => {
+        if (this.currentQuestionnaire() !== questionnaire) {
+          return;
+        }
+        this.syncStatus.set(status);
+        if (status.inProgress) {
+          this.scheduleSyncPoll(questionnaire);
+        }
+      },
+      error: () => this.syncStatus.set(null)
+    });
+  }
+
+  private scheduleSyncPoll(questionnaire: Questionnaire): void {
+    this.stopSyncPolling();
+    this.syncPollTimer = setTimeout(() => this.pollSync(questionnaire), SYNC_POLL_INTERVAL_MS);
+  }
+
+  private pollSync(questionnaire: Questionnaire): void {
+    this.syncPollTimer = null;
+    if (this.currentQuestionnaire() !== questionnaire) {
+      return;
+    }
+    const previousSuccess = this.syncStatus()?.lastSuccessAt ?? null;
+    this.api.syncStatus(questionnaire.questionnaireId, questionnaire.version).subscribe({
+      next: (status) => {
+        if (this.currentQuestionnaire() !== questionnaire) {
+          return;
+        }
+        this.syncStatus.set(status);
+        if (status.inProgress) {
+          this.scheduleSyncPoll(questionnaire);
+        } else if (status.lastSuccessAt && status.lastSuccessAt !== previousSuccess) {
+          this.reloadAnalyses(questionnaire);
+        }
+      },
+      error: () => this.scheduleSyncPoll(questionnaire)
+    });
+  }
+
+  private reloadAnalyses(questionnaire: Questionnaire): void {
+    this.loadCompleteness(questionnaire);
+    const question = this.selectedQuestion();
+    if (question) {
+      this.selectQuestion(question);
+    }
+  }
+
+  private stopSyncPolling(): void {
+    if (this.syncPollTimer !== null) {
+      clearTimeout(this.syncPollTimer);
+      this.syncPollTimer = null;
+    }
+  }
+
+  /** 409 + syncPending : les données sont en cours d'import, on attend la fin. */
+  private handleSyncPending(error: unknown, questionnaire: Questionnaire): boolean {
+    if (!(error instanceof HttpErrorResponse) || error.status !== 409 || !error.error?.syncPending) {
+      return false;
+    }
+    const current = this.syncStatus();
+    this.syncStatus.set({
+      inProgress: true,
+      lastSuccessAt: current?.lastSuccessAt ?? null,
+      interviewCount: current?.interviewCount ?? null,
+      lastStatus: 'RUNNING',
+      lastError: null
+    });
+    if (this.syncPollTimer === null) {
+      this.scheduleSyncPoll(questionnaire);
+    }
+    return true;
   }
 
   protected refresh(): void {
@@ -206,6 +312,9 @@ export class App implements OnInit {
     this.completenessError.set(null);
     this.completenessLoading.set(false);
     this.questions.set([]);
+    this.stopSyncPolling();
+    this.syncStatus.set(null);
+    this.loadSyncStatus(questionnaire);
     this.view.set('questions');
     this.loading.set(true);
     this.error.set(null);
@@ -241,6 +350,9 @@ export class App implements OnInit {
         },
         error: (error: unknown) => {
           this.completenessLoading.set(false);
+          if (this.handleSyncPending(error, questionnaire)) {
+            return;
+          }
           this.completenessError.set(this.apiErrorMessage(
             error,
             'Impossible de calculer la complétude des variables.'
@@ -271,6 +383,9 @@ export class App implements OnInit {
         },
         error: (error: unknown) => {
           this.loading.set(false);
+          if (this.handleSyncPending(error, questionnaire)) {
+            return;
+          }
           this.error.set(this.apiErrorMessage(
             error,
             'Impossible de calculer les indicateurs de cette question.'
@@ -425,6 +540,23 @@ export class App implements OnInit {
       Inconnu: 'Statut inconnu'
     };
     return labels[status] ?? status;
+  }
+
+  /** Unité d'observation : interviews au niveau principal, lignes pour un roster. */
+  protected unitLabel(level: string | null): string {
+    const questionnaire = this.currentQuestionnaire();
+    if (!level || !questionnaire || level.toLowerCase() === questionnaire.variable?.toLowerCase()) {
+      return 'Interviews';
+    }
+    return `Lignes ${level}`;
+  }
+
+  protected hasSpecialValues(analytics: QuestionAnalytics): boolean {
+    return (analytics.specialValues ?? []).length > 0;
+  }
+
+  protected statusList(statuses: string[] | null | undefined): string {
+    return (statuses ?? []).map((status) => this.statusLabel(status)).join(', ');
   }
 
   protected readonly statusOptions = (dashboard: Dashboard) => ({
