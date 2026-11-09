@@ -135,6 +135,15 @@ export const NO_FILTERS: AnalysisFilters = {
   value: null
 };
 
+/** Rapport PDF archivé (génération automatique quotidienne). */
+export interface ArchivedReport {
+  id: number;
+  generatedAt: string;
+  trigger: 'SCHEDULED' | 'MANUAL';
+  filename: string;
+  sizeBytes: number;
+}
+
 export interface FilterOptions {
   supervisors: string[];
   interviewers: string[];

@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { map, Observable } from 'rxjs';
 import {
   AnalysisFilters,
+  ArchivedReport,
   CompletenessOverview,
   FieldworkOverview,
   FilterOptions,
@@ -141,6 +142,24 @@ export class DashboardApiService {
         map((response) => normalizeKeys(response) as { variableName: string; answers: QuestionOption[] | null }[]),
         map((questions) => questions.find((question) => question.variableName === variableName)?.answers ?? [])
       );
+  }
+
+  /** Rapport PDF généré à la demande avec les filtres courants. */
+  report(questionnaireId: string, version: number, filters: AnalysisFilters): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/questionnaires/${questionnaireId}/${version}/report.pdf`, {
+      params: filterParams(filters),
+      responseType: 'blob'
+    });
+  }
+
+  archivedReports(questionnaireId: string, version: number): Observable<ArchivedReport[]> {
+    return this.http
+      .get<unknown>(`${this.baseUrl}/questionnaires/${questionnaireId}/${version}/reports`)
+      .pipe(map((response) => normalizeKeys(response) as ArchivedReport[]));
+  }
+
+  archivedReport(id: number): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/reports/${id}`, { responseType: 'blob' });
   }
 
   syncStatus(questionnaireId: string, version: number): Observable<SyncStatus> {

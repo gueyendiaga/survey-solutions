@@ -18,6 +18,10 @@ public class SurveySolutionsProperties {
     private Duration syncInterval = Duration.ofMinutes(30);
     /** Durée maximale d'attente d'un export HQ avant abandon. */
     private Duration exportTimeout = Duration.ofMinutes(30);
+    /** Organisme affiché en en-tête des rapports PDF. */
+    private String reportOrganization = "Survey Solutions Analytics";
+    /** Nombre de rapports automatiques conservés par version de questionnaire. */
+    private int reportRetention = 30;
     /**
      * Statuts HQ des interviews prises en compte dans les analyses de variables et la complétude.
      * Par défaut : interviews terminées ou approuvées (les interviews encore affectées ou rejetées
@@ -110,5 +114,22 @@ public class SurveySolutionsProperties {
 
     public void setExportTimeout(Duration exportTimeout) {
         this.exportTimeout = exportTimeout;
+    }
+
+    public String getReportOrganization() {
+        return reportOrganization;
+    }
+
+    public void setReportOrganization(String reportOrganization) {
+        this.reportOrganization = reportOrganization == null || reportOrganization.isBlank()
+                ? "Survey Solutions Analytics" : reportOrganization.trim();
+    }
+
+    public int getReportRetention() {
+        return reportRetention;
+    }
+
+    public void setReportRetention(int reportRetention) {
+        this.reportRetention = Math.max(1, reportRetention);
     }
 }

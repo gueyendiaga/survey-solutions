@@ -1,892 +1,641 @@
-<div class="app-shell min-h-screen flex">
-  <aside class="sidebar">
-    <a class="brand" href="/" aria-label="Survey Analytics - accueil">
-      <span class="brand-mark">S</span>
+<div class="shell">
+  <nav class="sidebar" aria-label="Navigation principale">
+    <a class="brand" href="/" (click)="showDashboard($event)">
+      <span class="brand-mark" aria-hidden="true">S</span>
       <span>
         <strong>Survey Analytics</strong>
-        <small>FIELDWORK INTELLIGENCE</small>
+        <small>Suivi des collectes</small>
       </span>
     </a>
 
-    <div class="nav-caption">ESPACE DE TRAVAIL</div>
+    <div class="nav-caption">Général</div>
     <a
       class="nav-item"
-      [class.active]="view() === 'dashboard'"
       href="/"
-      (click)="showDashboard($event)"
-      [attr.aria-current]="view() === 'dashboard' ? 'page' : null">
-      <span class="nav-icon">◫</span>
-      <span>Vue d’ensemble</span>
+      [class.active]="view() === 'dashboard'"
+      [attr.aria-current]="view() === 'dashboard' ? 'page' : null"
+      (click)="showDashboard($event)">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" /><rect x="14" y="12" width="7" height="9" rx="1.5" /><rect x="3" y="16" width="7" height="5" rx="1.5" /></svg>
+      Tableau de bord
     </a>
     <a
-      class="nav-item nav-muted"
-      [class.active]="view() === 'questionnaires'"
+      class="nav-item"
       href="#questionnaires"
-      (click)="showQuestionnaires($event)"
+      [class.active]="view() === 'questionnaires'"
       [attr.aria-current]="view() === 'questionnaires' ? 'page' : null"
+      (click)="showQuestionnaires($event)"
       aria-label="Afficher le catalogue des questionnaires">
-      <span class="nav-icon">▤</span>
-      <span>Questionnaires</span>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h11M9 12h11M9 19h11M4 5h.01M4 12h.01M4 19h.01" /></svg>
+      Questionnaires
       <span class="nav-count">{{ questionnaires().length }}</span>
     </a>
-    <a
-      class="nav-item nav-muted"
-      [class.active]="view() === 'questions'"
-      href="#questions"
-      (click)="showQuestions($event)"
-      [attr.aria-current]="view() === 'questions' ? 'page' : null"
-      aria-label="Explorer les questions et réponses d’un questionnaire">
-      <span class="nav-icon">▥</span>
-      <span>Questions & réponses</span>
-    </a>
-    <a
-      class="nav-item nav-muted"
-      [class.active]="view() === 'fieldwork'"
-      href="#fieldwork"
-      (click)="showFieldwork($event)"
-      [attr.aria-current]="view() === 'fieldwork' ? 'page' : null"
-      aria-label="Suivre la collecte par équipe et par enquêteur">
-      <span class="nav-icon">▦</span>
-      <span>Suivi terrain</span>
-    </a>
 
-    <div class="sidebar-footer">
-      <div class="connection-dot"></div>
-      <div>
-        <strong>Survey Solutions HQ</strong>
-        <span>Source de données</span>
+    @if (currentQuestionnaire(); as questionnaire) {
+      <div class="nav-caption">Questionnaire ouvert</div>
+      <div class="context-card">
+        <strong>{{ questionnaire.title }}</strong>
+        <span>
+          Version {{ questionnaire.version }}@if (syncStatus()?.interviewCount !== null && syncStatus()?.interviewCount !== undefined) { · {{ syncStatus()!.interviewCount }} interviews }
+          <a href="#questionnaires" (click)="showQuestionnaires($event)">Changer</a>
+        </span>
       </div>
+      <a class="nav-item" href="#fieldwork" [class.active]="view() === 'fieldwork'" [attr.aria-current]="view() === 'fieldwork' ? 'page' : null" (click)="showQuestionnaireView('fieldwork', $event)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18" /><path d="M7 15l4-4 3 3 5-6" /></svg>
+        Suivi terrain
+      </a>
+      <a class="nav-item" href="#variables" [class.active]="view() === 'variables'" [attr.aria-current]="view() === 'variables' ? 'page' : null" (click)="showQuestionnaireView('variables', $event)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>
+        Variables
+      </a>
+      <a class="nav-item" href="#quality" [class.active]="view() === 'quality'" [attr.aria-current]="view() === 'quality' ? 'page' : null" (click)="showQuestionnaireView('quality', $event)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 12l2 2 4-4" /><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" /></svg>
+        Qualité des données
+      </a>
+      <a class="nav-item" href="#reports" [class.active]="view() === 'reports'" [attr.aria-current]="view() === 'reports' ? 'page' : null" (click)="showQuestionnaireView('reports', $event)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5M9 13h6M9 17h4" /></svg>
+        Rapports
+      </a>
+    }
+
+    <div class="sidebar-status">
+      <strong><span class="status-dot" aria-hidden="true"></span>HQ connecté</strong>
+      @if (isQuestionnaireView() && syncStatus()?.lastSuccessAt) {
+        <span>Dernière synchronisation à {{ syncStatus()!.lastSuccessAt | date: 'HH:mm' : '' : 'fr-FR' }} · automatique toutes les 30 min</span>
+      } @else {
+        <span>Survey Solutions Headquarters</span>
+      }
     </div>
-  </aside>
+  </nav>
 
-  <main class="main-content min-w-0">
+  <div class="main-col">
     <header class="topbar">
-      <div class="breadcrumbs">
-        Espace de travail <span>/</span>
-        <strong>
-          {{ view() === 'dashboard' ? 'Vue d’ensemble' : view() === 'questionnaires' ? 'Questionnaires' : view() === 'fieldwork' ? 'Suivi terrain' : 'Questions & réponses' }}
-        </strong>
-      </div>
-      <div class="topbar-right">
-        <div class="source-badge"><span></span>HQ en direct</div>
-        <div class="readonly-badge">Lecture seule</div>
-      </div>
+      @if (currentQuestionnaire(); as questionnaire) {
+        <button type="button" class="btn switcher" aria-label="Changer de questionnaire" (click)="showQuestionnaires($event)">
+          <span class="switcher-mark" aria-hidden="true">{{ questionnaire.title.charAt(0) || 'Q' }}</span>
+          <span class="switcher-name">{{ questionnaire.title }} · v{{ questionnaire.version }}</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5" /></svg>
+        </button>
+        <label class="search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+          <span class="sr-only">Rechercher une variable</span>
+          <input type="search" placeholder="Rechercher une variable…" [ngModel]="variableSearch()" (ngModelChange)="searchVariables($event)" />
+        </label>
+        <div class="top-actions">
+          @if (syncStatus()?.inProgress) {
+            <span class="pill info sync-line"><span class="spinner small"></span>Synchronisation en cours…</span>
+          } @else if (syncStatus()?.lastSuccessAt) {
+            <span class="pill ok sync-line"><i class="dot"></i>Données à jour · {{ syncStatus()!.lastSuccessAt | date: 'HH:mm' : '' : 'fr-FR' }} · {{ syncStatus()!.interviewCount ?? 0 | number: '1.0-0' : 'fr-FR' }} interview(s)</span>
+          } @else {
+            <span class="pill warn sync-line"><i class="dot"></i>Aucune donnée importée</span>
+          }
+          <button type="button" class="btn icon" aria-label="Synchroniser maintenant" title="Synchroniser maintenant" (click)="startSync()" [disabled]="syncRequesting() || syncStatus()?.inProgress">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.6-4.5L4 8" /><path d="M4 4v4h4" /><path d="M4 13a8 8 0 0 0 14.6 4.5L20 16" /><path d="M20 20v-4h-4" /></svg>
+          </button>
+          <div class="menu">
+            <button type="button" class="btn icon" aria-label="Exporter les réponses" title="Exporter les réponses" aria-haspopup="true" [attr.aria-expanded]="exportMenuOpen()" (click)="toggleExportMenu()" [disabled]="exporting() !== null">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5" /><path d="M5 21h14" /></svg>
+            </button>
+            @if (exportMenuOpen()) {
+              <div class="menu-list" role="menu">
+                <button type="button" role="menuitem" class="export-button" (click)="exportMenuOpen.set(false); downloadExport('csv')">Exporter CSV</button>
+                <button type="button" role="menuitem" class="export-button" (click)="exportMenuOpen.set(false); downloadExport('xlsx')">Exporter Excel</button>
+              </div>
+            }
+          </div>
+          <button type="button" class="btn primary report-button" (click)="downloadReport()" [disabled]="reportGenerating()" title="Rapport PDF avec les filtres appliqués">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></svg>
+            {{ reportGenerating() ? 'Génération…' : 'Rapport PDF' }}
+          </button>
+        </div>
+      } @else {
+        <span class="topbar-title">Survey Solutions Analytics</span>
+        <div class="top-actions">
+          <button class="btn" type="button" (click)="refresh()" [disabled]="loading()">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.6-4.5L4 8" /><path d="M4 4v4h4" /><path d="M4 13a8 8 0 0 0 14.6 4.5L20 16" /><path d="M20 20v-4h-4" /></svg>
+            Actualiser
+          </button>
+        </div>
+      }
     </header>
 
-    <div class="page-content">
+    <main class="page">
       @if (view() === 'dashboard') {
-      <section class="page-heading">
-        <div>
-          <div class="eyebrow">MONITORING DES COLLECTES</div>
-          <h1>Vue d’ensemble</h1>
-          <p>Suivez l’activité des questionnaires et l’avancement des entretiens.</p>
-        </div>
-        <div class="heading-actions">
-          <label class="select-wrap">
+        <div class="page-head">
+          <div>
+            <h1>Tableau de bord</h1>
+            <p class="lead">Activité de collecte de tous les questionnaires importés dans HQ</p>
+          </div>
+          <label class="select">
             <span class="sr-only">Filtrer par questionnaire</span>
-            <select
-              [ngModel]="selectedKey()"
-              (ngModelChange)="selectQuestionnaire($event)"
-              [disabled]="loading()">
+            <select [ngModel]="selectedKey()" (ngModelChange)="selectQuestionnaire($event)" [disabled]="loading()">
               <option value="">Tous les questionnaires</option>
               @for (questionnaire of questionnaires(); track questionnaire.questionnaireIdentity) {
-                <option [value]="questionnaire.questionnaireId + '$' + questionnaire.version">
-                  {{ questionnaire.title }} · v{{ questionnaire.version }}
-                </option>
+                <option [value]="questionnaire.questionnaireId + '$' + questionnaire.version">{{ questionnaire.title }} · v{{ questionnaire.version }}</option>
               }
             </select>
           </label>
-          <button class="refresh-button" type="button" (click)="refresh()" [disabled]="loading()">
-            <span [class.spinning]="loading()">↻</span>
-            Actualiser
-          </button>
         </div>
-      </section>
-
-      @if (error()) {
-        <section class="error-banner" role="alert">
-          <span class="error-icon">!</span>
-          <div>
-            <strong>Les données ne sont pas disponibles</strong>
-            <p>{{ error() }}</p>
-          </div>
-          <button type="button" class="retry-button" (click)="refresh()">Réessayer</button>
-        </section>
-      }
-
-      @if (loading() && !dashboard()) {
-        <section class="loading-panel" aria-live="polite">
-          <span class="loading-spinner"></span>
-          <strong>Connexion à Survey Solutions HQ…</strong>
-          <span>Chargement des données réelles</span>
-        </section>
-      } @else if (dashboard(); as data) {
-        <div class="data-caption">
-          <span class="live-pulse"></span>
-          Indicateurs calculés à partir des données HQ
-          <span class="caption-separator">·</span>
-          Consulté le {{ data.generatedAt | date: 'dd/MM/yyyy à HH:mm:ss' : 'UTC' : 'fr-FR' }} UTC
-        </div>
-
-        <section class="kpi-grid" aria-label="Indicateurs clés">
-          <article class="kpi-card">
-            <div class="kpi-top">
-              <span class="kpi-label">Questionnaires</span>
-              <span class="kpi-icon blue">▤</span>
-            </div>
-            <strong class="kpi-value">{{ data.questionnaireCount | number: '1.0-0' : 'fr-FR' }}</strong>
-            <span class="kpi-note">Questionnaires distincts importés</span>
-          </article>
-          <article class="kpi-card">
-            <div class="kpi-top">
-              <span class="kpi-label">Interviews</span>
-              <span class="kpi-icon violet">▥</span>
-            </div>
-            <strong class="kpi-value">{{ data.interviewCount | number: '1.0-0' : 'fr-FR' }}</strong>
-            <span class="kpi-note">Enregistrements présents dans HQ</span>
-          </article>
-          <article class="kpi-card">
-            <div class="kpi-top">
-              <span class="kpi-label">Responsables distincts</span>
-              <span class="kpi-icon teal">♙</span>
-            </div>
-            <strong class="kpi-value">{{ data.responsibleCount | number: '1.0-0' : 'fr-FR' }}</strong>
-            <span class="kpi-note">Responsables présents dans les interviews</span>
-          </article>
-          <article class="kpi-card">
-            <div class="kpi-top">
-              <span class="kpi-label">Superviseurs</span>
-              <span class="kpi-icon amber">♧</span>
-            </div>
-            <strong class="kpi-value">{{ data.supervisorCount | number: '1.0-0' : 'fr-FR' }}</strong>
-            <span class="kpi-note">Comptes superviseur dans HQ</span>
-          </article>
-        </section>
-
-        <section class="charts-grid">
-          <article class="panel status-panel">
-            <div class="panel-heading">
-              <div>
-                <h2>Interviews par statut</h2>
-                <p>Répartition selon le statut renvoyé par Headquarters</p>
-              </div>
-              <span class="panel-period">Tous statuts</span>
-            </div>
-            @if (data.statuses.length) {
-              <app-dashboard-chart [options]="statusOptions(data)" [height]="330" />
-            } @else {
-              <div class="empty-state">Aucune interview disponible pour ce filtre.</div>
-            }
-          </article>
-
-          <article class="panel trend-panel">
-            <div class="panel-heading">
-              <div>
-                <h2>Activité récente</h2>
-                <p>Interviews mises à jour · 14 derniers jours UTC</p>
-              </div>
-              <span class="trend-legend"><i></i> Mises à jour</span>
-            </div>
-            @if (data.interviewCount) {
-              <app-dashboard-chart [options]="trendOptions(data)" [height]="330" />
-            } @else {
-              <div class="empty-state">Aucune interview disponible pour ce filtre.</div>
-            }
-          </article>
-        </section>
-
-        <section class="panel questionnaire-panel">
-          <div class="panel-heading">
-            <div>
-              <h2>Questionnaires disponibles</h2>
-              <p>Questionnaires et versions détectés dans Survey Solutions HQ</p>
-            </div>
-            <span class="table-count">{{ questionnaires().length }} version(s)</span>
-          </div>
-          @if (questionnaires().length) {
-            <div class="table-scroll">
-              <table>
-                <thead>
-                  <tr>
-                    <th>QUESTIONNAIRE</th>
-                    <th>VARIABLE</th>
-                    <th>VERSION</th>
-                    <th>DERNIÈRE ACTIVITÉ HQ</th>
-                    <th>MODE WEB</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (questionnaire of questionnaires(); track questionnaire.questionnaireIdentity) {
-                    <tr>
-                      <td>
-                        <div class="questionnaire-cell">
-                          <span class="questionnaire-avatar">{{ questionnaire.title.charAt(0) || 'Q' }}</span>
-                          <span>
-                            <strong>{{ questionnaire.title }}</strong>
-                            <small>{{ questionnaire.questionnaireId }}</small>
-                          </span>
-                        </div>
-                      </td>
-                      <td><span class="variable-tag">{{ questionnaire.variable || '—' }}</span></td>
-                      <td><span class="version-tag">v{{ questionnaire.version }}</span></td>
-                      <td>{{ questionnaire.lastEntryDate ? (questionnaire.lastEntryDate | date: 'dd/MM/yyyy HH:mm' : 'UTC' : 'fr-FR') + ' UTC' : '—' }}</td>
-                      <td>
-                        <span class="mode-label">
-                          <i [class.enabled]="questionnaire.webModeEnabled"></i>
-                          {{ questionnaire.webModeEnabled ? 'Activé' : 'Désactivé' }}
-                        </span>
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          } @else {
-            <div class="empty-state table-empty">
-              Aucun questionnaire n’est accessible avec le compte API configuré.
-            </div>
-          }
-        </section>
-
-        <footer class="page-footer">
-          Les indicateurs sont calculés à la demande à partir de Survey Solutions HQ. Aucune donnée fictive ni réponse individuelle n’est affichée.
-        </footer>
-      }
-      } @else if (view() === 'questionnaires') {
-        <section class="page-heading">
-          <div>
-            <div class="eyebrow">CATALOGUE HQ</div>
-            <h1>Questionnaires</h1>
-            <p>Parcourez les questionnaires et versions disponibles pour explorer leurs indicateurs.</p>
-          </div>
-          <button class="refresh-button" type="button" (click)="refresh()" [disabled]="loading()">
-            <span [class.spinning]="loading()">↻</span>
-            Actualiser
-          </button>
-        </section>
 
         @if (error()) {
-          <section class="error-banner" role="alert">
-            <span class="error-icon">!</span>
-            <div>
-              <strong>Les données ne sont pas disponibles</strong>
-              <p>{{ error() }}</p>
-            </div>
-            <button type="button" class="retry-button" (click)="refresh()">Réessayer</button>
+          <section class="alert" role="alert">
+            <div><strong>Les données ne sont pas disponibles</strong><p>{{ error() }}</p></div>
+            <button type="button" class="btn" (click)="refresh()">Réessayer</button>
           </section>
         }
 
         @if (loading() && !dashboard()) {
-          <section class="loading-panel" aria-live="polite">
-            <span class="loading-spinner"></span>
-            <strong>Chargement des questionnaires…</strong>
-            <span>Lecture des données Survey Solutions HQ</span>
-          </section>
+          <ng-container *ngTemplateOutlet="waiting; context: { label: 'Connexion à Survey Solutions HQ…' }" />
         } @else if (dashboard(); as data) {
-          <section class="panel questionnaire-panel catalog-panel">
-            <div class="panel-heading">
-              <div>
-                <h2>Questionnaires disponibles</h2>
-                <p>Sélectionnez un questionnaire pour explorer ses questions et réponses.</p>
-              </div>
-              <span class="table-count">{{ questionnaires().length }} version(s)</span>
-            </div>
-            @if (questionnaires().length) {
-              <div class="table-scroll">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>QUESTIONNAIRE</th>
-                      <th>VARIABLE</th>
-                      <th>VERSION</th>
-                      <th>DERNIÈRE ACTIVITÉ HQ</th>
-                      <th>MODE WEB</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (questionnaire of questionnaires(); track questionnaire.questionnaireIdentity) {
-                      <tr>
-                        <td>
-                          <div class="questionnaire-cell">
-                            <span class="questionnaire-avatar">{{ questionnaire.title.charAt(0) || 'Q' }}</span>
-                            <span>
-                              <strong>{{ questionnaire.title }}</strong>
-                              <small>{{ questionnaire.questionnaireId }}</small>
-                            </span>
-                          </div>
-                        </td>
-                        <td><span class="variable-tag">{{ questionnaire.variable || '—' }}</span></td>
-                        <td><span class="version-tag">v{{ questionnaire.version }}</span></td>
-                        <td>{{ questionnaire.lastEntryDate ? (questionnaire.lastEntryDate | date: 'dd/MM/yyyy HH:mm' : 'UTC' : 'fr-FR') + ' UTC' : '—' }}</td>
-                        <td>
-                          <span class="mode-label">
-                            <i [class.enabled]="questionnaire.webModeEnabled"></i>
-                            {{ questionnaire.webModeEnabled ? 'Activé' : 'Désactivé' }}
-                          </span>
-                        </td>
-                        <td>
-                          <button
-                            class="open-questionnaire-button"
-                            type="button"
-                            (click)="openQuestionnaire(questionnaire)"
-                          >
-                            Explorer les questions <span aria-hidden="true">→</span>
-                          </button>
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-            } @else {
-              <div class="empty-state table-empty">
-                Aucun questionnaire n’est accessible avec le compte API configuré.
-              </div>
-            }
+          <section class="kpis" aria-label="Chiffres clés">
+            <article class="card kpi">
+              <div class="kpi-top"><span class="kpi-label">Questionnaires</span><span class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h11M9 12h11M9 19h11M4 5h.01M4 12h.01M4 19h.01" /></svg></span></div>
+              <strong class="kpi-value">{{ data.questionnaireCount | number: '1.0-0' : 'fr-FR' }}</strong>
+              <span class="kpi-note">{{ questionnaires().length }} version(s) dans HQ</span>
+            </article>
+            <article class="card kpi">
+              <div class="kpi-top"><span class="kpi-label">Interviews</span><span class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3 8-8" /><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9" /></svg></span></div>
+              <strong class="kpi-value">{{ data.interviewCount | number: '1.0-0' : 'fr-FR' }}</strong>
+              <span class="kpi-note">Tous statuts confondus</span>
+            </article>
+            <article class="card kpi">
+              <div class="kpi-top"><span class="kpi-label">Enquêteurs actifs</span><span class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="4" /><path d="M2 21a7 7 0 0 1 14 0M17 11a3 3 0 1 0 0-6M22 21a6 6 0 0 0-4-5.7" /></svg></span></div>
+              <strong class="kpi-value">{{ data.responsibleCount | number: '1.0-0' : 'fr-FR' }}</strong>
+              <span class="kpi-note">Responsables d’au moins une interview</span>
+            </article>
+            <article class="card kpi">
+              <div class="kpi-top"><span class="kpi-label">Superviseurs</span><span class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" /></svg></span></div>
+              <strong class="kpi-value">{{ data.supervisorCount | number: '1.0-0' : 'fr-FR' }}</strong>
+              <span class="kpi-note">Comptes superviseur dans HQ</span>
+            </article>
           </section>
+
+          <div class="grid-2">
+            <section class="card pad">
+              <div class="card-head"><div><h2>Interviews par statut</h2><p>Statut renvoyé par Headquarters</p></div></div>
+              @if (data.statuses.length) {
+                <app-dashboard-chart [options]="statusOptions(data)" [height]="280" />
+              } @else {
+                <p class="empty">Aucune interview pour ce filtre.</p>
+              }
+            </section>
+            <section class="card pad">
+              <div class="card-head"><div><h2>Activité récente</h2><p>Interviews mises à jour sur les 14 derniers jours</p></div></div>
+              @if (data.interviewCount) {
+                <app-dashboard-chart [options]="trendOptions(data)" [height]="280" />
+              } @else {
+                <p class="empty">Aucune interview pour ce filtre.</p>
+              }
+            </section>
+          </div>
+
+          <section class="card">
+            <div class="card-head pad">
+              <div><h2>Questionnaires</h2><p>Ouvrez un questionnaire pour suivre sa collecte et analyser ses variables</p></div>
+              <span class="count">{{ questionnaires().length }} version(s)</span>
+            </div>
+            <ng-container *ngTemplateOutlet="catalog" />
+          </section>
+          <p class="footnote">Consulté le {{ data.generatedAt | date: 'd MMMM y à HH:mm' : '' : 'fr-FR' }} · indicateurs calculés à partir des données HQ.</p>
+        }
+      } @else if (view() === 'questionnaires') {
+        <div class="page-head">
+          <div>
+            <h1>Questionnaires</h1>
+            <p class="lead">Questionnaires et versions disponibles dans Survey Solutions HQ</p>
+          </div>
+        </div>
+        @if (error()) {
+          <section class="alert" role="alert">
+            <div><strong>Les données ne sont pas disponibles</strong><p>{{ error() }}</p></div>
+            <button type="button" class="btn" (click)="refresh()">Réessayer</button>
+          </section>
+        }
+        @if (loading() && !dashboard()) {
+          <ng-container *ngTemplateOutlet="waiting; context: { label: 'Chargement des questionnaires…' }" />
+        } @else if (dashboard()) {
+          <section class="card"><ng-container *ngTemplateOutlet="catalog" /></section>
         }
       } @else {
-        <section class="page-heading question-explorer-heading">
-          <div>
-            <div class="eyebrow">{{ view() === 'fieldwork' ? 'SUIVI DE COLLECTE' : 'ANALYSE DYNAMIQUE' }}</div>
-            <h1>{{ view() === 'fieldwork' ? 'Suivi terrain' : 'Questions & réponses' }}</h1>
-            <p>
-              {{ currentQuestionnaire()?.title }}
-              · version {{ currentQuestionnaire()?.version }}
-            </p>
+        @if (currentQuestionnaire(); as questionnaire) {
+          <div class="page-head">
+            <div>
+              <nav class="crumbs" aria-label="Fil d’Ariane">
+                <a href="#questionnaires" (click)="showQuestionnaires($event)">Questionnaires</a>
+                <span aria-hidden="true">›</span>
+                <a href="#fieldwork" (click)="showQuestionnaireView('fieldwork', $event)">{{ questionnaire.title }} (v{{ questionnaire.version }})</a>
+              </nav>
+              <h1>{{ viewTitles[view()] }}</h1>
+              <p class="lead">{{ viewLead() }}</p>
+            </div>
+            <app-filter-bar
+              [filters]="filters()"
+              [options]="filterOptions()"
+              [questions]="questions()"
+              [variableOptions]="variableOptions()"
+              [statusLabel]="statusLabelFn"
+              (filtersChange)="applyFilters($event)"
+              (variableSelected)="loadVariableOptions($event)" />
           </div>
-          <div class="questionnaire-actions">
-            <button
-              class="export-button"
-              type="button"
-              (click)="downloadExport('csv')"
-              [disabled]="loading() || exporting() !== null">
-              {{ exporting() === 'csv' ? 'Préparation…' : 'Exporter CSV' }}
-            </button>
-            <button
-              class="export-button"
-              type="button"
-              (click)="downloadExport('xlsx')"
-              [disabled]="loading() || exporting() !== null">
-              {{ exporting() === 'xlsx' ? 'Préparation…' : 'Exporter Excel' }}
-            </button>
-            <button
-              class="refresh-button"
-              type="button"
-              (click)="reloadQuestions()"
-              [disabled]="loading()">
-              <span [class.spinning]="loading()">↻</span>
-              Actualiser
-            </button>
-          </div>
-        </section>
 
-        <section
-          class="sync-banner"
-          [class.sync-running]="syncStatus()?.inProgress"
-          [class.sync-failed]="!syncStatus()?.inProgress && syncStatus()?.lastStatus === 'FAILED'"
-          aria-live="polite">
-          <div class="sync-text">
-            @if (syncStatus()?.inProgress) {
-              <span class="loading-spinner"></span>
-              <div>
-                <strong>Synchronisation en cours…</strong>
-                <span>Export des interviews depuis HQ puis import dans la base Analytics.</span>
-              </div>
-            } @else if (syncStatus()?.lastSuccessAt) {
-              <div>
-                <strong>
-                  Données importées le {{ syncStatus()!.lastSuccessAt | date: 'd MMMM y à HH:mm' : '' : 'fr-FR' }}
-                </strong>
-                <span>
-                  {{ syncStatus()!.interviewCount ?? 0 | number: '1.0-0' : 'fr-FR' }} interview(s) · mise à jour automatique
-                  quand HQ reçoit de nouvelles données
-                </span>
-              </div>
-            } @else {
-              <div>
-                <strong>Aucune donnée importée pour cette version</strong>
-                <span>Lancez une synchronisation pour calculer les indicateurs.</span>
-              </div>
-            }
-            @if (!syncStatus()?.inProgress && syncStatus()?.lastStatus === 'FAILED') {
-              <span class="sync-error">Dernière tentative en échec : {{ syncStatus()?.lastError }}</span>
-            }
-          </div>
-          <button
-            type="button"
-            class="export-button sync-button"
-            (click)="startSync()"
-            [disabled]="syncRequesting() || syncStatus()?.inProgress">
-            Synchroniser maintenant
-          </button>
-        </section>
-
-        @if (exportError()) {
-          <section class="export-error" role="alert">{{ exportError() }}</section>
-        }
-
-        <app-filter-bar
-          [filters]="filters()"
-          [options]="filterOptions()"
-          [questions]="questions()"
-          [variableOptions]="variableOptions()"
-          [statusLabel]="statusLabelFn"
-          (filtersChange)="applyFilters($event)"
-          (variableSelected)="loadVariableOptions($event)" />
-
-        @if (view() === 'fieldwork') {
-          @if (fieldworkError()) {
-            <section class="error-banner" role="alert">
-              <span>{{ fieldworkError() }}</span>
-              <button type="button" class="retry-button" (click)="reloadFieldwork()">Réessayer</button>
-            </section>
-          } @else if (fieldwork(); as overview) {
-            <app-fieldwork-panel [overview]="overview" />
-          } @else if (syncStatus()?.inProgress) {
-            <section class="panel loading-panel question-loading">
-              <span class="loading-spinner"></span>
-              <strong>Import des données en cours…</strong>
-              <span>Le suivi terrain s’affichera automatiquement à la fin de la synchronisation.</span>
-            </section>
-          } @else {
-            <section class="panel loading-panel question-loading">
-              <span class="loading-spinner"></span>
-              <strong>Calcul du suivi terrain…</strong>
+          @if (!syncStatus()?.inProgress && syncStatus()?.lastStatus === 'FAILED') {
+            <section class="alert" role="alert">
+              <div><strong>La dernière synchronisation a échoué</strong><p>{{ syncStatus()?.lastError }}</p></div>
+              <button type="button" class="btn" (click)="startSync()">Réessayer</button>
             </section>
           }
-        } @else {
+          @if (exportError()) {
+            <section class="alert" role="alert"><p>{{ exportError() }}</p></section>
+          }
 
-        @if (error()) {
-          <section class="error-banner" role="alert">
-            <span class="error-icon">!</span>
-            <div>
-              <strong>Analyse indisponible</strong>
-              <p>{{ error() }}</p>
-            </div>
-            <button type="button" class="retry-button" (click)="reloadQuestions()">Réessayer</button>
-          </section>
-        }
+          @switch (view()) {
+            @case ('fieldwork') {
+              @if (fieldworkError()) {
+                <section class="alert" role="alert">
+                  <p>{{ fieldworkError() }}</p>
+                  <button type="button" class="btn" (click)="reloadFieldwork()">Réessayer</button>
+                </section>
+              } @else if (fieldwork(); as overview) {
+                <app-fieldwork-panel [overview]="overview" />
+              } @else {
+                <ng-container *ngTemplateOutlet="waiting; context: { label: 'Calcul du suivi terrain…' }" />
+              }
+            }
 
-        @if (loading() && !questions().length) {
-          <section class="loading-panel" aria-live="polite">
-            <span class="loading-spinner"></span>
-            <strong>Lecture des variables du questionnaire…</strong>
-            <span>Le calcul de la complétude est lancé séparément.</span>
-          </section>
-        } @else if (!questions().length && !error()) {
-          <section class="panel empty-state">
-            Aucune variable analysable n’a été renvoyée pour cette version du questionnaire.
-          </section>
-        } @else {
-          <section class="panel completeness-panel">
-            <div class="panel-heading">
-              <div>
-                <h2>Complétude des variables</h2>
-                <p>Couverture des réponses observées dans les interviews HQ</p>
-              </div>
-              <button
-                type="button"
-                class="refresh-button"
-                (click)="reloadCompleteness()"
-                [disabled]="completenessLoading()">
-                <span [class.spinning]="completenessLoading()">↻</span>
-                Actualiser
-              </button>
-            </div>
+            @case ('quality') {
+              @if (completenessError()) {
+                <section class="alert" role="alert">
+                  <p>{{ completenessError() }}</p>
+                  <button type="button" class="btn" (click)="reloadCompleteness()">Réessayer</button>
+                </section>
+              } @else if (completeness(); as overview) {
+                <section class="kpis" aria-label="Synthèse de la qualité">
+                  <article class="card kpi">
+                    <div class="kpi-top"><span class="kpi-label">Variables posées</span><span class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg></span></div>
+                    <strong class="kpi-value">{{ qualitySummary().posed }}</strong>
+                    <span class="kpi-note">sur {{ qualitySummary().variables }} variable(s) du questionnaire</span>
+                  </article>
+                  <article class="card kpi">
+                    <div class="kpi-top"><span class="kpi-label">Taux de réponse moyen</span><span class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4" /></svg></span></div>
+                    <strong class="kpi-value">{{ qualitySummary().average === null ? '—' : (qualitySummary().average | number: '1.0-1' : 'fr-FR') + ' %' }}</strong>
+                    <div class="track"><div class="fill" [style.width.%]="qualitySummary().average ?? 0"></div></div>
+                  </article>
+                  <article class="card kpi">
+                    <div class="kpi-top"><span class="kpi-label">Variables sous 80 %</span><span class="tile warn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01" /><path d="M10.3 3.9L2.5 17.5A2 2 0 0 0 4.2 20.5h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg></span></div>
+                    <strong class="kpi-value">{{ qualitySummary().low }}</strong>
+                    <span class="kpi-note">À examiner en priorité</span>
+                  </article>
+                  <article class="card kpi">
+                    <div class="kpi-top"><span class="kpi-label">Non-réponses</span><span class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M9 9l6 6M15 9l-6 6" /></svg></span></div>
+                    <strong class="kpi-value">{{ qualitySummary().missing | number: '1.0-0' : 'fr-FR' }}</strong>
+                    <span class="kpi-note">Questions posées restées sans réponse</span>
+                  </article>
+                </section>
+                <section class="card">
+                  <div class="card-head pad">
+                    <div>
+                      <h2>Complétude des variables</h2>
+                      <p>
+                        {{ overview.interviewCount | number: '1.0-0' : 'fr-FR' }} interview(s) · {{ statusList(overview.includedStatuses) }}
+                        @if (overview.excludedInterviewCount) {
+                          · {{ overview.excludedInterviewCount | number: '1.0-0' : 'fr-FR' }} exclue(s) par les filtres
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <div class="table-scroll">
+                    <table class="data">
+                      <thead>
+                        <tr>
+                          <th class="l">Variable</th>
+                          <th class="l">Question</th>
+                          <th>Réponses</th>
+                          <th>Sans réponse</th>
+                          <th>Non applicable</th>
+                          <th class="l rate-col">Taux de réponse</th>
+                          <th class="l">Statut</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (item of qualityRows(); track item.question.variableName) {
+                          <tr>
+                            <td class="l"><button type="button" class="link mono" (click)="openVariable(item.question.variableName)">{{ item.question.variableName }}</button></td>
+                            <td class="l wrap">{{ item.question.label || item.question.questionText }}</td>
+                            <td>{{ item.answeredCount | number: '1.0-0' : 'fr-FR' }}</td>
+                            <td>{{ item.missingCount | number: '1.0-0' : 'fr-FR' }}</td>
+                            <td>{{ item.notApplicableCount | number: '1.0-0' : 'fr-FR' }}</td>
+                            <td class="l">
+                              @if (item.answeredCount + item.missingCount > 0) {
+                                <span class="bar-cell"><span class="track"><span class="fill" [class.warn]="item.responseRate < 80" [style.width.%]="item.responseRate"></span></span>{{ item.responseRate | number: '1.0-1' : 'fr-FR' }} %</span>
+                              } @else {
+                                —
+                              }
+                            </td>
+                            <td class="l"><ng-container *ngTemplateOutlet="status; context: { item: item }" /></td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                  <p class="footnote pad-x">Taux de réponse = réponses / (réponses + sans réponse). Les questions désactivées par un filtre sont « non applicables » et n’entrent pas dans le calcul. Pour un roster, chaque ligne compte comme une réponse.</p>
+                </section>
+              } @else {
+                <ng-container *ngTemplateOutlet="waiting; context: { label: 'Calcul de la complétude…' }" />
+              }
+            }
 
-            @if (completenessLoading()) {
-              <div class="quality-message" aria-live="polite">
-                <span class="loading-spinner"></span>
-                Calcul de la couverture des variables…
+            @case ('reports') {
+              <div class="grid-2">
+                <section class="card pad report-cta">
+                  <span class="tile big"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5M9 13h6M9 17h4" /></svg></span>
+                  <h2>Rapport à la demande</h2>
+                  <p>Synthèse, avancement des équipes, qualité des données et indicateurs par variable, avec les filtres en cours.</p>
+                  <button type="button" class="btn primary" (click)="downloadReport()" [disabled]="reportGenerating()">
+                    {{ reportGenerating() ? 'Génération…' : 'Générer le rapport PDF' }}
+                  </button>
+                </section>
+                <section class="card pad report-cta">
+                  <span class="tile big"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg></span>
+                  <h2>Rapports automatiques</h2>
+                  <p>Un rapport complet, sans filtre, est généré chaque matin à 7 h et conservé 30 jours.</p>
+                  <span class="count">{{ archivedReports().length }} rapport(s) archivé(s)</span>
+                </section>
               </div>
-            } @else if (completenessError()) {
-              <div class="quality-message quality-error" role="alert">
-                <span>{{ completenessError() }}</span>
-                <button type="button" class="retry-button" (click)="reloadCompleteness()">
-                  Réessayer
-                </button>
-              </div>
-            } @else if (completeness(); as overview) {
-              <div class="quality-summary">
-                <span><strong>{{ overview.interviewCount | number: '1.0-0' : 'fr-FR' }}</strong> interviews examinées</span>
-                <span class="scope-note">
-                  Statuts inclus : {{ statusList(overview.includedStatuses) }}
-                  @if (overview.excludedInterviewCount) {
-                    · {{ overview.excludedInterviewCount | number: '1.0-0' : 'fr-FR' }} interview(s) d’autres statuts exclue(s)
-                  }
-                </span>
-              </div>
-              @if (overview.variables.length) {
-                @if (selectedQuestion(); as question) {
-                  @if (completenessFor(question); as item) {
-                    <div class="selected-completeness">
-                      <div class="completeness-selected-heading">
-                        <div>
-                          <span class="variable-name">{{ question.variableName }}</span>
-                          <h3>{{ question.label || question.questionText || question.variableName }}</h3>
-                        </div>
-                        @if (!overview.interviewCount) {
-                          <span class="quality-status">Sans données</span>
-                        } @else if (item.missingCount) {
-                          <span class="quality-status review-needed">À examiner</span>
-                        } @else {
-                          <span class="quality-status complete">Complet</span>
+              <section class="card">
+                <div class="card-head pad"><div><h2>Historique</h2><p>Rapports générés automatiquement</p></div></div>
+                @if (archivedReports().length) {
+                  <div class="table-scroll">
+                    <table class="data">
+                      <thead><tr><th class="l">Généré le</th><th class="l">Fichier</th><th>Taille</th><th></th></tr></thead>
+                      <tbody>
+                        @for (report of archivedReports(); track report.id) {
+                          <tr>
+                            <td class="l">{{ report.generatedAt | date: 'd MMM y, HH:mm' : '' : 'fr-FR' }}</td>
+                            <td class="l mono">{{ report.filename }}</td>
+                            <td>{{ report.sizeBytes / 1024 | number: '1.0-0' : 'fr-FR' }} Ko</td>
+                            <td><button type="button" class="btn small" (click)="downloadArchivedReport(report)">Télécharger</button></td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                } @else {
+                  <p class="empty">Aucun rapport archivé pour l’instant. Le premier sera généré au prochain passage automatique.</p>
+                }
+              </section>
+            }
+
+            @default {
+              @if (error()) {
+                <section class="alert" role="alert">
+                  <div><strong>Analyse indisponible</strong><p>{{ error() }}</p></div>
+                  <button type="button" class="btn" (click)="reloadQuestions()">Réessayer</button>
+                </section>
+              }
+              @if (loading() && !questions().length) {
+                <ng-container *ngTemplateOutlet="waiting; context: { label: 'Lecture des variables du questionnaire…' }" />
+              } @else if (!questions().length && !error()) {
+                <p class="card empty">Aucune variable analysable n’a été renvoyée pour cette version du questionnaire.</p>
+              } @else {
+                <div class="explorer">
+                  <section class="card list-card" aria-label="Liste des variables">
+                    <div class="list-head">
+                      <label class="search">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+                        <span class="sr-only">Rechercher une variable</span>
+                        <input type="search" placeholder="Rechercher une variable" [ngModel]="variableSearch()" (ngModelChange)="variableSearch.set($event)" />
+                      </label>
+                      <div class="type-chips" role="group" aria-label="Type de question">
+                        <button type="button" class="chip" [class.set]="variableType() === 'all'" [attr.aria-pressed]="variableType() === 'all'" (click)="variableType.set('all')">Toutes {{ questions().length }}</button>
+                        @for (kind of variableKinds(); track kind.kind) {
+                          <button type="button" class="chip" [class.set]="variableType() === kind.kind" [attr.aria-pressed]="variableType() === kind.kind" (click)="variableType.set(kind.kind)">{{ kind.label }} {{ kind.count }}</button>
                         }
                       </div>
-                      @if (overview.interviewCount > 0) {
-                        <div class="coverage-cell completeness-selected-rate">
-                          <strong>{{ item.responseRate | number: '1.0-2' : 'fr-FR' }} % de réponses</strong>
-                          <span class="coverage-track">
-                            <span [style.width.%]="item.responseRate"></span>
-                          </span>
-                        </div>
-                        <div class="completeness-counts">
-                          <div>
-                            <span>{{ unitLabel(item.level) }} avec réponse</span>
-                            <strong>{{ item.answeredCount | number: '1.0-0' : 'fr-FR' }}</strong>
-                          </div>
-                          <div>
-                            <span>Sans réponse (question posée)</span>
-                            <strong>{{ item.missingCount | number: '1.0-0' : 'fr-FR' }}</strong>
-                          </div>
-                          <div>
-                            <span>Non applicable (filtre)</span>
-                            <strong>{{ item.notApplicableCount | number: '1.0-0' : 'fr-FR' }}</strong>
-                          </div>
-                        </div>
-                      } @else {
-                        <p>Aucune interview disponible pour calculer le taux de réponse.</p>
+                    </div>
+                    <div class="question-list">
+                      @for (question of filteredQuestions(); track question.variableName) {
+                        <button
+                          class="question-list-item"
+                          [class.selected]="selectedQuestion()?.variableName === question.variableName"
+                          [attr.aria-current]="selectedQuestion()?.variableName === question.variableName ? 'true' : null"
+                          type="button"
+                          (click)="selectQuestion(question)">
+                          <span class="row-top"><span class="mono strong">{{ question.variableName }}</span><span class="hint">{{ typeLabel(question) }}</span></span>
+                          <span class="row-label">{{ question.label || question.questionText || 'Question sans libellé' }}</span>
+                          @if (completenessFor(question); as item) {
+                            @if (item.answeredCount + item.missingCount > 0) {
+                              <span class="bar-cell small"><span class="track"><span class="fill" [class.warn]="item.responseRate < 80" [style.width.%]="item.responseRate"></span></span>{{ item.responseRate | number: '1.0-0' : 'fr-FR' }} %</span>
+                            }
+                          }
+                        </button>
+                      } @empty {
+                        <p class="empty">Aucune variable ne correspond.</p>
                       }
                     </div>
-                  }
-                } @else {
-                  <div class="completeness-empty">
-                    <strong>Sélectionnez une question dans la liste ci-dessous</strong>
-                    <span>Ses indicateurs de complétude et son analyse s’afficheront après sélection.</span>
+                  </section>
+
+                  <div class="detail">
+                    @if (selectedQuestion(); as question) {
+                      <section class="card pad question-head">
+                        <div class="meta-row">
+                          <span class="code">{{ question.variableName }}</span>
+                          <span>{{ typeLabel(question) }}@if (question.breadcrumbs.length) { · {{ question.breadcrumbs.join(' › ') }} }</span>
+                          @if (completenessFor(question); as item) {
+                            <ng-container *ngTemplateOutlet="status; context: { item: item }" />
+                          }
+                        </div>
+                        <h2 class="question-title">{{ question.questionText || question.label || question.variableName }}</h2>
+                        @if (questionAnalytics(); as analytics) {
+                          <div class="kstrip question-kpi-grid">
+                            <div><strong>{{ analytics.responseCount | number: '1.0-0' : 'fr-FR' }}</strong><span>Réponses</span></div>
+                            <div><strong>{{ analytics.missingCount | number: '1.0-0' : 'fr-FR' }}</strong><span>Sans réponse</span></div>
+                            <div><strong>{{ analytics.notApplicableCount | number: '1.0-0' : 'fr-FR' }}</strong><span>Non applicable</span></div>
+                            <div><strong class="accent">{{ analytics.responseRate | number: '1.0-1' : 'fr-FR' }} %</strong><span>Taux de réponse</span></div>
+                          </div>
+                          <p class="hint">
+                            {{ analytics.interviewCount | number: '1.0-0' : 'fr-FR' }} interview(s) · {{ statusList(analytics.includedStatuses) }}
+                            @if (analytics.excludedInterviewCount) {
+                              · {{ analytics.excludedInterviewCount | number: '1.0-0' : 'fr-FR' }} exclue(s)
+                            }
+                          </p>
+                        }
+                      </section>
+
+                      @if (loading() && !questionAnalytics()) {
+                        <ng-container *ngTemplateOutlet="waiting; context: { label: 'Calcul des indicateurs de la variable…' }" />
+                      } @else if (!questionAnalytics() && syncStatus()?.inProgress) {
+                        <ng-container *ngTemplateOutlet="waiting; context: { label: 'Import des données en cours…' }" />
+                      } @else if (questionAnalytics(); as analytics) {
+                        @if (analytics.mean !== null) {
+                          <section class="card pad">
+                            <div class="kstrip flush">
+                              <div><strong>{{ analytics.mean | number: '1.0-2' : 'fr-FR' }}</strong><span>Moyenne</span></div>
+                              <div><strong>{{ analytics.median | number: '1.0-2' : 'fr-FR' }}</strong><span>Médiane</span></div>
+                              <div><strong>{{ analytics.minimum | number: '1.0-2' : 'fr-FR' }} – {{ analytics.maximum | number: '1.0-2' : 'fr-FR' }}</strong><span>Minimum – maximum</span></div>
+                              <div><strong>{{ analytics.percentile05 | number: '1.0-2' : 'fr-FR' }} – {{ analytics.percentile95 | number: '1.0-2' : 'fr-FR' }}</strong><span>P5 – P95</span></div>
+                            </div>
+                          </section>
+                        }
+
+                        @if (analytics.distribution.length && !isSensitiveQuestion(analytics.question)) {
+                          <section class="card pad">
+                            <div class="card-head">
+                              <div>
+                                <h2>{{ analytics.mean !== null ? 'Distribution des valeurs' : 'Répartition des réponses' }}</h2>
+                                <p>
+                                  @if (analytics.percentageBase === 'RESPONDENTS') {
+                                    Choix multiples : part des réponses ayant coché chaque modalité ; le total peut dépasser 100 %
+                                  } @else {
+                                    Base : {{ analytics.responseCount | number: '1.0-0' : 'fr-FR' }} réponse(s)
+                                  }
+                                </p>
+                              </div>
+                              <div class="chart-tools">
+                                <div class="tools" role="group" aria-label="Type de graphique">
+                                  <button type="button" class="tool" [class.on]="answerChartType() === 'bar'" [attr.aria-pressed]="answerChartType() === 'bar'" aria-label="Afficher un graphique en barres" title="Graphique en barres" (click)="answerChartType.set('bar')">
+                                    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 14V8h3v6H2Zm4.5 0V3h3v11h-3Zm4.5 0V6h3v8h-3Z" /></svg>
+                                  </button>
+                                  <button type="button" class="tool" [class.on]="answerChartType() === 'horizontalBar'" [attr.aria-pressed]="answerChartType() === 'horizontalBar'" aria-label="Afficher un graphique en barres horizontales" title="Graphique en barres horizontales" (click)="answerChartType.set('horizontalBar')">
+                                    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2h6v3H2V2Zm0 4.5h11v3H2v-3ZM2 11h8v3H2v-3Z" /></svg>
+                                  </button>
+                                  <button type="button" class="tool" [class.on]="answerChartType() === 'pie'" [attr.aria-pressed]="answerChartType() === 'pie'" aria-label="Afficher un graphique circulaire" title="Graphique circulaire" (click)="answerChartType.set('pie')">
+                                    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7.25 1.1A6.9 6.9 0 1 0 14.9 8H8V1.1h-.75ZM9.5 1.35V6.5h5.15A6.92 6.92 0 0 0 9.5 1.35Z" /></svg>
+                                  </button>
+                                </div>
+                                <div class="tools">
+                                  <button type="button" class="tool" aria-label="Télécharger le graphique en PNG" title="Télécharger le graphique en PNG" (click)="answerChart.download()">
+                                    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7 1h2v7l2.5-2.5L13 7l-5 5-5-5 1.5-1.5L7 8V1ZM2 13h12v2H2v-2Z" /></svg>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                            <app-dashboard-chart #answerChart [options]="answerOptions(analytics)" [height]="320" [downloadFilename]="'repartition-' + analytics.question.variableName" />
+                            <div class="table-scroll distribution-table flush">
+                              <table class="data">
+                                <thead><tr><th class="l">{{ analytics.mean !== null ? 'Intervalle' : 'Modalité' }}</th><th>Effectif</th><th>%</th></tr></thead>
+                                <tbody>
+                                  @for (answer of analytics.distribution; track answer.label) {
+                                    <tr>
+                                      <td class="l wrap">{{ answer.label }}</td>
+                                      <td>{{ answer.count | number: '1.0-0' : 'fr-FR' }}</td>
+                                      <td>{{ answer.percentage | number: '1.0-1' : 'fr-FR' }} %</td>
+                                    </tr>
+                                  }
+                                </tbody>
+                              </table>
+                            </div>
+                          </section>
+                        } @else if (!analytics.observations.length) {
+                          <p class="card empty">Aucune réponse exploitable pour cette variable.</p>
+                        }
+
+                        @if (hasSpecialValues(analytics)) {
+                          <section class="card special-values-panel">
+                            <div class="card-head pad"><div><h2>Valeurs spéciales</h2><p>Codes de non-réponse exclus de la moyenne, de la médiane et des percentiles</p></div></div>
+                            <div class="table-scroll">
+                              <table class="data">
+                                <thead><tr><th class="l">Valeur spéciale</th><th>Effectif</th><th>% des réponses</th></tr></thead>
+                                <tbody>
+                                  @for (special of analytics.specialValues; track special.label) {
+                                    <tr>
+                                      <td class="l">{{ special.label }}</td>
+                                      <td>{{ special.count | number: '1.0-0' : 'fr-FR' }}</td>
+                                      <td>{{ special.percentage | number: '1.0-1' : 'fr-FR' }} %</td>
+                                    </tr>
+                                  }
+                                </tbody>
+                              </table>
+                            </div>
+                          </section>
+                        }
+
+                        @if (analytics.observations.length) {
+                          <section class="card">
+                            <div class="card-head pad">
+                              <div><h2>Réponses individuelles</h2><p>La clé HQ permet de retrouver l’interview pour le contrôle qualité</p></div>
+                              <span class="count">{{ analytics.observations.length }} réponse(s)</span>
+                            </div>
+                            <div class="table-scroll tall">
+                              <table class="data">
+                                <thead><tr><th class="l">Clé HQ</th><th class="l">Ligne</th><th class="l">Réponse</th></tr></thead>
+                                <tbody>
+                                  @for (observation of analytics.observations; track $index) {
+                                    <tr>
+                                      <td class="l mono interview-key">{{ observation.interviewKey ?? '—' }}</td>
+                                      <td class="l">{{ observation.rowKey || '—' }}</td>
+                                      <td class="l wrap">{{ observation.value }}</td>
+                                    </tr>
+                                  }
+                                </tbody>
+                              </table>
+                            </div>
+                          </section>
+                        }
+                        @if (analytics.nonNumericResponseCount) {
+                          <p class="footnote">{{ analytics.nonNumericResponseCount }} réponse(s) non numériques exclues des statistiques.</p>
+                        }
+                      }
+                    } @else {
+                      <p class="card empty">Sélectionnez une variable pour consulter sa distribution et ses statistiques.</p>
+                    }
                   </div>
-                }
-                <p class="quality-note">
-                  Les questions désactivées par un filtre ou une condition de saut sont comptées « non applicables »
-                  et exclues du taux de réponse, qui ne porte que sur les questions effectivement posées et sur les
-                  statuts d’interview indiqués ci-dessus.
-                </p>
-              } @else {
-                <div class="empty-state table-empty">
-                  Aucune variable analysable n’est disponible pour ce questionnaire.
                 </div>
               }
             }
-          </section>
-
-          <section class="question-explorer-grid">
-            <aside class="panel question-list-panel">
-              <div class="question-list-heading">
-                <div>
-                  <h2>Variables</h2>
-                  <p>{{ questions().length }} question(s) disponibles</p>
-                </div>
-              </div>
-              <div class="question-list">
-                @for (question of questions(); track question.variableName) {
-                  <button
-                    class="question-list-item"
-                    [class.selected]="selectedQuestion()?.variableName === question.variableName"
-                    type="button"
-                    (click)="selectQuestion(question)">
-                    <span class="variable-name">{{ question.variableName }}</span>
-                    <span class="question-list-label">{{ question.label || question.questionText || 'Question sans libellé' }}</span>
-                    <span class="question-list-type">{{ question.type || 'Question' }}</span>
-                  </button>
-                }
-              </div>
-            </aside>
-
-            <div class="question-detail">
-              @if (!selectedQuestion()) {
-                <section class="panel empty-state question-empty">
-                  Sélectionnez une variable pour consulter sa distribution et ses statistiques.
-                </section>
-              }
-              @if (selectedQuestion(); as question) {
-                <section class="panel question-title-panel">
-                  <div class="question-type-badge">{{ question.type || 'Question' }}</div>
-                  <h2>{{ question.label || question.questionText || question.variableName }}</h2>
-                  @if (question.label && question.questionText && question.label !== question.questionText) {
-                    <p class="question-description">{{ question.questionText }}</p>
-                  }
-                  <div class="question-meta">
-                    <span class="variable-tag">{{ question.variableName }}</span>
-                    @if (question.optionCount) {
-                      <span>{{ question.optionCount }} choix configuré(s)</span>
-                    }
-                    @if (question.breadcrumbs.length) {
-                      <span>{{ question.breadcrumbs.join(' / ') }}</span>
-                    }
-                  </div>
-                </section>
-              }
-
-              @if (!loading() && !questionAnalytics() && syncStatus()?.inProgress) {
-                <section class="panel loading-panel question-loading">
-                  <span class="loading-spinner"></span>
-                  <strong>Import des données en cours…</strong>
-                  <span>Les indicateurs s’afficheront automatiquement à la fin de la synchronisation.</span>
-                </section>
-              }
-              @if (loading() && !questionAnalytics()) {
-                <section class="panel loading-panel question-loading">
-                  <span class="loading-spinner"></span>
-                  <strong>Calcul des indicateurs de la question…</strong>
-                  <span>Chargement des réponses et indicateurs depuis Survey Solutions HQ.</span>
-                </section>
-              } @else if (questionAnalytics(); as analytics) {
-                <div class="question-kpi-grid">
-                  <article class="kpi-card">
-                    <div class="kpi-label">Interviews examinées</div>
-                    <strong class="kpi-value">{{ analytics.interviewCount | number: '1.0-0' : 'fr-FR' }}</strong>
-                    <span class="kpi-note" [title]="'Statuts inclus : ' + statusList(analytics.includedStatuses)">
-                      {{ statusList(analytics.includedStatuses) }}
-                      @if (analytics.excludedInterviewCount) {
-                        · {{ analytics.excludedInterviewCount | number: '1.0-0' : 'fr-FR' }} exclue(s)
-                      }
-                    </span>
-                  </article>
-                  <article class="kpi-card">
-                    <div class="kpi-label">Interviews avec réponse</div>
-                    <strong class="kpi-value">{{ analytics.answeredInterviewCount | number: '1.0-0' : 'fr-FR' }}</strong>
-                    <span class="kpi-note">
-                      {{ analytics.missingCount | number: '1.0-0' : 'fr-FR' }} sans réponse ·
-                      {{ analytics.notApplicableCount | number: '1.0-0' : 'fr-FR' }} non applicable(s) ·
-                      taux {{ analytics.responseRate | number: '1.0-2' : 'fr-FR' }} %
-                    </span>
-                  </article>
-                  <article class="kpi-card">
-                    <div class="kpi-label">Réponses observées</div>
-                    <strong class="kpi-value">{{ analytics.responseCount | number: '1.0-0' : 'fr-FR' }}</strong>
-                    <span class="kpi-note">Valeurs non vides trouvées dans HQ</span>
-                  </article>
-                  @if (analytics.mean !== null) {
-                    <article class="kpi-card">
-                      <div class="kpi-label">Moyenne</div>
-                      <strong class="kpi-value">{{ analytics.mean | number: '1.0-2' : 'fr-FR' }}</strong>
-                      <span class="kpi-note">
-                        Somme {{ analytics.sum | number: '1.0-2' : 'fr-FR' }}
-                      </span>
-                    </article>
-                  }
-                  @if (analytics.median !== null) {
-                    <article class="kpi-card">
-                      <div class="kpi-label">Médiane</div>
-                      <strong class="kpi-value">{{ analytics.median | number: '1.0-2' : 'fr-FR' }}</strong>
-                      <span class="kpi-note">
-                        P5 {{ analytics.percentile05 | number: '1.0-2' : 'fr-FR' }}
-                        · P95 {{ analytics.percentile95 | number: '1.0-2' : 'fr-FR' }}
-                      </span>
-                    </article>
-                  }
-                  @if (analytics.minimum !== null) {
-                    <article class="kpi-card">
-                      <div class="kpi-label">Minimum · maximum</div>
-                      <strong class="kpi-value">{{ analytics.minimum | number: '1.0-2' : 'fr-FR' }}</strong>
-                      <span class="kpi-note">
-                        Maximum {{ analytics.maximum | number: '1.0-2' : 'fr-FR' }}
-                      </span>
-                    </article>
-                  }
-                </div>
-
-                @if (isSensitiveQuestion(analytics.question)) {
-                  <section class="panel privacy-note">
-                    <span class="privacy-icon">!</span>
-                    <div>
-                      <strong>Réponses individuelles</strong>
-                      <p>
-                        Les valeurs saisies ci-dessous peuvent contenir des informations personnelles ou sensibles.
-                        Accès réservé aux personnes autorisées.
-                      </p>
-                    </div>
-                  </section>
-                }
-
-                @if (analytics.distribution.length && !isSensitiveQuestion(analytics.question)) {
-                  <section class="panel answer-distribution-panel">
-                    <div class="panel-heading">
-                      <div>
-                        <h2>
-                          {{ analytics.mean !== null ? 'Distribution des valeurs' : 'Répartition des réponses' }}
-                        </h2>
-                        <p>
-                          @if (analytics.percentageBase === 'RESPONDENTS') {
-                            Choix multiples : % des réponses ayant coché chaque modalité (le total peut dépasser 100 %)
-                          } @else {
-                            {{ analytics.mean !== null ? 'Intervalles numériques' : 'Comptes et pourcentage des réponses observées' }}
-                          }
-                        </p>
-                      </div>
-                      <div class="distribution-controls">
-                        <div class="chart-type-switch" role="group" aria-label="Type de graphique">
-                          <button
-                            type="button"
-                            class="chart-type-button"
-                            [class.active]="answerChartType() === 'bar'"
-                            [attr.aria-pressed]="answerChartType() === 'bar'"
-                            aria-label="Afficher un graphique en barres"
-                            title="Graphique en barres"
-                            (click)="answerChartType.set('bar')">
-                            <svg viewBox="0 0 16 16" aria-hidden="true">
-                              <path d="M2 14V8h3v6H2Zm4.5 0V3h3v11h-3Zm4.5 0V6h3v8h-3Z" />
-                            </svg>
-                          </button>
-                          <button
-                            type="button"
-                            class="chart-type-button"
-                            [class.active]="answerChartType() === 'horizontalBar'"
-                            [attr.aria-pressed]="answerChartType() === 'horizontalBar'"
-                            aria-label="Afficher un graphique en barres horizontales"
-                            title="Graphique en barres horizontales"
-                            (click)="answerChartType.set('horizontalBar')">
-                            <svg viewBox="0 0 16 16" aria-hidden="true">
-                              <path d="M2 2h6v3H2V2Zm0 4.5h11v3H2v-3ZM2 11h8v3H2v-3Z" />
-                            </svg>
-                          </button>
-                          <button
-                            type="button"
-                            class="chart-type-button"
-                            [class.active]="answerChartType() === 'pie'"
-                            [attr.aria-pressed]="answerChartType() === 'pie'"
-                            aria-label="Afficher un graphique circulaire"
-                            title="Graphique circulaire"
-                            (click)="answerChartType.set('pie')">
-                            <svg viewBox="0 0 16 16" aria-hidden="true">
-                              <path d="M7.25 1.1A6.9 6.9 0 1 0 14.9 8H8V1.1h-.75ZM9.5 1.35V6.5h5.15A6.92 6.92 0 0 0 9.5 1.35Z" />
-                            </svg>
-                          </button>
-                        </div>
-                        <button
-                          type="button"
-                          class="chart-type-button chart-download-button"
-                          aria-label="Télécharger le graphique en PNG"
-                          title="Télécharger le graphique en PNG"
-                          (click)="answerChart.download()">
-                          <svg viewBox="0 0 16 16" aria-hidden="true">
-                            <path d="M7 1h2v7l2.5-2.5L13 7l-5 5-5-5 1.5-1.5L7 8V1ZM2 13h12v2H2v-2Z" />
-                          </svg>
-                        </button>
-                        <span class="table-count">{{ analytics.distribution.length }} valeur(s)</span>
-                      </div>
-                    </div>
-                    <app-dashboard-chart
-                      #answerChart
-                      [options]="answerOptions(analytics)"
-                      [height]="330"
-                      [downloadFilename]="'repartition-' + analytics.question.variableName" />
-                    <div class="distribution-table">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>RÉPONSE / INTERVALLE</th>
-                            <th>NOMBRE</th>
-                            <th>POURCENTAGE</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          @for (answer of analytics.distribution; track answer.label) {
-                            <tr>
-                              <td>{{ answer.label }}</td>
-                              <td>{{ answer.count | number: '1.0-0' : 'fr-FR' }}</td>
-                              <td>{{ answer.percentage | number: '1.0-2' : 'fr-FR' }} %</td>
-                            </tr>
-                          }
-                        </tbody>
-                      </table>
-                    </div>
-                  </section>
-                } @else if (!analytics.observations.length) {
-                  <section class="panel empty-state question-empty">
-                    Aucune réponse exploitable n’est disponible pour cette question.
-                  </section>
-                }
-
-                @if (analytics.observations.length) {
-                  <section class="panel answer-distribution-panel response-list-panel">
-                    <div class="panel-heading">
-                      <div>
-                        <h2>Réponses saisies</h2>
-                        <p>Valeurs reçues de Headquarters. La clé HQ permet de retrouver l’interview pour le contrôle qualité.</p>
-                      </div>
-                      <span class="table-count">{{ analytics.observations.length }} réponse(s)</span>
-                    </div>
-                    <div class="distribution-table">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>INTERVIEW</th>
-                            <th>CLÉ HQ</th>
-                            <th>LIGNE</th>
-                            <th>RÉPONSE DE L’ENQUÊTÉ</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          @for (observation of analytics.observations; track $index) {
-                            <tr>
-                              <td>Interview {{ observation.interviewNumber }}</td>
-                              <td class="interview-key">{{ observation.interviewKey ?? '—' }}</td>
-                              <td>{{ observation.rowKey || '—' }}</td>
-                              <td class="raw-answer">{{ observation.value }}</td>
-                            </tr>
-                          }
-                        </tbody>
-                      </table>
-                    </div>
-                  </section>
-                }
-                @if (hasSpecialValues(analytics)) {
-                  <section class="panel answer-distribution-panel special-values-panel">
-                    <div class="panel-heading">
-                      <div>
-                        <h2>Valeurs spéciales</h2>
-                        <p>Codes de non-réponse (ex. Ne sait pas, Refus) exclus de la moyenne, de la médiane et des percentiles</p>
-                      </div>
-                    </div>
-                    <div class="distribution-table">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>VALEUR SPÉCIALE</th>
-                            <th>NOMBRE</th>
-                            <th>% DES RÉPONSES</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          @for (special of analytics.specialValues; track special.label) {
-                            <tr>
-                              <td>{{ special.label }}</td>
-                              <td>{{ special.count | number: '1.0-0' : 'fr-FR' }}</td>
-                              <td>{{ special.percentage | number: '1.0-2' : 'fr-FR' }} %</td>
-                            </tr>
-                          }
-                        </tbody>
-                      </table>
-                    </div>
-                  </section>
-                }
-                @if (analytics.nonNumericResponseCount) {
-                  <p class="analysis-footnote">
-                    {{ analytics.nonNumericResponseCount }} réponse(s) non numériques exclues des statistiques numériques.
-                  </p>
-                }
-                <p class="analysis-footnote">
-                  Indicateurs calculés sur la base Analytics, alimentée par l’export HQ.
-                  Pour une question de roster, chaque ligne (membre, parcelle…) compte comme une réponse.
-                </p>
-              }
-            </div>
-          </section>
-        }
+          }
         }
       }
-    </div>
-  </main>
+    </main>
+  </div>
 </div>
+
+<ng-template #status let-item="item">
+  @if (item.answeredCount + item.missingCount === 0) {
+    <span class="quality-status">Non posée</span>
+  } @else if (item.missingCount) {
+    <span class="quality-status review-needed">À examiner</span>
+  } @else {
+    <span class="quality-status complete">Complet</span>
+  }
+</ng-template>
+
+<ng-template #waiting let-label="label">
+  <section class="card loading" aria-live="polite">
+    <span class="spinner"></span>
+    @if (syncStatus()?.inProgress) {
+      <strong>Import des données en cours…</strong>
+      <span>Les indicateurs s’afficheront automatiquement à la fin de la synchronisation.</span>
+    } @else {
+      <strong>{{ label }}</strong>
+    }
+  </section>
+</ng-template>
+
+<ng-template #catalog>
+  @if (questionnaires().length) {
+    <div class="table-scroll">
+      <table class="data">
+        <thead>
+          <tr><th class="l">Questionnaire</th><th class="l">Variable</th><th>Version</th><th class="l">Dernière activité</th><th></th></tr>
+        </thead>
+        <tbody>
+          @for (questionnaire of questionnaires(); track questionnaire.questionnaireIdentity) {
+            <tr>
+              <td class="l wrap">
+                <span class="person">
+                  <span class="avatar square">{{ questionnaire.title.charAt(0) || 'Q' }}</span>
+                  <strong>{{ questionnaire.title }}</strong>
+                </span>
+              </td>
+              <td class="l mono">{{ questionnaire.variable || '—' }}</td>
+              <td>v{{ questionnaire.version }}</td>
+              <td class="l">{{ questionnaire.lastEntryDate ? (questionnaire.lastEntryDate | date: 'd MMM y, HH:mm' : 'UTC' : 'fr-FR') : '—' }}</td>
+              <td><button class="btn small open-questionnaire-button" type="button" (click)="openQuestionnaire(questionnaire)">Ouvrir</button></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <p class="empty">Aucun questionnaire n’est accessible avec le compte API configuré.</p>
+  }
+</ng-template>

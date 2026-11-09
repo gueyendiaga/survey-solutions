@@ -93,6 +93,8 @@ class QuestionAnalyticsServiceTest {
         assertThat(result.distribution()).containsExactly(
                 new QuestionAnalyticsDtos.AnswerCount("Non", 1, 50.0),
                 new QuestionAnalyticsDtos.AnswerCount("Oui", 1, 50.0));
+        assertThat(result.observations()).extracting(QuestionAnalyticsDtos.AnswerObservation::value)
+                .containsExactly("Oui", "Non");
     }
 
     @Test
@@ -110,6 +112,7 @@ class QuestionAnalyticsServiceTest {
         assertThat(result.distribution()).containsExactly(
                 new QuestionAnalyticsDtos.AnswerCount("A", 2, 100.0),
                 new QuestionAnalyticsDtos.AnswerCount("B", 1, 50.0));
+        assertThat(result.observations().get(0).value()).isEqualTo("A, B");
     }
 
     @Test

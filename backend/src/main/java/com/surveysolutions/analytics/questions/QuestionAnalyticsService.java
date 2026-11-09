@@ -239,8 +239,12 @@ public class QuestionAnalyticsService {
             }
             responseCount++;
             answeredInterviews.add(Integer.toString(response.interviewNumber()));
+            // L'export fournit des codes : les modalités sont affichées par leur libellé.
+            String displayValue = !numericQuestion && !optionLabels.isEmpty()
+                    ? String.join(", ", answerLabels(answerValue.trim(), optionLabels, multipleChoice))
+                    : answerValue;
             observations.add(new AnswerObservation(
-                    response.interviewNumber(), response.interviewKey(), response.rowKey(), answerValue));
+                    response.interviewNumber(), response.interviewKey(), response.rowKey(), displayValue));
 
             if (numericQuestion) {
                 try {

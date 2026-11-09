@@ -22,6 +22,8 @@ import com.surveysolutions.analytics.questions.QuestionAnalyticsDtos;
 import com.surveysolutions.analytics.questions.QuestionAnalyticsService;
 import com.surveysolutions.analytics.fieldwork.FieldworkDtos;
 import com.surveysolutions.analytics.fieldwork.FieldworkService;
+import com.surveysolutions.analytics.report.ReportArchive;
+import com.surveysolutions.analytics.report.ReportService;
 import com.surveysolutions.analytics.store.AnalyticsRepository;
 import com.surveysolutions.analytics.store.InterviewFilter;
 import com.surveysolutions.analytics.store.SyncService;
@@ -35,6 +37,8 @@ public class AnalyticsController {
     private final DataExportService dataExport;
     private final SyncService sync;
     private final FieldworkService fieldwork;
+    private final ReportService reports;
+    private final ReportArchive reportArchive;
 
     public AnalyticsController(
             DashboardService dashboard,
@@ -42,13 +46,17 @@ public class AnalyticsController {
             QuestionAnalyticsService questionAnalytics,
             DataExportService dataExport,
             SyncService sync,
-            FieldworkService fieldwork) {
+            FieldworkService fieldwork,
+            ReportService reports,
+            ReportArchive reportArchive) {
         this.dashboard = dashboard;
         this.surveySolutions = surveySolutions;
         this.questionAnalytics = questionAnalytics;
         this.dataExport = dataExport;
         this.sync = sync;
         this.fieldwork = fieldwork;
+        this.reports = reports;
+        this.reportArchive = reportArchive;
     }
 
     @GetMapping("/api/health")
@@ -111,6 +119,41 @@ public class AnalyticsController {
             @PathVariable UUID questionnaireId,
             @PathVariable long version) {
         return fieldwork.filterOptions(questionnaireId, version);
+    }
+
+    /** Rapport PDF à la demande, avec les filtres courants. */
+    @GetMapping("/api/questionnaires/{questionnaireId}/{version}/report.pdf")
+    public ResponseEntity<byte[]> report(
+            @PathVariable UUID questionnaireId,
+            @PathVariable long version,
+            @ModelAttribute FilterParams filter) {
+        if (version < 1) {
+            throw new IllegalArgumentException("La version doit être supérieure à zéro.");
+        }
+        return pdf(reports.generate(questionnaireId, version, filter.toFilter()));
+    }
+
+    /** Rapports archivés (générés automatiquement chaque jour). */
+    @GetMapping("/api/questionnaires/{questionnaireId}/{version}/reports")
+    public List<ReportArchive.ArchivedReport> archivedReports(
+            @PathVariable UUID questionnaireId,
+            @PathVariable long version) {
+        return reportArchive.list(questionnaireId, version);
+    }
+
+    @GetMapping("/api/reports/{id}")
+    public ResponseEntity<byte[]> archivedReport(@PathVariable long id) {
+        return reportArchive.content(id)
+                .map(this::pdf)
+                .orElseThrow(() -> new IllegalArgumentException("Ce rapport n'existe pas ou a été supprimé."));
+    }
+
+    private ResponseEntity<byte[]> pdf(ReportService.ReportFile file) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(file.filename(), StandardCharsets.UTF_8).build().toString())
+                .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
+                .body(file.content());
     }
 
     /**

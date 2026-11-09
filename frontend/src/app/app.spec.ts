@@ -1,9 +1,38 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { By } from '@angular/platform-browser';
-import { TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { App } from './app';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { App, shortLabel } from './app';
 import { DashboardChartComponent } from './dashboard-chart';
+import { FieldworkPanelComponent } from './fieldwork-panel';
+
+const BASE = '/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1';
+
+describe('shortLabel', () => {
+  it('wraps long option labels on two lines and truncates the rest', () => {
+    const label = 'YES, I consent to the sharing of my anonymized survey responses with third parties';
+    const short = shortLabel(label, 30, 2);
+    const lines = short.split('\n');
+
+    expect(lines.length).toBe(2);
+    expect(lines.every((line) => line.length <= 30)).toBeTrue();
+    expect(short.endsWith('…')).toBeTrue();
+    expect(shortLabel('Oui', 30, 2)).toBe('Oui');
+  });
+});
+
+describe('FieldworkPanelComponent.continuousDays', () => {
+  it('fills days without completion so the time axis stays regular', () => {
+    const days = FieldworkPanelComponent.continuousDays([
+      { date: '2026-11-03', completed: 1, cumulative: 1 },
+      { date: '2026-11-05', completed: 3, cumulative: 4 }
+    ]);
+
+    expect(days.map((day) => day.date)).toEqual(['2026-11-03', '2026-11-04', '2026-11-05']);
+    expect(days.map((day) => day.completed)).toEqual([1, 0, 3]);
+    expect(days.map((day) => day.cumulative)).toEqual([1, 1, 4]);
+  });
+});
 
 describe('App', () => {
   let http: HttpTestingController;
@@ -18,109 +47,265 @@ describe('App', () => {
 
   afterEach(() => http.verify());
 
-  it('renders dashboard totals and questionnaire metadata from HQ', () => {
+  function element(fixture: ComponentFixture<App>): HTMLElement {
+    return fixture.nativeElement as HTMLElement;
+  }
+
+  function startOnDashboard(): ComponentFixture<App> {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
-
     http.expectOne('/api/dashboard').flush(dashboardResponse());
     fixture.detectChanges();
+    return fixture;
+  }
 
-    const content = fixture.nativeElement as HTMLElement;
-    expect(content.querySelector('.kpi-grid')?.textContent).toContain('1');
-    expect(content.querySelector('.data-caption')?.textContent).toContain('03/11/2026');
+  /** Ouvre le questionnaire depuis le catalogue : l'écran d'arrivée est le suivi terrain. */
+  function openQuestionnaire(fixture: ComponentFixture<App>): void {
+    (element(fixture).querySelector('a[href="#questionnaires"]') as HTMLAnchorElement).click();
+    fixture.detectChanges();
+    (element(fixture).querySelector('.open-questionnaire-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    http.expectOne(`${BASE}/sync`).flush(syncResponse());
+    http.expectOne(`${BASE}/filter-options`)
+      .flush({ supervisors: ['sup1'], interviewers: ['enq1', 'enq2'], statuses: ['Completed'] });
+    http.expectOne(`${BASE}/fieldwork`).flush(fieldworkResponse());
+    http.expectOne(`${BASE}/question-list`).flush([ageQuestion()]);
+    fixture.detectChanges();
+    http.expectOne(`${BASE}/question-completeness`).flush(completenessResponse());
+    http.expectOne((request) => request.url === `${BASE}/question-analytics`
+      && request.params.get('variableName') === 'age').flush(analyticsResponse());
+    fixture.detectChanges();
+  }
+
+  it('renders dashboard figures and the questionnaire catalog', () => {
+    const fixture = startOnDashboard();
+    const content = element(fixture);
+
+    expect(content.querySelector('h1')?.textContent).toContain('Tableau de bord');
+    expect(content.querySelector('.kpis')?.textContent).toContain('Questionnaires');
     expect(content.querySelector('tbody')?.textContent).toContain('Test questionnaire');
     expect(content.querySelector('tbody')?.textContent).toContain('survey_variable');
+    expect(content.querySelector('a[href="#fieldwork"]')).toBeNull();
   });
 
-  it('shows variable completeness and loads analytics for a selected variable', () => {
-    const fixture = TestBed.createComponent(App);
+  it('opens a questionnaire on fieldwork with its own navigation and attention points', () => {
+    const fixture = startOnDashboard();
+    openQuestionnaire(fixture);
+    const content = element(fixture);
+
+    expect(content.querySelector('h1')?.textContent).toContain('Suivi terrain');
+    expect(content.querySelector('.crumbs')?.textContent).toContain('Test questionnaire (v1)');
+    expect(content.querySelector('.context-card')?.textContent).toContain('Version 1');
+    expect(content.querySelector('.nav-item.active')?.textContent).toContain('Suivi terrain');
+    expect(content.querySelector('.sync-line')?.textContent).toContain('2 interview(s)');
+    const panel = content.querySelector('app-fieldwork-panel') as HTMLElement;
+    expect(panel.querySelector('.kpis')?.textContent).toContain('66,7 %');
+    expect(panel.querySelector('.team-row')?.textContent).toContain('sup1');
+    expect(panel.querySelector('.interviewer-row.not-started')?.textContent).toContain('Pas commencé');
+    expect(panel.querySelector('.attention')?.textContent).toContain('enq2 n’a pas commencé');
+
+    (content.querySelector('a[href="#fieldwork"]') as HTMLAnchorElement).click();
     fixture.detectChanges();
-    http.expectOne('/api/dashboard').flush(dashboardResponse());
+  });
+
+  it('sends the applied filters to fieldwork, completeness and variable analytics', fakeAsync(() => {
+    const fixture = startOnDashboard();
+    openQuestionnaire(fixture);
+    tick();
+    fixture.detectChanges();
+    (element(fixture).querySelector('.filter-chips .chip') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    tick();
     fixture.detectChanges();
 
-    const catalogLink = fixture.nativeElement.querySelector(
-      'a[href="#questionnaires"]'
-    ) as HTMLAnchorElement;
-    catalogLink.click();
+    const interviewer = element(fixture).querySelector('select[name="interviewer"]') as HTMLSelectElement;
+    interviewer.value = interviewer.options[1].value;
+    interviewer.dispatchEvent(new Event('change'));
+    const from = element(fixture).querySelector('input[name="from"]') as HTMLInputElement;
+    from.value = '2026-11-01';
+    from.dispatchEvent(new Event('input'));
+    tick();
+    fixture.detectChanges();
+    (element(fixture).querySelector('.filter-apply') as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain('Questionnaires');
-
-    const selectButton = fixture.nativeElement.querySelector(
-      '.open-questionnaire-button'
-    ) as HTMLButtonElement;
-    selectButton.click();
+    const fieldwork = http.expectOne((request) => request.url === `${BASE}/fieldwork`);
+    expect(fieldwork.request.params.get('interviewer')).toBe('enq1');
+    expect(fieldwork.request.params.get('from')).toBe('2026-11-01');
+    expect(fieldwork.request.params.has('statuses')).toBeFalse();
+    fieldwork.flush({ ...fieldworkResponse(), filtersApplied: true });
+    http.expectOne((request) => request.url === `${BASE}/question-completeness`
+      && request.params.get('interviewer') === 'enq1').flush(completenessResponse());
+    http.expectOne((request) => request.url === `${BASE}/question-analytics`
+      && request.params.get('from') === '2026-11-01').flush(analyticsResponse());
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain('Questions & réponses');
-    http.expectOne('/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1/sync').flush({
+    expect(element(fixture).querySelector('.fieldwork-note')?.textContent).toContain('Filtres actifs');
+    expect(element(fixture).querySelector('.filter-bar')).toBeNull();
+    expect(element(fixture).querySelector('.filter-chips')?.textContent).toContain('Enquêteur : enq1');
+  }));
+
+  it('shows variable indicators, distribution and individual answers', () => {
+    const fixture = startOnDashboard();
+    openQuestionnaire(fixture);
+    (element(fixture).querySelector('a[href="#variables"]') as HTMLAnchorElement).click();
+    fixture.detectChanges();
+    const content = element(fixture);
+
+    expect(content.querySelector('h1')?.textContent).toContain('Variables');
+    expect(content.querySelector('.question-list-item.selected')?.textContent).toContain('age');
+    expect(content.querySelector('.question-head .quality-status')?.textContent).toContain('À examiner');
+    expect(content.querySelector('.question-kpi-grid')?.textContent).toContain('100 %');
+    expect(content.querySelector('.distribution-table')?.textContent).toContain('20');
+    expect(content.querySelector('.special-values-panel')?.textContent).toContain('Ne sait pas');
+    expect(content.querySelector('.interview-key')?.textContent).toContain('01-50-90-18');
+
+    const pie = content.querySelector('[aria-label="Afficher un graphique circulaire"]') as HTMLButtonElement;
+    expect(pie.getAttribute('aria-pressed')).toBe('false');
+    pie.click();
+    fixture.detectChanges();
+    expect(pie.getAttribute('aria-pressed')).toBe('true');
+
+    const chart = fixture.debugElement.queryAll(By.directive(DashboardChartComponent)).at(-1)!
+      .componentInstance as DashboardChartComponent;
+    spyOn(chart, 'download');
+    (content.querySelector('[aria-label="Télécharger le graphique en PNG"]') as HTMLButtonElement).click();
+    expect(chart.download).toHaveBeenCalled();
+  });
+
+  it('lists variable completeness and opens a variable from the quality screen', () => {
+    const fixture = startOnDashboard();
+    openQuestionnaire(fixture);
+    (element(fixture).querySelector('a[href="#quality"]') as HTMLAnchorElement).click();
+    fixture.detectChanges();
+    const content = element(fixture);
+
+    expect(content.querySelector('h1')?.textContent).toContain('Qualité des données');
+    expect(content.querySelector('.kpis')?.textContent).toContain('50 %');
+    const row = content.querySelector('tbody tr') as HTMLElement;
+    expect(row.textContent).toContain('age');
+    expect(row.querySelector('.quality-status')?.textContent).toContain('À examiner');
+
+    (row.querySelector('button.link') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    http.expectOne((request) => request.url === `${BASE}/question-analytics`).flush(analyticsResponse());
+    fixture.detectChanges();
+    expect(content.querySelector('h1')?.textContent).toContain('Variables');
+  });
+
+  it('downloads the PDF report, archived reports and CSV exports', () => {
+    spyOn(URL, 'createObjectURL').and.returnValue('blob:export');
+    spyOn(URL, 'revokeObjectURL');
+    spyOn(HTMLAnchorElement.prototype, 'click').and.callThrough();
+    const fixture = startOnDashboard();
+    openQuestionnaire(fixture);
+    (element(fixture).querySelector('a[href="#reports"]') as HTMLAnchorElement).click();
+    fixture.detectChanges();
+    http.expectOne(`${BASE}/reports`).flush([
+      { id: 7, generatedAt: '2026-11-09T07:00:00Z', trigger: 'SCHEDULED', filename: 'rapport.pdf', sizeBytes: 51200 }
+    ]);
+    fixture.detectChanges();
+    const content = element(fixture);
+    expect(content.textContent).toContain('rapport.pdf');
+
+    (content.querySelector('.report-button') as HTMLButtonElement).click();
+    http.expectOne((request) => request.url.endsWith('/report.pdf'))
+      .flush(new Blob(['%PDF-'], { type: 'application/pdf' }));
+    fixture.detectChanges();
+
+    const menu = content.querySelector('.menu > .btn') as HTMLButtonElement;
+    menu.click();
+    fixture.detectChanges();
+    const csv = [...content.querySelectorAll('.export-button')]
+      .find((button) => button.textContent?.includes('CSV')) as HTMLButtonElement;
+    csv.click();
+    const exportRequest = http.expectOne((request) => request.url === `${BASE}/export`
+      && request.params.get('format') === 'csv');
+    expect(exportRequest.request.responseType).toBe('blob');
+    exportRequest.flush(new Blob(['csv data'], { type: 'text/csv' }));
+    fixture.detectChanges();
+
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(2);
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:export');
+    expect(content.querySelector('.menu-list')).toBeNull();
+  });
+
+  it('waits for the data import and reloads indicators when it finishes', fakeAsync(() => {
+    const pending = { status: 409, statusText: 'Conflict' };
+    const fixture = startOnDashboard();
+    (element(fixture).querySelector('a[href="#questionnaires"]') as HTMLAnchorElement).click();
+    fixture.detectChanges();
+    (element(fixture).querySelector('.open-questionnaire-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    http.expectOne(`${BASE}/sync`).flush({
+      inProgress: false, lastSuccessAt: null, interviewCount: null, lastStatus: null, lastError: null
+    });
+    http.expectOne(`${BASE}/filter-options`).flush({ supervisors: [], interviewers: [], statuses: [] });
+    http.expectOne(`${BASE}/fieldwork`).flush({ detail: 'Synchronisation en cours', syncPending: true }, pending);
+    http.expectOne(`${BASE}/question-list`).flush([ageQuestion()]);
+    fixture.detectChanges();
+    http.expectOne(`${BASE}/question-completeness`).flush({ syncPending: true }, pending);
+    http.expectOne((request) => request.url === `${BASE}/question-analytics`).flush({ syncPending: true }, pending);
+    fixture.detectChanges();
+
+    expect(element(fixture).querySelector('.sync-line')?.textContent).toContain('Synchronisation en cours');
+    expect(element(fixture).querySelector('.alert')).toBeNull();
+    expect(element(fixture).textContent).toContain('Import des données en cours');
+
+    tick(3000);
+    http.expectOne(`${BASE}/sync`).flush(syncResponse());
+    fixture.detectChanges();
+    http.expectOne(`${BASE}/filter-options`).flush({ supervisors: [], interviewers: [], statuses: [] });
+    http.expectOne(`${BASE}/fieldwork`).flush(fieldworkResponse());
+    http.expectOne(`${BASE}/question-completeness`).flush(completenessResponse());
+    http.expectOne((request) => request.url === `${BASE}/question-analytics`).flush(analyticsResponse());
+    fixture.detectChanges();
+    expect(element(fixture).querySelector('.sync-line')?.textContent).toContain('2 interview(s)');
+  }));
+
+  function syncResponse() {
+    return {
       inProgress: false,
       lastSuccessAt: '2026-11-09T10:00:00Z',
       interviewCount: 2,
       lastStatus: 'SUCCEEDED',
       lastError: null
-    });
-    http.expectOne('/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1/filter-options')
-      .flush({ supervisors: ['sup1'], interviewers: ['enq1'], statuses: ['Completed'] });
-    http.expectOne(
-      '/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1/question-list'
-    ).flush([
-      {
-        id: 'question-1',
-        variableName: 'age',
-        questionText: 'Quel âge ?',
-        label: 'Âge',
-        type: 'Numeric',
-        breadcrumbs: [],
-        optionCount: 0
-      }
-    ]);
-    fixture.detectChanges();
+    };
+  }
 
-    http.expectOne(
-      '/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1/question-completeness'
-    ).flush({
+  function ageQuestion() {
+    return {
+      id: 'question-1',
+      variableName: 'age',
+      questionText: 'Quel âge ?',
+      label: 'Âge',
+      type: 'Numeric',
+      breadcrumbs: [],
+      optionCount: 0
+    };
+  }
+
+  function completenessResponse() {
+    return {
       interviewCount: 2,
-      variables: [
-        {
-          question: {
-            id: 'question-1',
-            variableName: 'age',
-            questionText: 'Quel âge ?',
-            label: 'Âge',
-            type: 'Numeric',
-            breadcrumbs: [],
-            optionCount: 0
-          },
-          level: 'survey',
-          answeredCount: 1,
-          missingCount: 1,
-          notApplicableCount: 3,
-          answeredInterviewCount: 1,
-          responseRate: 50
-        }
-      ],
+      variables: [{
+        question: ageQuestion(),
+        level: 'survey',
+        answeredCount: 1,
+        missingCount: 1,
+        notApplicableCount: 3,
+        answeredInterviewCount: 1,
+        responseRate: 50
+      }],
       includedStatuses: ['Completed'],
       excludedInterviewCount: 0,
       syncedAt: '2026-11-09T10:00:00Z'
-    });
-    fixture.detectChanges();
+    };
+  }
 
-    http.expectOne(
-      (req) =>
-        req.url ===
-          '/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1/question-analytics' &&
-        req.params.get('variableName') === 'age'
-    ).flush({
-      question: {
-        id: 'question-1',
-        variableName: 'age',
-        questionText: 'Quel âge ?',
-        label: 'Âge',
-        type: 'Numeric',
-        breadcrumbs: [],
-        optionCount: 0
-      },
+  function analyticsResponse() {
+    return {
+      question: ageQuestion(),
       interviewCount: 1,
       answeredInterviewCount: 1,
       responseCount: 1,
@@ -140,265 +325,10 @@ describe('App', () => {
       percentageBase: 'NUMERIC_VALUES',
       specialValues: [{ label: 'Ne sait pas', count: 1, percentage: 50 }],
       includedStatuses: ['Completed', 'ApprovedByHeadquarters'],
-      excludedInterviewCount: 3
-    });
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelector('.question-list-item.selected')?.textContent)
-      .toContain('age');
-    expect(fixture.nativeElement.querySelector('.selected-completeness')?.textContent).toContain('50');
-    expect(fixture.nativeElement.querySelector('.quality-status')?.textContent).toContain('À examiner');
-    expect(fixture.nativeElement.querySelector('.question-list-item')?.textContent).toContain('age');
-    expect(fixture.nativeElement.querySelector('.question-kpi-grid')?.textContent).toContain('20');
-    expect(fixture.nativeElement.querySelector('.distribution-table')?.textContent).toContain('100');
-    expect(fixture.nativeElement.querySelector('.question-kpi-grid')?.textContent)
-      .toContain('Terminées, Approuvées par HQ');
-    expect(fixture.nativeElement.querySelector('.question-kpi-grid')?.textContent).toContain('3 exclue(s)');
-    expect(fixture.nativeElement.querySelector('.special-values-panel')?.textContent).toContain('Ne sait pas');
-    expect(fixture.nativeElement.querySelector('.interview-key')?.textContent).toContain('01-50-90-18');
-    expect(fixture.nativeElement.querySelector('.sync-banner')?.textContent).toContain('2 interview(s)');
-    expect(fixture.nativeElement.querySelector('.completeness-counts')?.textContent)
-      .toContain('Non applicable (filtre)');
-    expect(fixture.nativeElement.querySelector('.question-kpi-grid')?.textContent)
-      .toContain('2 non applicable(s)');
-    const pieChartButton = fixture.nativeElement.querySelector(
-      '[aria-label="Afficher un graphique circulaire"]'
-    ) as HTMLButtonElement;
-    expect(pieChartButton.getAttribute('aria-pressed')).toBe('false');
-    pieChartButton.click();
-    fixture.detectChanges();
-    expect(pieChartButton.getAttribute('aria-pressed')).toBe('true');
-    const horizontalBarChartButton = fixture.nativeElement.querySelector(
-      '[aria-label="Afficher un graphique en barres horizontales"]'
-    ) as HTMLButtonElement;
-    expect(horizontalBarChartButton.getAttribute('aria-pressed')).toBe('false');
-    horizontalBarChartButton.click();
-    fixture.detectChanges();
-    expect(horizontalBarChartButton.getAttribute('aria-pressed')).toBe('true');
-    const chart = fixture.debugElement.query(
-      By.directive(DashboardChartComponent)
-    ).componentInstance as DashboardChartComponent;
-    expect(chart.downloadFilename).toBe('repartition-age');
-    const downloadSpy = spyOn(chart, 'download');
-    const downloadButton = fixture.nativeElement.querySelector(
-      '[aria-label="Télécharger le graphique en PNG"]'
-    ) as HTMLButtonElement;
-    downloadButton.click();
-    expect(downloadSpy).toHaveBeenCalled();
-    expect(fixture.nativeElement.querySelector('.response-list-panel')?.textContent).toContain('20');
-    expect(fixture.nativeElement.querySelector('.response-list-panel')?.textContent).toContain('Interview 1');
-  });
-
-  it('lets the questions navigation link open the catalog when no questionnaire is selected', () => {
-    const fixture = TestBed.createComponent(App);
-    fixture.detectChanges();
-    http.expectOne('/api/dashboard').flush(dashboardResponse());
-    fixture.detectChanges();
-
-    const questionsLink = fixture.nativeElement.querySelector(
-      'a[href="#questions"]'
-    ) as HTMLAnchorElement;
-    expect(questionsLink.getAttribute('aria-disabled')).toBeNull();
-    questionsLink.click();
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain('Questionnaires');
-    expect(fixture.nativeElement.querySelector('.open-questionnaire-button')).not.toBeNull();
-  });
-
-  it('downloads the selected questionnaire responses as CSV', () => {
-    spyOn(URL, 'createObjectURL').and.returnValue('blob:export');
-    spyOn(URL, 'revokeObjectURL');
-
-    const fixture = TestBed.createComponent(App);
-    fixture.detectChanges();
-    http.expectOne('/api/dashboard').flush(dashboardResponse());
-    fixture.detectChanges();
-
-    (fixture.nativeElement.querySelector('a[href="#questionnaires"]') as HTMLAnchorElement).click();
-    fixture.detectChanges();
-    (fixture.nativeElement.querySelector('.open-questionnaire-button') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    http.expectOne('/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1/sync').flush({
-      inProgress: false,
-      lastSuccessAt: '2026-11-09T10:00:00Z',
-      interviewCount: 2,
-      lastStatus: 'SUCCEEDED',
-      lastError: null
-    });
-    http.expectOne('/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1/filter-options')
-      .flush({ supervisors: ['sup1'], interviewers: ['enq1'], statuses: ['Completed'] });
-    http.expectOne(
-      '/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1/question-list'
-    ).flush([
-      {
-        id: 'question-1',
-        variableName: 'age',
-        questionText: 'Quel âge ?',
-        label: 'Âge',
-        type: 'Numeric',
-        breadcrumbs: [],
-        optionCount: 0
-      }
-    ]);
-    fixture.detectChanges();
-    http.expectOne(
-      '/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1/question-completeness'
-    ).flush({ interviewCount: 0, variables: [] });
-    fixture.detectChanges();
-    http.expectOne(
-      (request) => request.url.endsWith('/question-analytics') &&
-        request.params.get('variableName') === 'age'
-    ).flush({
-      question: {
-        id: 'question-1',
-        variableName: 'age',
-        questionText: 'Quel âge ?',
-        label: 'Âge',
-        type: 'Numeric',
-        breadcrumbs: [],
-        optionCount: 0
-      },
-      interviewCount: 0,
-      answeredInterviewCount: 0,
-      responseCount: 0,
-      missingCount: 0,
-      notApplicableCount: 0,
-      responseRate: 0,
-      observations: [],
-      distribution: [],
-      minimum: null,
-      maximum: null,
-      mean: null,
-      median: null,
-      sum: null,
-      percentile05: null,
-      percentile95: null,
-      nonNumericResponseCount: 0
-    });
-    fixture.detectChanges();
-
-    spyOn(HTMLAnchorElement.prototype, 'click');
-    (fixture.nativeElement.querySelector('.export-button') as HTMLButtonElement).click();
-    const exportRequest = http.expectOne(
-      (request) => request.url ===
-        '/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1/export' &&
-        request.params.get('format') === 'csv'
-    );
-    expect(exportRequest.request.responseType).toBe('blob');
-    exportRequest.flush(new Blob(['csv data'], { type: 'text/csv' }));
-    fixture.detectChanges();
-
-    expect(URL.createObjectURL).toHaveBeenCalled();
-    expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled();
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:export');
-  });
-
-  it('waits for the data import and reloads indicators when it finishes', fakeAsync(() => {
-    const base = '/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1';
-    const syncPending = { status: 409, statusText: 'Conflict' };
-    const fixture = TestBed.createComponent(App);
-    fixture.detectChanges();
-    http.expectOne('/api/dashboard').flush(dashboardResponse());
-    fixture.detectChanges();
-    (fixture.nativeElement.querySelector('a[href="#questionnaires"]') as HTMLAnchorElement).click();
-    fixture.detectChanges();
-    (fixture.nativeElement.querySelector('.open-questionnaire-button') as HTMLButtonElement).click();
-    fixture.detectChanges();
-
-    http.expectOne(`${base}/sync`).flush({
-      inProgress: false, lastSuccessAt: null, interviewCount: null, lastStatus: null, lastError: null
-    });
-    http.expectOne(`${base}/filter-options`).flush({ supervisors: [], interviewers: [], statuses: [] });
-    http.expectOne(`${base}/question-list`).flush([{
-      id: 'question-1', variableName: 'age', questionText: 'Quel âge ?', label: 'Âge',
-      type: 'Numeric', breadcrumbs: [], optionCount: 0
-    }]);
-    fixture.detectChanges();
-    http.expectOne(`${base}/question-completeness`)
-      .flush({ detail: 'Synchronisation en cours', syncPending: true }, syncPending);
-    http.expectOne((request) => request.url === `${base}/question-analytics`)
-      .flush({ detail: 'Synchronisation en cours', syncPending: true }, syncPending);
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelector('.sync-banner')?.textContent)
-      .toContain('Synchronisation en cours');
-    expect(fixture.nativeElement.querySelector('.error-banner')).toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('Import des données en cours');
-
-    tick(3000);
-    http.expectOne(`${base}/sync`).flush({
-      inProgress: false,
-      lastSuccessAt: '2026-11-09T10:00:00Z',
-      interviewCount: 1,
-      lastStatus: 'SUCCEEDED',
-      lastError: null
-    });
-    fixture.detectChanges();
-
-    http.expectOne(`${base}/filter-options`).flush({ supervisors: [], interviewers: [], statuses: [] });
-    http.expectOne(`${base}/question-completeness`)
-      .flush({ interviewCount: 0, variables: [], includedStatuses: [], excludedInterviewCount: 0 });
-    http.expectOne((request) => request.url === `${base}/question-analytics`);
-    expect(fixture.nativeElement.querySelector('.sync-banner')?.textContent).toContain('1 interview(s)');
-  }));
-
-  it('shows fieldwork progress and sends the applied filters', fakeAsync(() => {
-    const base = '/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1';
-    const fixture = TestBed.createComponent(App);
-    fixture.detectChanges();
-    http.expectOne('/api/dashboard').flush(dashboardResponse());
-    fixture.detectChanges();
-    (fixture.nativeElement.querySelector('a[href="#questionnaires"]') as HTMLAnchorElement).click();
-    fixture.detectChanges();
-    (fixture.nativeElement.querySelector('.open-questionnaire-button') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    http.expectOne(`${base}/sync`).flush({
-      inProgress: false, lastSuccessAt: '2026-11-09T10:00:00Z', interviewCount: 4,
-      lastStatus: 'SUCCEEDED', lastError: null
-    });
-    http.expectOne(`${base}/filter-options`)
-      .flush({ supervisors: ['sup1'], interviewers: ['enq1', 'enq2'], statuses: ['Completed'] });
-    http.expectOne(`${base}/question-list`).flush([]);
-    http.expectOne(`${base}/question-completeness`)
-      .flush({ interviewCount: 0, variables: [], includedStatuses: [], excludedInterviewCount: 0 });
-    fixture.detectChanges();
-
-    (fixture.nativeElement.querySelector('a[href="#fieldwork"]') as HTMLAnchorElement).click();
-    fixture.detectChanges();
-    http.expectOne(`${base}/fieldwork`).flush(fieldworkResponse());
-    fixture.detectChanges();
-
-    const panel = fixture.nativeElement.querySelector('app-fieldwork-panel') as HTMLElement;
-    expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain('Suivi terrain');
-    expect(panel.textContent).toContain('66,7 % de l’objectif');
-    expect(panel.querySelector('.team-row')?.textContent).toContain('sup1');
-    expect(panel.querySelector('.interviewer-row.not-started')?.textContent).toContain('enq2');
-
-    tick();
-    fixture.detectChanges();
-    const interviewer = fixture.nativeElement.querySelector('select[name="interviewer"]') as HTMLSelectElement;
-    interviewer.value = interviewer.options[1].value;
-    interviewer.dispatchEvent(new Event('change'));
-    const from = fixture.nativeElement.querySelector('input[name="from"]') as HTMLInputElement;
-    from.value = '2026-11-01';
-    from.dispatchEvent(new Event('input'));
-    tick();
-    fixture.detectChanges();
-    (fixture.nativeElement.querySelector('.filter-apply') as HTMLButtonElement).click();
-    fixture.detectChanges();
-
-    const request = http.expectOne((req) => req.url === `${base}/fieldwork`);
-    expect(request.request.params.get('interviewer')).toBe('enq1');
-    expect(request.request.params.get('from')).toBe('2026-11-01');
-    expect(request.request.params.has('statuses')).toBeFalse();
-    request.flush({ ...fieldworkResponse(), filtersApplied: true });
-    http.expectOne((req) => req.url === `${base}/question-completeness` && req.params.get('interviewer') === 'enq1')
-      .flush({ interviewCount: 0, variables: [], includedStatuses: [], excludedInterviewCount: 0 });
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelector('.fieldwork-note')?.textContent).toContain('Filtres actifs');
-  }));
+      excludedInterviewCount: 3,
+      syncedAt: '2026-11-09T10:00:00Z'
+    };
+  }
 
   function fieldworkResponse() {
     return {
