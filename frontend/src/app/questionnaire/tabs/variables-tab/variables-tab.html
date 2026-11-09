@@ -1,0 +1,195 @@
+@if (store.questionsError() || store.analyticsError(); as message) {
+  <section class="alert" role="alert">
+    <div><strong>Analyse indisponible</strong><p>{{ message }}</p></div>
+    <button type="button" class="btn" (click)="retry()">Réessayer</button>
+  </section>
+}
+@if (store.questionsLoading() && !store.questions().length) {
+  <app-loading-state label="Lecture des variables du questionnaire…" [importing]="!!store.syncStatus()?.inProgress" />
+} @else if (!store.questions().length && !store.questionsError()) {
+  <p class="card empty">Aucune variable analysable n’a été renvoyée pour cette version du questionnaire.</p>
+} @else {
+  <div class="explorer">
+    <section class="card list-card" aria-label="Liste des variables">
+      <div class="list-head">
+        <label class="search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+          <span class="sr-only">Rechercher une variable</span>
+          <input type="search" placeholder="Rechercher une variable" [ngModel]="store.variableSearch()" (ngModelChange)="store.variableSearch.set($event)" />
+        </label>
+        <div class="type-chips" role="group" aria-label="Type de question">
+          <button type="button" class="chip" [class.set]="store.variableType() === 'all'" [attr.aria-pressed]="store.variableType() === 'all'" (click)="store.variableType.set('all')">Toutes {{ store.questions().length }}</button>
+          @for (kind of store.variableKinds(); track kind.kind) {
+            <button type="button" class="chip" [class.set]="store.variableType() === kind.kind" [attr.aria-pressed]="store.variableType() === kind.kind" (click)="store.variableType.set(kind.kind)">{{ kind.label }} {{ kind.count }}</button>
+          }
+        </div>
+      </div>
+      <div class="question-list">
+        @for (question of store.filteredQuestions(); track question.variableName) {
+          <button
+            class="question-list-item"
+            [class.selected]="store.selectedQuestion()?.variableName === question.variableName"
+            [attr.aria-current]="store.selectedQuestion()?.variableName === question.variableName ? 'true' : null"
+            type="button"
+            (click)="store.selectQuestion(question)">
+            <span class="row-top"><span class="mono strong">{{ question.variableName }}</span><span class="hint">{{ typeLabel(question) }}</span></span>
+            <span class="row-label">{{ question.label || question.questionText || 'Question sans libellé' }}</span>
+            @if (store.completenessFor(question); as item) {
+              @if (item.answeredCount + item.missingCount > 0) {
+                <span class="bar-cell small"><span class="track"><span class="fill" [class.warn]="item.responseRate < 80" [style.width.%]="item.responseRate"></span></span>{{ item.responseRate | number: '1.0-0' : 'fr-FR' }} %</span>
+              }
+            }
+          </button>
+        } @empty {
+          <p class="empty">Aucune variable ne correspond.</p>
+        }
+      </div>
+    </section>
+
+    <div class="detail">
+      @if (store.selectedQuestion(); as question) {
+        <section class="card pad question-head">
+          <div class="meta-row">
+            <span class="code">{{ question.variableName }}</span>
+            <span>{{ typeLabel(question) }}@if (question.breadcrumbs.length) { · {{ question.breadcrumbs.join(' › ') }} }</span>
+            @if (store.completenessFor(question); as item) {
+              <app-completeness-status [item]="item" />
+            }
+          </div>
+          <h2 class="question-title">{{ question.questionText || question.label || question.variableName }}</h2>
+          @if (store.analytics(); as analytics) {
+            <div class="kstrip question-kpi-grid">
+              <div><strong>{{ analytics.responseCount | number: '1.0-0' : 'fr-FR' }}</strong><span>Réponses</span></div>
+              <div><strong>{{ analytics.missingCount | number: '1.0-0' : 'fr-FR' }}</strong><span>Sans réponse</span></div>
+              <div><strong>{{ analytics.notApplicableCount | number: '1.0-0' : 'fr-FR' }}</strong><span>Non applicable</span></div>
+              <div><strong class="accent">{{ analytics.responseRate | number: '1.0-1' : 'fr-FR' }} %</strong><span>Taux de réponse</span></div>
+            </div>
+            <p class="hint">
+              {{ analytics.interviewCount | number: '1.0-0' : 'fr-FR' }} interview(s) · {{ statusList(analytics.includedStatuses) }}
+              @if (analytics.excludedInterviewCount) {
+                · {{ analytics.excludedInterviewCount | number: '1.0-0' : 'fr-FR' }} exclue(s)
+              }
+            </p>
+          }
+        </section>
+
+        @if (store.analyticsLoading() && !store.analytics()) {
+          <app-loading-state label="Calcul des indicateurs de la variable…" [importing]="!!store.syncStatus()?.inProgress" />
+        } @else if (!store.analytics() && store.syncStatus()?.inProgress) {
+          <app-loading-state label="Import des données en cours…" [importing]="!!store.syncStatus()?.inProgress" />
+        } @else if (store.analytics(); as analytics) {
+          @if (analytics.mean !== null) {
+            <section class="card pad">
+              <div class="kstrip flush">
+                <div><strong>{{ analytics.mean | number: '1.0-2' : 'fr-FR' }}</strong><span>Moyenne</span></div>
+                <div><strong>{{ analytics.median | number: '1.0-2' : 'fr-FR' }}</strong><span>Médiane</span></div>
+                <div><strong>{{ analytics.minimum | number: '1.0-2' : 'fr-FR' }} – {{ analytics.maximum | number: '1.0-2' : 'fr-FR' }}</strong><span>Minimum – maximum</span></div>
+                <div><strong>{{ analytics.percentile05 | number: '1.0-2' : 'fr-FR' }} – {{ analytics.percentile95 | number: '1.0-2' : 'fr-FR' }}</strong><span>P5 – P95</span></div>
+              </div>
+            </section>
+          }
+
+          @if (analytics.distribution.length && !isSensitiveQuestion(analytics.question)) {
+            <section class="card pad">
+              <div class="card-head">
+                <div>
+                  <h2>{{ analytics.mean !== null ? 'Distribution des valeurs' : 'Répartition des réponses' }}</h2>
+                  <p>
+                    @if (analytics.percentageBase === 'RESPONDENTS') {
+                      Choix multiples : part des réponses ayant coché chaque modalité ; le total peut dépasser 100 %
+                    } @else {
+                      Base : {{ analytics.responseCount | number: '1.0-0' : 'fr-FR' }} réponse(s)
+                    }
+                  </p>
+                </div>
+                <div class="chart-tools">
+                  <div class="tools" role="group" aria-label="Type de graphique">
+                    <button type="button" class="tool" [class.on]="store.chartType() === 'bar'" [attr.aria-pressed]="store.chartType() === 'bar'" aria-label="Afficher un graphique en barres" title="Graphique en barres" (click)="store.chartType.set('bar')">
+                      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 14V8h3v6H2Zm4.5 0V3h3v11h-3Zm4.5 0V6h3v8h-3Z" /></svg>
+                    </button>
+                    <button type="button" class="tool" [class.on]="store.chartType() === 'horizontalBar'" [attr.aria-pressed]="store.chartType() === 'horizontalBar'" aria-label="Afficher un graphique en barres horizontales" title="Graphique en barres horizontales" (click)="store.chartType.set('horizontalBar')">
+                      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2h6v3H2V2Zm0 4.5h11v3H2v-3ZM2 11h8v3H2v-3Z" /></svg>
+                    </button>
+                    <button type="button" class="tool" [class.on]="store.chartType() === 'pie'" [attr.aria-pressed]="store.chartType() === 'pie'" aria-label="Afficher un graphique circulaire" title="Graphique circulaire" (click)="store.chartType.set('pie')">
+                      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7.25 1.1A6.9 6.9 0 1 0 14.9 8H8V1.1h-.75ZM9.5 1.35V6.5h5.15A6.92 6.92 0 0 0 9.5 1.35Z" /></svg>
+                    </button>
+                  </div>
+                  <div class="tools">
+                    <button type="button" class="tool" aria-label="Télécharger le graphique en PNG" title="Télécharger le graphique en PNG" (click)="answerChart.download()">
+                      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7 1h2v7l2.5-2.5L13 7l-5 5-5-5 1.5-1.5L7 8V1ZM2 13h12v2H2v-2Z" /></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <app-dashboard-chart #answerChart [options]="chartOptions(analytics)" [height]="320" [downloadFilename]="'repartition-' + analytics.question.variableName" />
+              <div class="table-scroll distribution-table flush">
+                <table class="data">
+                  <thead><tr><th class="l">{{ analytics.mean !== null ? 'Intervalle' : 'Modalité' }}</th><th>Effectif</th><th>%</th></tr></thead>
+                  <tbody>
+                    @for (answer of analytics.distribution; track answer.label) {
+                      <tr>
+                        <td class="l wrap">{{ answer.label }}</td>
+                        <td>{{ answer.count | number: '1.0-0' : 'fr-FR' }}</td>
+                        <td>{{ answer.percentage | number: '1.0-1' : 'fr-FR' }} %</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          } @else if (!analytics.observations.length) {
+            <p class="card empty">Aucune réponse exploitable pour cette variable.</p>
+          }
+
+          @if (hasSpecialValues(analytics)) {
+            <section class="card special-values-panel">
+              <div class="card-head pad"><div><h2>Valeurs spéciales</h2><p>Codes de non-réponse exclus de la moyenne, de la médiane et des percentiles</p></div></div>
+              <div class="table-scroll">
+                <table class="data">
+                  <thead><tr><th class="l">Valeur spéciale</th><th>Effectif</th><th>% des réponses</th></tr></thead>
+                  <tbody>
+                    @for (special of analytics.specialValues; track special.label) {
+                      <tr>
+                        <td class="l">{{ special.label }}</td>
+                        <td>{{ special.count | number: '1.0-0' : 'fr-FR' }}</td>
+                        <td>{{ special.percentage | number: '1.0-1' : 'fr-FR' }} %</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          }
+
+          @if (analytics.observations.length) {
+            <section class="card">
+              <div class="card-head pad">
+                <div><h2>Réponses individuelles</h2><p>La clé HQ permet de retrouver l’interview pour le contrôle qualité</p></div>
+                <span class="count">{{ analytics.observations.length }} réponse(s)</span>
+              </div>
+              <div class="table-scroll tall">
+                <table class="data">
+                  <thead><tr><th class="l">Clé HQ</th><th class="l">Ligne</th><th class="l">Réponse</th></tr></thead>
+                  <tbody>
+                    @for (observation of analytics.observations; track $index) {
+                      <tr>
+                        <td class="l mono interview-key">{{ observation.interviewKey ?? '—' }}</td>
+                        <td class="l">{{ observation.rowKey || '—' }}</td>
+                        <td class="l wrap">{{ observation.value }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          }
+          @if (analytics.nonNumericResponseCount) {
+            <p class="footnote">{{ analytics.nonNumericResponseCount }} réponse(s) non numériques exclues des statistiques.</p>
+          }
+        }
+      } @else {
+        <p class="card empty">Sélectionnez une variable pour consulter sa distribution et ses statistiques.</p>
+      }
+    </div>
+  </div>
+}

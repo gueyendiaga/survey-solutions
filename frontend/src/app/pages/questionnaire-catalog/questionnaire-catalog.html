@@ -1,0 +1,27 @@
+@if (questionnaires.length) {
+  <div class="table-scroll">
+    <table class="data">
+      <thead>
+        <tr><th class="l">Questionnaire</th><th class="l">Variable</th><th>Version</th><th class="l">Dernière activité</th><th></th></tr>
+      </thead>
+      <tbody>
+        @for (questionnaire of questionnaires; track questionnaire.questionnaireIdentity) {
+          <tr>
+            <td class="l wrap">
+              <span class="person">
+                <span class="avatar square">{{ questionnaire.title.charAt(0) || 'Q' }}</span>
+                <strong>{{ questionnaire.title }}</strong>
+              </span>
+            </td>
+            <td class="l mono">{{ questionnaire.variable || '—' }}</td>
+            <td>v{{ questionnaire.version }}</td>
+            <td class="l">{{ questionnaire.lastEntryDate ? (questionnaire.lastEntryDate | date: 'd MMM y, HH:mm' : 'UTC' : 'fr-FR') : '—' }}</td>
+            <td><a class="btn small open-questionnaire-button" [routerLink]="['/questionnaires', questionnaire.questionnaireId, questionnaire.version]">Ouvrir</a></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+} @else {
+  <p class="empty">Aucun questionnaire n’est accessible avec le compte API configuré.</p>
+}

@@ -1,0 +1,13 @@
+.loading {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  padding: 52px 24px;
+  color: var(--text-2);
+  text-align: center;
+}
+
+.loading strong {
+  color: var(--text);
+}

@@ -19,18 +19,8 @@ echarts.use([BarChart, LineChart, PieChart, GridComponent, TooltipComponent, Can
 @Component({
   selector: 'app-dashboard-chart',
   standalone: true,
-  template: '<div #chart class="chart-canvas w-full" [style.height.px]="height"></div>',
-  styles: [
-    `
-      :host {
-        display: block;
-        width: 100%;
-      }
-      .chart-canvas {
-        width: 100%;
-      }
-    `
-  ]
+  templateUrl: './dashboard-chart.html',
+  styleUrl: './dashboard-chart.css'
 })
 export class DashboardChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input({ required: true }) options!: EChartsCoreOption;

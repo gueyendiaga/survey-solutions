@@ -1,0 +1,191 @@
+<section class="kpis" aria-label="Chiffres clés">
+  <article class="card kpi">
+    <div class="kpi-top">
+      <span class="kpi-label">Taux de réalisation</span>
+      <span class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4" /></svg></span>
+    </div>
+    <strong class="kpi-value">{{ overview.completionRate === null ? '—' : (overview.completionRate | number: '1.0-1' : 'fr-FR') + ' %' }}</strong>
+    <div class="track"><div class="fill" [style.width.%]="cap(overview.completionRate)"></div></div>
+    <span class="kpi-note">{{ overview.completed | number: '1.0-0' : 'fr-FR' }} sur {{ overview.target | number: '1.0-0' : 'fr-FR' }} interviews prévues{{ overview.unlimitedAssignments ? ' (+ ' + overview.unlimitedAssignments + ' sans quota)' : '' }}</span>
+  </article>
+  <article class="card kpi">
+    <div class="kpi-top">
+      <span class="kpi-label">Interviews réalisées</span>
+      <span class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3 8-8" /><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9" /></svg></span>
+    </div>
+    <strong class="kpi-value">{{ overview.completed | number: '1.0-0' : 'fr-FR' }}</strong>
+    <span class="kpi-note">
+      @if (lastDay(); as day) {
+        <span class="pill ok">+{{ day.completed }}</span> le {{ day.date | date: 'd MMMM' : 'UTC' : 'fr-FR' }}
+      } @else {
+        Aucune interview terminée
+      }
+    </span>
+  </article>
+  <article class="card kpi">
+    <div class="kpi-top">
+      <span class="kpi-label">Approuvées</span>
+      <span class="tile ok"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" /><path d="M9 12l2 2 4-4" /></svg></span>
+    </div>
+    <strong class="kpi-value">{{ overview.approved | number: '1.0-0' : 'fr-FR' }}</strong>
+    <span class="kpi-note">{{ approvedShare() }} des interviews réalisées</span>
+  </article>
+  <article class="card kpi">
+    <div class="kpi-top">
+      <span class="kpi-label">À traiter</span>
+      <span class="tile warn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01" /><path d="M10.3 3.9L2.5 17.5A2 2 0 0 0 4.2 20.5h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg></span>
+    </div>
+    <strong class="kpi-value">{{ overview.rejected + overview.inProgress | number: '1.0-0' : 'fr-FR' }}</strong>
+    <span class="kpi-note">{{ overview.rejected }} rejetée(s) · {{ overview.inProgress }} en cours · {{ errors() }} en erreur</span>
+  </article>
+</section>
+
+@if (overview.filtersApplied) {
+  <p class="footnote fieldwork-note">Filtres actifs : les interviews sont filtrées ; les objectifs ne dépendent que de l’équipe ou de l’enquêteur choisi.</p>
+}
+
+<div class="grid-2-1">
+  <section class="card pad">
+    <div class="card-head">
+      <div>
+        <h2>Progression de la collecte</h2>
+        <p>Interviews terminées par jour et cumul, rapportés à l’objectif</p>
+      </div>
+      <div class="segmented" role="group" aria-label="Période">
+        <button type="button" [attr.aria-pressed]="period() === '7'" (click)="period.set('7')">7 jours</button>
+        <button type="button" [attr.aria-pressed]="period() === '30'" (click)="period.set('30')">30 jours</button>
+        <button type="button" [attr.aria-pressed]="period() === 'all'" (click)="period.set('all')">Tout</button>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i class="sw primary"></i>Terminées dans la journée</span>
+      <span><i class="sw soft"></i>Cumul</span>
+      @if (overview.target > 0) {
+        <span><i class="sw dash"></i>Objectif</span>
+      }
+    </div>
+    @if (overview.daily.length) {
+      <app-dashboard-chart [options]="progressOptions()" [height]="270" downloadFilename="progression-collecte" />
+    } @else {
+      <p class="empty">Aucune interview terminée sur la période.</p>
+    }
+  </section>
+
+  <section class="card pad">
+    <h2>Avancement</h2>
+    <div class="donut-row">
+      <svg width="112" height="112" viewBox="0 0 112 112" role="img" [attr.aria-label]="rate(overview.completionRate) + ' de l’objectif atteint'">
+        <circle cx="56" cy="56" r="44" fill="none" stroke="#eef1f6" stroke-width="12" />
+        <circle cx="56" cy="56" r="44" fill="none" stroke="var(--primary)" stroke-width="12" stroke-linecap="round"
+          [attr.stroke-dasharray]="donutDash()" transform="rotate(-90 56 56)" />
+        <text x="56" y="56" text-anchor="middle" class="donut-value">{{ rate(overview.completionRate) }}</text>
+        <text x="56" y="74" text-anchor="middle" class="donut-label">objectif</text>
+      </svg>
+      <div class="donut-legend">
+        <div><i class="sw primary"></i>Réalisées <strong>{{ overview.completed | number: '1.0-0' : 'fr-FR' }}</strong></div>
+        <div><i class="sw empty-sw"></i>Restantes <strong>{{ remaining() | number: '1.0-0' : 'fr-FR' }}</strong></div>
+        @if (daysNeeded(); as days) {
+          <span class="kpi-note">≈ {{ days }} jour(s) au rythme actuel</span>
+        }
+      </div>
+    </div>
+    <h3>Points d’attention</h3>
+    <ul class="attention">
+      @for (point of attention(); track point.text) {
+        <li [class.ok]="point.tone === 'ok'">
+          @if (point.tone === 'ok') {
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M8.5 12l2.5 2.5 4.5-5" /></svg>
+          } @else {
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16h.01" /></svg>
+          }
+          <span>{{ point.text }}</span>
+        </li>
+      }
+    </ul>
+  </section>
+</div>
+
+<section class="card">
+  <div class="card-head pad">
+    <div>
+      <h2>Équipes et enquêteurs</h2>
+      <p>Réalisation par rapport aux affectations, qualité et rythme</p>
+    </div>
+    <span class="count">{{ overview.teams.length }} équipe(s) · {{ interviewerCount() }} enquêteur(s)</span>
+  </div>
+  @if (overview.teams.length) {
+    <div class="table-scroll">
+      <table class="data fieldwork-table">
+        <thead>
+          <tr>
+            <th class="l">Équipe / enquêteur</th>
+            <th>Objectif</th>
+            <th>Réalisées</th>
+            <th class="l rate-col">Réalisation</th>
+            <th>Approuvées</th>
+            <th>À traiter</th>
+            <th>Durée méd.</th>
+            <th>Par jour</th>
+            <th class="l">Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (team of overview.teams; track team.supervisor) {
+            <tr class="team-row">
+              <td class="l">
+                <button type="button" class="person team-toggle" [attr.aria-expanded]="isOpen(team)" (click)="toggle(team)">
+                  <svg class="chev" viewBox="0 0 24 24" aria-hidden="true" [class.open]="isOpen(team)"><path d="M9 6l6 6-6 6" /></svg>
+                  <span class="avatar strong">{{ initials(team.supervisor) }}</span>
+                  <span class="who">Équipe {{ team.supervisor }}<small>Superviseur · {{ team.interviewers.length }} enquêteur(s)</small></span>
+                </button>
+              </td>
+              <td>{{ team.target | number: '1.0-0' : 'fr-FR' }}</td>
+              <td>{{ team.completed | number: '1.0-0' : 'fr-FR' }}</td>
+              <td class="l"><span class="bar-cell"><span class="track"><span class="fill" [style.width.%]="cap(team.completionRate)"></span></span>{{ rate(team.completionRate) }}</span></td>
+              <td>{{ team.approved | number: '1.0-0' : 'fr-FR' }}</td>
+              <td>{{ team.rejected + team.inProgress | number: '1.0-0' : 'fr-FR' }}</td>
+              <td></td><td></td>
+              <td class="l"><span class="pill" [class]="'pill ' + teamStatus(team).tone"><i class="dot"></i>{{ teamStatus(team).label }}</span></td>
+            </tr>
+            @if (isOpen(team)) {
+              @for (row of team.interviewers; track row.interviewer) {
+                <tr class="interviewer-row" [class.not-started]="notStarted(row)">
+                  <td class="l">
+                    <span class="person indent">
+                      <span class="avatar" [class.warn]="notStarted(row)">{{ initials(row.interviewer) }}</span>
+                      <span class="who">{{ row.interviewer }}<small>{{ row.lastCompletion ? 'Dernière interview le ' + (row.lastCompletion | date: 'd MMM' : 'UTC' : 'fr-FR') : 'Aucune interview' }}</small></span>
+                    </span>
+                  </td>
+                  <td>{{ row.target | number: '1.0-0' : 'fr-FR' }}</td>
+                  <td>{{ row.completed | number: '1.0-0' : 'fr-FR' }}</td>
+                  <td class="l"><span class="bar-cell"><span class="track"><span class="fill" [class.warn]="row.completionRate !== null && row.completionRate < 50" [style.width.%]="cap(row.completionRate)"></span></span>{{ rate(row.completionRate) }}</span></td>
+                  <td>{{ row.approved | number: '1.0-0' : 'fr-FR' }}</td>
+                  <td>{{ row.rejected + row.inProgress | number: '1.0-0' : 'fr-FR' }}</td>
+                  <td>{{ row.medianDurationMinutes === null ? '—' : (row.medianDurationMinutes | number: '1.0-1' : 'fr-FR') + ' min' }}</td>
+                  <td>{{ row.completedPerActiveDay === null ? '—' : (row.completedPerActiveDay | number: '1.0-1' : 'fr-FR') }}</td>
+                  <td class="l"><span [class]="'pill ' + interviewerStatus(row).tone"><i class="dot"></i>{{ interviewerStatus(row).label }}</span></td>
+                </tr>
+              }
+              @if (unassigned(team) > 0) {
+                <tr class="interviewer-row not-started">
+                  <td class="l">
+                    <span class="person indent">
+                      <span class="avatar empty-avatar">—</span>
+                      <span class="who">Non confiée<small>Chez le superviseur</small></span>
+                    </span>
+                  </td>
+                  <td>{{ unassigned(team) | number: '1.0-0' : 'fr-FR' }}</td>
+                  <td>—</td><td class="l">—</td><td>—</td><td>—</td><td>—</td><td>—</td>
+                  <td class="l"><span class="pill warn"><i class="dot"></i>À attribuer</span></td>
+                </tr>
+              }
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="footnote pad-x">Réalisées : interviews terminées au moins une fois, quel que soit leur statut actuel. « Par jour » rapporte les réalisées aux jours où l’enquêteur en a terminé au moins une.</p>
+  } @else {
+    <p class="empty">Aucune affectation ni interview pour ces filtres.</p>
+  }
+</section>

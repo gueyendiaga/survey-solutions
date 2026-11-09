@@ -1,0 +1,212 @@
+.btn.icon {
+  width: 40px;
+  padding: 0;
+}
+
+.menu {
+  position: relative;
+}
+
+.menu-list {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  right: 0;
+  display: flex;
+  min-width: 190px;
+  flex-direction: column;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 12px 32px rgba(16, 24, 40, 0.14);
+}
+
+.menu-list button {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  text-align: left;
+}
+
+.menu-list button:hover {
+  background: var(--bg);
+}
+
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+  color: var(--text-2);
+  font-size: var(--fs-small);
+}
+
+.spinner.small {
+  width: 12px;
+  height: 12px;
+  border-width: 2px;
+}
+
+:host {
+  position: sticky;
+  z-index: 20;
+  top: 0;
+  display: block;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(6px);
+}
+
+.qh-top,
+.qh-tabs {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+.qh-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 18px;
+  padding-bottom: 14px;
+}
+
+.qh-identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 14px;
+}
+
+.qh-mark {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.qh-titles {
+  min-width: 0;
+}
+
+.qh-titles .crumbs {
+  margin-bottom: 2px;
+  font-size: var(--fs-caption);
+}
+
+.qh-title {
+  overflow: hidden;
+  font-size: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qh-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 6px;
+  font-size: var(--fs-small);
+}
+
+.qh-code {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #f1f4f8;
+  color: var(--text-2);
+  font-family: var(--mono);
+  font-size: var(--fs-caption);
+}
+
+.qh-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.qh-tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.qh-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.qh-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px 8px 0 0;
+  background: none;
+  color: var(--text-2);
+  font-size: var(--fs-body);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.qh-tab:hover {
+  background: #f8fafc;
+  color: var(--text);
+}
+
+.qh-tab.active {
+  color: var(--primary-hover);
+  font-weight: 600;
+}
+
+.qh-tab.active::after {
+  position: absolute;
+  right: 10px;
+  bottom: -1px;
+  left: 10px;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--primary);
+  content: '';
+}
+
+.qh-tab:focus-visible {
+  outline-offset: -2px;
+}
+
+.qh-badge {
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #f1f4f8;
+  color: var(--text-2);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  text-align: center;
+}
+
+.qh-tab.active .qh-badge {
+  background: var(--primary-soft);
+  color: var(--primary-hover);
+}
+
+.qh-badge.warn {
+  background: var(--ochre-soft);
+  color: var(--ochre-text);
+}

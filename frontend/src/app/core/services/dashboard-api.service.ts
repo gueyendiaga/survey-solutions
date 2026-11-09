@@ -13,7 +13,7 @@ import {
   Questionnaire,
   QuestionSummary,
   SyncStatus
-} from './dashboard.models';
+} from '../models/dashboard.models';
 
 function normalizeKeys(value: unknown): unknown {
   if (Array.isArray(value)) {

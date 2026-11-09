@@ -1,0 +1,38 @@
+<div class="grid-2">
+  <section class="card pad report-cta">
+    <span class="tile big"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5M9 13h6M9 17h4" /></svg></span>
+    <h2>Rapport à la demande</h2>
+    <p>Synthèse, avancement des équipes, qualité des données et indicateurs par variable, avec les filtres en cours.</p>
+    <button type="button" class="btn primary" (click)="store.downloadReport()" [disabled]="store.reportGenerating()">
+      {{ store.reportGenerating() ? 'Génération…' : 'Générer le rapport PDF' }}
+    </button>
+  </section>
+  <section class="card pad report-cta">
+    <span class="tile big"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg></span>
+    <h2>Rapports automatiques</h2>
+    <p>Un rapport complet, sans filtre, est généré chaque matin à 7 h et conservé 30 jours.</p>
+    <span class="count">{{ store.archivedReports().length }} rapport(s) archivé(s)</span>
+  </section>
+</div>
+<section class="card">
+  <div class="card-head pad"><div><h2>Historique</h2><p>Rapports générés automatiquement</p></div></div>
+  @if (store.archivedReports().length) {
+    <div class="table-scroll">
+      <table class="data">
+        <thead><tr><th class="l">Généré le</th><th class="l">Fichier</th><th>Taille</th><th></th></tr></thead>
+        <tbody>
+          @for (report of store.archivedReports(); track report.id) {
+            <tr>
+              <td class="l">{{ report.generatedAt | date: 'd MMM y, HH:mm' : '' : 'fr-FR' }}</td>
+              <td class="l mono">{{ report.filename }}</td>
+              <td>{{ report.sizeBytes / 1024 | number: '1.0-0' : 'fr-FR' }} Ko</td>
+              <td><button type="button" class="btn small" (click)="store.downloadArchivedReport(report)">Télécharger</button></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <p class="empty">Aucun rapport archivé pour l’instant. Le premier sera généré au prochain passage automatique.</p>
+  }
+</section>

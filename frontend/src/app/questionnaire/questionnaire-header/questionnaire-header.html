@@ -1,0 +1,69 @@
+<div class="qh-top">
+  <div class="qh-identity">
+    <span class="qh-mark" aria-hidden="true">{{ questionnaire.title.charAt(0) || 'Q' }}</span>
+    <div class="qh-titles">
+      <nav class="crumbs" aria-label="Fil d’Ariane">
+        <a href="#questionnaires" (click)="onChange($event)">Questionnaires</a>
+        <span aria-hidden="true">›</span>
+        <span>Version {{ questionnaire.version }}</span>
+      </nav>
+      <h1 class="qh-title">{{ questionnaire.title }}</h1>
+      <div class="qh-meta">
+        @if (syncStatus?.inProgress) {
+          <span class="pill info sync-line"><span class="spinner small"></span>Synchronisation en cours…</span>
+        } @else if (syncStatus?.lastSuccessAt) {
+          <span class="pill ok sync-line"><i class="dot"></i>Données à jour · {{ syncStatus!.lastSuccessAt | date: 'd MMM, HH:mm' : '' : 'fr-FR' }} · {{ syncStatus!.interviewCount ?? 0 | number: '1.0-0' : 'fr-FR' }} interview(s)</span>
+        } @else {
+          <span class="pill warn sync-line"><i class="dot"></i>Aucune donnée importée</span>
+        }
+        @if (questionnaire.variable) {
+          <span class="qh-code">{{ questionnaire.variable }}</span>
+        }
+        <button type="button" class="link" (click)="onChange($event)">Changer de questionnaire</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="qh-actions">
+    <button type="button" class="btn icon" aria-label="Synchroniser maintenant" title="Synchroniser maintenant" (click)="sync.emit()" [disabled]="syncRequesting || syncStatus?.inProgress">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.6-4.5L4 8" /><path d="M4 4v4h4" /><path d="M4 13a8 8 0 0 0 14.6 4.5L20 16" /><path d="M20 20v-4h-4" /></svg>
+    </button>
+    <div class="menu">
+      <button type="button" class="btn icon" aria-label="Exporter les réponses" title="Exporter les réponses" aria-haspopup="menu" [attr.aria-expanded]="menuOpen" (click)="menuOpen = !menuOpen" [disabled]="exporting">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5" /><path d="M5 21h14" /></svg>
+      </button>
+      @if (menuOpen) {
+        <div class="menu-list" role="menu">
+          <button type="button" role="menuitem" class="export-button" (click)="exportAs('csv')">Exporter CSV</button>
+          <button type="button" role="menuitem" class="export-button" (click)="exportAs('xlsx')">Exporter Excel</button>
+        </div>
+      }
+    </div>
+    <button type="button" class="btn primary report-button" (click)="report.emit()" [disabled]="reportGenerating" title="Rapport PDF avec les filtres appliqués">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></svg>
+      {{ reportGenerating ? 'Génération…' : 'Rapport PDF' }}
+    </button>
+  </div>
+</div>
+
+<div class="qh-tabs" role="tablist" aria-label="Sections du questionnaire" (keydown)="onKeydown($event)">
+  @for (tab of tabs; track tab.id; let index = $index) {
+    <button
+      #tabButton
+      type="button"
+      role="tab"
+      class="qh-tab"
+      [id]="'tab-' + tab.id"
+      [attr.aria-selected]="tab.id === active"
+      [attr.aria-controls]="'panel-' + tab.id"
+      [attr.tabindex]="index === focusIndex ? 0 : -1"
+      [class.active]="tab.id === active"
+      (click)="select(tab.id)"
+      (focus)="focusIndex = index">
+      {{ tab.label }}
+      @if (badge(tab.id); as count) {
+        <span class="qh-badge" [class.warn]="tab.id === 'quality'" [attr.aria-label]="badgeLabel(tab.id, count)">{{ count }}</span>
+      }
+    </button>
+  }
+</div>

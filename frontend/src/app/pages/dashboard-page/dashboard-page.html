@@ -1,0 +1,82 @@
+<main class="page">
+  <div class="page-head">
+    <div>
+      <h1>Tableau de bord</h1>
+      <p class="lead">Activité de collecte de tous les questionnaires importés dans HQ</p>
+    </div>
+    <div class="actions">
+      <label class="select">
+        <span class="sr-only">Filtrer par questionnaire</span>
+        <select [ngModel]="catalog.selectedKey()" (ngModelChange)="catalog.selectQuestionnaire($event)" [disabled]="catalog.loading()">
+          <option value="">Tous les questionnaires</option>
+          @for (questionnaire of catalog.questionnaires(); track questionnaire.questionnaireIdentity) {
+            <option [value]="questionnaire.questionnaireId + '$' + questionnaire.version">{{ questionnaire.title }} · v{{ questionnaire.version }}</option>
+          }
+        </select>
+      </label>
+      <button class="btn" type="button" (click)="catalog.refresh()" [disabled]="catalog.loading()">Actualiser</button>
+    </div>
+  </div>
+
+  @if (catalog.error(); as message) {
+    <section class="alert" role="alert">
+      <div><strong>Les données ne sont pas disponibles</strong><p>{{ message }}</p></div>
+      <button type="button" class="btn" (click)="catalog.refresh()">Réessayer</button>
+    </section>
+  }
+
+  @if (catalog.loading() && !catalog.dashboard()) {
+    <app-loading-state label="Connexion à Survey Solutions HQ…" />
+  } @else if (catalog.dashboard(); as data) {
+    <section class="kpis" aria-label="Chiffres clés">
+      <article class="card kpi">
+        <div class="kpi-top"><span class="kpi-label">Questionnaires</span><span class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h11M9 12h11M9 19h11M4 5h.01M4 12h.01M4 19h.01" /></svg></span></div>
+        <strong class="kpi-value">{{ data.questionnaireCount | number: '1.0-0' : 'fr-FR' }}</strong>
+        <span class="kpi-note">{{ catalog.questionnaires().length }} version(s) dans HQ</span>
+      </article>
+      <article class="card kpi">
+        <div class="kpi-top"><span class="kpi-label">Interviews</span><span class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3 8-8" /><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9" /></svg></span></div>
+        <strong class="kpi-value">{{ data.interviewCount | number: '1.0-0' : 'fr-FR' }}</strong>
+        <span class="kpi-note">Tous statuts confondus</span>
+      </article>
+      <article class="card kpi">
+        <div class="kpi-top"><span class="kpi-label">Enquêteurs actifs</span><span class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="4" /><path d="M2 21a7 7 0 0 1 14 0M17 11a3 3 0 1 0 0-6M22 21a6 6 0 0 0-4-5.7" /></svg></span></div>
+        <strong class="kpi-value">{{ data.responsibleCount | number: '1.0-0' : 'fr-FR' }}</strong>
+        <span class="kpi-note">Responsables d’au moins une interview</span>
+      </article>
+      <article class="card kpi">
+        <div class="kpi-top"><span class="kpi-label">Superviseurs</span><span class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" /></svg></span></div>
+        <strong class="kpi-value">{{ data.supervisorCount | number: '1.0-0' : 'fr-FR' }}</strong>
+        <span class="kpi-note">Comptes superviseur dans HQ</span>
+      </article>
+    </section>
+
+    <div class="grid-2">
+      <section class="card pad">
+        <div class="card-head"><div><h2>Interviews par statut</h2><p>Statut renvoyé par Headquarters</p></div></div>
+        @if (data.statuses.length) {
+          <app-dashboard-chart [options]="statusOptions(data)" [height]="280" />
+        } @else {
+          <p class="empty">Aucune interview pour ce filtre.</p>
+        }
+      </section>
+      <section class="card pad">
+        <div class="card-head"><div><h2>Activité récente</h2><p>Interviews mises à jour sur les 14 derniers jours</p></div></div>
+        @if (data.interviewCount) {
+          <app-dashboard-chart [options]="trendOptions(data)" [height]="280" />
+        } @else {
+          <p class="empty">Aucune interview pour ce filtre.</p>
+        }
+      </section>
+    </div>
+
+    <section class="card">
+      <div class="card-head pad">
+        <div><h2>Questionnaires</h2><p>Ouvrez un questionnaire pour suivre sa collecte et analyser ses variables</p></div>
+        <span class="count">{{ catalog.questionnaires().length }} version(s)</span>
+      </div>
+      <app-questionnaire-catalog [questionnaires]="catalog.questionnaires()" />
+    </section>
+    <p class="footnote">Consulté le {{ data.generatedAt | date: 'd MMMM y à HH:mm' : '' : 'fr-FR' }} · indicateurs calculés à partir des données HQ.</p>
+  }
+</main>
