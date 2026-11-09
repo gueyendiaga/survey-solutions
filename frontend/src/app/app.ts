@@ -33,7 +33,7 @@ export class App implements OnInit {
   protected readonly questions = signal<QuestionSummary[]>([]);
   protected readonly selectedQuestion = signal<QuestionSummary | null>(null);
   protected readonly questionAnalytics = signal<QuestionAnalytics | null>(null);
-  protected readonly answerChartType = signal<'bar' | 'pie'>('bar');
+  protected readonly answerChartType = signal<'bar' | 'horizontalBar' | 'pie'>('bar');
   protected readonly completeness = signal<CompletenessOverview | null>(null);
   protected readonly completenessLoading = signal(false);
   protected readonly completenessError = signal<string | null>(null);
@@ -214,6 +214,9 @@ export class App implements OnInit {
         this.questions.set(questions);
         this.loading.set(false);
         this.loadCompleteness(questionnaire);
+        if (questions.length > 0) {
+          this.selectQuestion(questions[0]);
+        }
       },
       error: (error: unknown) => {
         this.loading.set(false);
@@ -323,6 +326,42 @@ export class App implements OnInit {
               formatter: '{b}\n{d}%'
             },
             itemStyle: { borderColor: '#fff', borderWidth: 2 }
+          }
+        ]
+      };
+    }
+
+    if (this.answerChartType() === 'horizontalBar') {
+      return {
+        animation: false,
+        grid: { left: 110, right: 24, top: 20, bottom: 32, containLabel: true },
+        tooltip: {
+          trigger: 'axis' as const,
+          axisPointer: { type: 'shadow' as const },
+          formatter: (items: { dataIndex: number; value: number }[]) => {
+            const answer = analytics.distribution[items[0].dataIndex];
+            return `${answer.label}<br/><strong>${answer.count.toLocaleString('fr-FR')}</strong> réponse(s) · ${answer.percentage}%`;
+          }
+        },
+        xAxis: {
+          type: 'value' as const,
+          minInterval: 1,
+          axisLabel: { color: '#8190a5' },
+          splitLine: { lineStyle: { color: '#edf1f6' } }
+        },
+        yAxis: {
+          type: 'category' as const,
+          data: analytics.distribution.map((item) => item.label),
+          axisLabel: { color: '#8190a5', width: 90, overflow: 'truncate' as const },
+          axisLine: { lineStyle: { color: '#dce3ec' } },
+          axisTick: { show: false }
+        },
+        series: [
+          {
+            type: 'bar' as const,
+            data: analytics.distribution.map((item) => item.count),
+            barMaxWidth: 40,
+            itemStyle: { color: '#2563eb', borderRadius: [0, 5, 5, 0] }
           }
         ]
       };

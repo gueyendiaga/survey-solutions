@@ -77,3 +77,9 @@ Les appels amont paginés sont parcourus jusqu'au total déclaré par HQ. En cas
 
 
 docker compose --env-file .env.analytics -f docker-compose.analytics.yml up --build -d
+
+## URL HEADQUARTERS : http://localhost:8080
+
+## Admin user
+Username: gueye25
+Password: jks89skfARLSEfb

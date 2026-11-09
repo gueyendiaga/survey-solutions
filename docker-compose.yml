@@ -13,8 +13,7 @@ services:
     environment:
       ASPNETCORE_URLS: "http://+:80"
       HQ_Headquarters__TenantName: "hq"
-      # HQ_Headquarters__BaseUrl: "http://localhost:8080"
-      HQ_Headquarters__BaseUrl: "http://10.90.1.42:8080"
+      HQ_Headquarters__BaseUrl: "http://10.90.1.17:8080" # "http://localhost:8080"
       HQ_ConnectionStrings__DefaultConnection: "Persist Security Info=true;Server=db;Port=5432;User Id=postgres;Password=SurveyLocal2026;Database=SurveySolutions"
       JwtBearer__Enabled: "true"
       JwtBearer__SecretKey: "${JWT_SECRET_KEY}"

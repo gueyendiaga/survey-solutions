@@ -1,7 +1,9 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { By } from '@angular/platform-browser';
 import { TestBed } from '@angular/core/testing';
 import { App } from './app';
+import { DashboardChartComponent } from './dashboard-chart';
 
 describe('App', () => {
   let http: HttpTestingController;
@@ -89,17 +91,6 @@ describe('App', () => {
     });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.selected-completeness')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.completeness-empty')?.textContent).toContain(
-      'Sélectionnez une question'
-    );
-
-    const variableButton = fixture.nativeElement.querySelector(
-      '.question-list-item'
-    ) as HTMLButtonElement;
-    variableButton.click();
-    fixture.detectChanges();
-
     http.expectOne(
       (req) =>
         req.url ===
@@ -132,6 +123,8 @@ describe('App', () => {
     });
     fixture.detectChanges();
 
+    expect(fixture.nativeElement.querySelector('.question-list-item.selected')?.textContent)
+      .toContain('age');
     expect(fixture.nativeElement.querySelector('.selected-completeness')?.textContent).toContain('50');
     expect(fixture.nativeElement.querySelector('.quality-status')?.textContent).toContain('À examiner');
     expect(fixture.nativeElement.querySelector('.question-list-item')?.textContent).toContain('age');
@@ -144,6 +137,23 @@ describe('App', () => {
     pieChartButton.click();
     fixture.detectChanges();
     expect(pieChartButton.getAttribute('aria-pressed')).toBe('true');
+    const horizontalBarChartButton = fixture.nativeElement.querySelector(
+      '[aria-label="Afficher un graphique en barres horizontales"]'
+    ) as HTMLButtonElement;
+    expect(horizontalBarChartButton.getAttribute('aria-pressed')).toBe('false');
+    horizontalBarChartButton.click();
+    fixture.detectChanges();
+    expect(horizontalBarChartButton.getAttribute('aria-pressed')).toBe('true');
+    const chart = fixture.debugElement.query(
+      By.directive(DashboardChartComponent)
+    ).componentInstance as DashboardChartComponent;
+    expect(chart.downloadFilename).toBe('repartition-age');
+    const downloadSpy = spyOn(chart, 'download');
+    const downloadButton = fixture.nativeElement.querySelector(
+      '[aria-label="Télécharger le graphique en PNG"]'
+    ) as HTMLButtonElement;
+    downloadButton.click();
+    expect(downloadSpy).toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('.response-list-panel')?.textContent).toContain('20');
     expect(fixture.nativeElement.querySelector('.response-list-panel')?.textContent).toContain('Interview 1');
   });
@@ -195,6 +205,35 @@ describe('App', () => {
     http.expectOne(
       '/api/questionnaires/588daf2d-0c72-4b89-bec9-254459a68983/1/question-completeness'
     ).flush({ interviewCount: 0, variables: [] });
+    fixture.detectChanges();
+    http.expectOne(
+      (request) => request.url.endsWith('/question-analytics') &&
+        request.params.get('variableName') === 'age'
+    ).flush({
+      question: {
+        id: 'question-1',
+        variableName: 'age',
+        questionText: 'Quel âge ?',
+        label: 'Âge',
+        type: 'Numeric',
+        breadcrumbs: [],
+        optionCount: 0
+      },
+      interviewCount: 0,
+      answeredInterviewCount: 0,
+      interviewWithoutAnswerCount: 0,
+      responseCount: 0,
+      observations: [],
+      distribution: [],
+      minimum: null,
+      maximum: null,
+      mean: null,
+      median: null,
+      sum: null,
+      percentile05: null,
+      percentile95: null,
+      nonNumericResponseCount: 0
+    });
     fixture.detectChanges();
 
     spyOn(HTMLAnchorElement.prototype, 'click');

@@ -35,6 +35,7 @@ echarts.use([BarChart, LineChart, PieChart, GridComponent, TooltipComponent, Can
 export class DashboardChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input({ required: true }) options!: EChartsCoreOption;
   @Input() height = 300;
+  @Input() downloadFilename = 'graphique';
   @ViewChild('chart', { static: true }) private chartElement!: ElementRef<HTMLDivElement>;
 
   private chart?: ECharts;
@@ -58,5 +59,20 @@ export class DashboardChartComponent implements AfterViewInit, OnChanges, OnDest
   ngOnDestroy(): void {
     window.removeEventListener('resize', this.onResize);
     this.chart?.dispose();
+  }
+
+  download(): void {
+    if (!this.chart) {
+      return;
+    }
+
+    const link = document.createElement('a');
+    link.href = this.chart.getDataURL({
+      type: 'png',
+      pixelRatio: 2,
+      backgroundColor: '#ffffff'
+    });
+    link.download = `${this.downloadFilename}.png`;
+    link.click();
   }
 }

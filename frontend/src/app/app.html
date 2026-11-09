@@ -14,8 +14,7 @@
       [class.active]="view() === 'dashboard'"
       href="/"
       (click)="showDashboard($event)"
-      [attr.aria-current]="view() === 'dashboard' ? 'page' : null"
-    >
+      [attr.aria-current]="view() === 'dashboard' ? 'page' : null">
       <span class="nav-icon">◫</span>
       <span>Vue d’ensemble</span>
     </a>
@@ -78,8 +77,7 @@
             <select
               [ngModel]="selectedKey()"
               (ngModelChange)="selectQuestionnaire($event)"
-              [disabled]="loading()"
-            >
+              [disabled]="loading()">
               <option value="">Tous les questionnaires</option>
               @for (questionnaire of questionnaires(); track questionnaire.questionnaireIdentity) {
                 <option [value]="questionnaire.questionnaireId + '$' + questionnaire.version">
@@ -632,6 +630,18 @@
                           <button
                             type="button"
                             class="chart-type-button"
+                            [class.active]="answerChartType() === 'horizontalBar'"
+                            [attr.aria-pressed]="answerChartType() === 'horizontalBar'"
+                            aria-label="Afficher un graphique en barres horizontales"
+                            title="Graphique en barres horizontales"
+                            (click)="answerChartType.set('horizontalBar')">
+                            <svg viewBox="0 0 16 16" aria-hidden="true">
+                              <path d="M2 2h6v3H2V2Zm0 4.5h11v3H2v-3ZM2 11h8v3H2v-3Z" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            class="chart-type-button"
                             [class.active]="answerChartType() === 'pie'"
                             [attr.aria-pressed]="answerChartType() === 'pie'"
                             aria-label="Afficher un graphique circulaire"
@@ -642,10 +652,24 @@
                             </svg>
                           </button>
                         </div>
+                        <button
+                          type="button"
+                          class="chart-type-button chart-download-button"
+                          aria-label="Télécharger le graphique en PNG"
+                          title="Télécharger le graphique en PNG"
+                          (click)="answerChart.download()">
+                          <svg viewBox="0 0 16 16" aria-hidden="true">
+                            <path d="M7 1h2v7l2.5-2.5L13 7l-5 5-5-5 1.5-1.5L7 8V1ZM2 13h12v2H2v-2Z" />
+                          </svg>
+                        </button>
                         <span class="table-count">{{ analytics.distribution.length }} valeur(s)</span>
                       </div>
                     </div>
-                    <app-dashboard-chart [options]="answerOptions(analytics)" [height]="330" />
+                    <app-dashboard-chart
+                      #answerChart
+                      [options]="answerOptions(analytics)"
+                      [height]="330"
+                      [downloadFilename]="'repartition-' + analytics.question.variableName" />
                     <div class="distribution-table">
                       <table>
                         <thead>
