@@ -170,6 +170,7 @@ export class FieldworkPanelComponent {
   protected progressOptions(): EChartsCoreOption {
     const all = FieldworkPanelComponent.continuousDays(this.overview.daily);
     const days = this.period() === 'all' ? all : all.slice(-Number(this.period()));
+    const last = days.at(-1);
     const series: object[] = [
       {
         name: 'Cumul',
@@ -180,7 +181,14 @@ export class FieldworkPanelComponent {
         areaStyle: { color: 'rgba(214, 219, 242, 0.75)' },
         symbol: 'none',
         z: 1,
-        endLabel: { show: true, formatter: (item: { value: number }) => `Cumul ${item.value}`, color: '#16267a', fontWeight: 600 }
+        // Masquée quand le cumul égale la dernière barre (premier jour) : la valeur est déjà affichée.
+        endLabel: {
+          show: !!last && last.cumulative !== last.completed,
+          distance: 8,
+          formatter: (item: { value: number }) => `Cumul ${item.value}`,
+          color: '#16267a',
+          fontWeight: 600
+        }
       },
       {
         name: 'Terminées dans la journée',
@@ -198,21 +206,37 @@ export class FieldworkPanelComponent {
         z: 2
       }
     ];
-    if (this.overview.target > 0) {
+    const target = this.overview.target;
+    if (target > 0) {
+      // Ligne horizontale sur toute la largeur (même avec un seul jour), libellé à gauche pour ne
+      // jamais chevaucher l'étiquette « Cumul » placée en bout de courbe.
       series.push({
         name: 'Objectif',
         type: 'line',
-        data: days.map(() => this.overview.target),
-        lineStyle: { type: 'dashed', color: '#c27c1e', width: 1.5 },
+        data: days.map(() => target),
+        lineStyle: { opacity: 0 },
         itemStyle: { color: '#c27c1e' },
         symbol: 'none',
-        endLabel: { show: true, formatter: `Objectif ${this.overview.target}`, color: '#8a4f0c', fontWeight: 600 }
+        markLine: {
+          silent: true,
+          symbol: 'none',
+          data: [{ yAxis: target }],
+          lineStyle: { type: 'dashed', color: '#c27c1e', width: 1.5 },
+          label: {
+            position: 'insideStartTop',
+            formatter: `Objectif ${target}`,
+            color: '#8a4f0c',
+            fontWeight: 600,
+            backgroundColor: 'rgba(255, 255, 255, 0.85)',
+            padding: [2, 4]
+          }
+        }
       });
     }
     return {
       animation: false,
       textStyle: { fontFamily: 'Inter, sans-serif' },
-      grid: { left: 36, right: 96, top: 24, bottom: 28 },
+      grid: { left: 36, right: 72, top: 24, bottom: 28 },
       tooltip: { trigger: 'axis' },
       xAxis: {
         type: 'category',
@@ -225,6 +249,8 @@ export class FieldworkPanelComponent {
       yAxis: {
         type: 'value',
         minInterval: 1,
+        // Marge au-dessus de l'objectif et des barres pour les étiquettes.
+        max: (extent: { max: number }) => Math.max(1, Math.ceil(Math.max(extent.max, target) * 1.15)),
         splitLine: { lineStyle: { color: '#f0f2f6' } },
         axisLabel: { color: '#6b7280' }
       },

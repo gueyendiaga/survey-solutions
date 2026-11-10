@@ -87,6 +87,7 @@ export function answerOptions(analytics: QuestionAnalytics, type: AnswerChartTyp
       yAxis: {
         type: 'category' as const,
         data: analytics.distribution.map((item) => item.label),
+        triggerEvent: true,
         axisLabel: { color: '#374151', width: 160, overflow: 'truncate' as const },
         inverse: true,
         axisLine: { lineStyle: { color: '#e6eaf0' } },
@@ -123,6 +124,7 @@ export function answerOptions(analytics: QuestionAnalytics, type: AnswerChartTyp
     xAxis: {
       type: 'category' as const,
       data: analytics.distribution.map((item) => item.label),
+      triggerEvent: true,
       axisLabel: {
         color: '#6b7280',
         rotate: rotateLabels ? 30 : 0,
@@ -174,6 +176,7 @@ export function statusOptions(dashboard: Dashboard): EChartsCoreOption {
     yAxis: {
       type: 'category' as const,
       data: dashboard.statuses.map((item) => statusLabel(item.status)),
+      triggerEvent: true,
       axisLabel: { color: '#374151', width: 170, overflow: 'truncate' as const },
       axisLine: { show: false },
       axisTick: { show: false }

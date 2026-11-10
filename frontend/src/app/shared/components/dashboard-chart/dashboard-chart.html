@@ -1,1 +1,4 @@
 <div #chart class="chart-canvas w-full" [style.height.px]="height"></div>
+@if (labelTip(); as tip) {
+  <div class="axis-label-tip" role="tooltip" [style.left.px]="tip.x" [style.top.px]="tip.y">{{ tip.text }}</div>
+}

@@ -6,15 +6,30 @@ import {
   OnChanges,
   OnDestroy,
   SimpleChanges,
-  ViewChild
+  ViewChild,
+  signal
 } from '@angular/core';
 import { BarChart, LineChart, PieChart } from 'echarts/charts';
-import { GridComponent, TooltipComponent } from 'echarts/components';
+import { GridComponent, MarkLineComponent, TooltipComponent } from 'echarts/components';
 import * as echarts from 'echarts/core';
 import type { ECharts, EChartsCoreOption } from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
 
-echarts.use([BarChart, LineChart, PieChart, GridComponent, TooltipComponent, CanvasRenderer]);
+/** Événement ECharts émis au survol d'un libellé d'axe (axe déclaré avec triggerEvent: true). */
+interface AxisLabelEvent {
+  componentType?: string;
+  targetType?: string;
+  value?: unknown;
+  event?: { offsetX: number; offsetY: number };
+}
+
+export interface AxisLabelTip {
+  text: string;
+  x: number;
+  y: number;
+}
+
+echarts.use([BarChart, LineChart, PieChart, GridComponent, MarkLineComponent, TooltipComponent, CanvasRenderer]);
 
 @Component({
   selector: 'app-dashboard-chart',
@@ -28,18 +43,29 @@ export class DashboardChartComponent implements AfterViewInit, OnChanges, OnDest
   @Input() downloadFilename = 'graphique';
   @ViewChild('chart', { static: true }) private chartElement!: ElementRef<HTMLDivElement>;
 
+  /** Libellé complet d'une modalité, affiché au survol de son libellé raccourci sur l'axe. */
+  protected readonly labelTip = signal<AxisLabelTip | null>(null);
+
   private chart?: ECharts;
   private readonly onResize = () => this.chart?.resize();
 
   ngAfterViewInit(): void {
     this.chart = echarts.init(this.chartElement.nativeElement);
     this.chart.setOption(this.options, true);
+    this.chart.on('mouseover', (params) => this.showLabelTip(params as AxisLabelEvent));
+    this.chart.on('mouseout', (params) => {
+      if ((params as AxisLabelEvent).targetType === 'axisLabel') {
+        this.labelTip.set(null);
+      }
+    });
+    this.chart.getZr().on('globalout', () => this.labelTip.set(null));
     window.addEventListener('resize', this.onResize);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['options'] && this.chart) {
       this.chart.setOption(this.options, true);
+      this.labelTip.set(null);
     }
     if (changes['height'] && this.chart) {
       this.chart.resize();
@@ -49,6 +75,14 @@ export class DashboardChartComponent implements AfterViewInit, OnChanges, OnDest
   ngOnDestroy(): void {
     window.removeEventListener('resize', this.onResize);
     this.chart?.dispose();
+  }
+
+  private showLabelTip(params: AxisLabelEvent): void {
+    const isAxis = params.componentType === 'xAxis' || params.componentType === 'yAxis';
+    if (!isAxis || params.targetType !== 'axisLabel' || !params.event || params.value == null) {
+      return;
+    }
+    this.labelTip.set({ text: String(params.value), x: params.event.offsetX, y: params.event.offsetY });
   }
 
   download(): void {
