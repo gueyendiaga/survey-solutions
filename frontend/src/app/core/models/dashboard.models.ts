@@ -48,11 +48,19 @@ export interface AnswerCount {
 
 export interface AnswerObservation {
   interviewNumber: number;
+  interviewId: string;
   /** Clé HQ lisible (ex. 01-50-90-18). */
   interviewKey: string | null;
+  status: string;
   /** Identifiant de ligne de roster ; vide au niveau principal. */
   rowKey: string;
   value: string;
+}
+
+export type HeadquartersInterviewAction = 'hqapprove' | 'hqreject' | 'hqunapprove';
+
+export interface InterviewActionResult {
+  status: string;
 }
 
 /** État de l'import des données d'une version dans la base Analytics. */

@@ -1,6 +1,6 @@
 # Survey Solutions Analytics
 
-MVP en lecture seule pour visualiser le catalogue des questionnaires, les volumes et statuts d'interviews, les responsables distincts, les superviseurs et l'activité récente. Le backend interroge directement l'API officielle de Survey Solutions HQ; aucun chiffre de démonstration ni microdonnée de réponse n'est stocké.
+Application Analytics pour visualiser le catalogue des questionnaires, les volumes et statuts d'interviews, les responsables distincts, les superviseurs et l'activité récente, et pour traiter les interviews depuis leur revue. Le backend interroge directement l'API officielle de Survey Solutions HQ; aucun chiffre de démonstration ni microdonnée de réponse n'est stocké.
 
 ## Démarrage avec Docker
 
@@ -28,7 +28,11 @@ Pour arrêter uniquement Analytics, exécuter `docker compose --env-file .env.an
 - `ANALYTICS_ALLOWED_ORIGIN` : origine autorisée pour les requêtes du frontend.
 - `.env.analytics` est ignoré par Git. Ne pas y mettre de secret dans un fichier versionné.
 
-Le backend n'écrit rien dans HQ : il lit l'API et crée seulement des jobs d'export (`POST /api/v2/export`), comme le bouton « Export » de HQ. Les statistiques utilisent les statuts renvoyés par HQ; l'évolution temporelle compte les interviews selon leur `LastEntryDate` et doit donc être lue comme une activité de mise à jour, pas comme une date de complétion.
+Le backend lit l'API HQ, crée des jobs d'export (`POST /api/v2/export`) et relaie les actions de revue demandées dans Analytics. Les statistiques utilisent les statuts renvoyés par HQ; l'évolution temporelle compte les interviews selon leur `LastEntryDate` et doit donc être lue comme une activité de mise à jour, pas comme une date de complétion.
+
+Les actions de revue sont disponibles depuis l'onglet Variables, pour les interviews qui ont une réponse à la variable sélectionnée. L'interface permet d'approuver une interview terminée ou approuvée par un superviseur, de la rejeter avec un commentaire facultatif, ou de retirer l'approbation HQ. Le backend contrôle que l'interview appartient à la version synchronisée et que son statut permet l'action, puis appelle `PATCH /api/v1/interviews/{id}/hqapprove`, `PATCH /api/v1/interviews/{id}/hqreject` ou `PATCH /api/v1/interviews/{id}/hqunapprove` dans HQ. Ces opérations exigent que le compte API configuré dispose des permissions HQ correspondantes; les actions réussies sont inscrites dans les journaux du backend.
+
+Analytics n'a pas d'authentification propre. Les actions utilisent le compte API partagé configuré côté backend et ne distinguent pas les utilisateurs Analytics. Garder l'application accessible uniquement sur `127.0.0.1` comme dans le Compose fourni; ne pas exposer l'interface ni le backend sur un réseau avant d'ajouter authentification, autorisation et attribution des actions à un utilisateur.
 
 Les réponses des interviews sont importées dans une base PostgreSQL dédiée (`analytics-db`, non exposée sur le réseau, volume `analytics-db`). Elle contient des microdonnées : appliquer les mêmes règles d'accès, de sauvegarde et de conservation qu'à HQ. L'application n'inclut encore ni authentification propre ni administration. Le port web est limité à `127.0.0.1`; ne pas l'exposer sur un réseau ou en production avant d'ajouter l'authentification et les contrôles d'accès.
 
@@ -99,6 +103,9 @@ Pour le développement local, le backend requiert Maven 3.9+ et Java 17; le lanc
 - `GET /api/questionnaires/{uuid}/{version}/question-analytics?variableName={variable}` : agrégats d'une variable.
 - `GET /api/questionnaires/{uuid}/{version}/export?format=csv|xlsx` : export des réponses du questionnaire en CSV ou Excel.
 - `GET /api/questionnaires/{uuid}/{version}/questions` : métadonnées des questions HQ.
+- `PATCH /api/questionnaires/{uuid}/{version}/interviews/{interviewId}/hqapprove` : approuve une interview.
+- `PATCH /api/questionnaires/{uuid}/{version}/interviews/{interviewId}/hqreject` : rejette une interview (`comment` et `responsibleId` facultatifs).
+- `PATCH /api/questionnaires/{uuid}/{version}/interviews/{interviewId}/hqunapprove` : retire une approbation HQ.
 - `GET /api/questionnaires/{uuid}/{version}/sync` : état de la synchronisation (en cours, date des données, dernière erreur).
 - `POST /api/questionnaires/{uuid}/{version}/sync` : lance une synchronisation (réponse 202).
 

@@ -190,6 +190,33 @@ class SurveySolutionsServiceTest {
     }
 
     @Test
+    void forwardsHeadquartersActionsWithOptionalCommentsAndRejectResponsibleId() {
+        UUID interviewId = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+        UUID responsibleId = UUID.fromString("123e4567-e89b-12d3-a456-426614174001");
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://hq.test");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo("http://hq.test/api/v1/interviews/" + interviewId
+                        + "/hqapprove?comment=Looks%20good"))
+                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators
+                        .withSuccess());
+        server.expect(requestTo("http://hq.test/api/v1/interviews/" + interviewId + "/hqunapprove"))
+                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators
+                        .withSuccess());
+        server.expect(requestTo("http://hq.test/api/v1/interviews/" + interviewId
+                        + "/hqreject?comment=Needs%20revision&responsibleId=" + responsibleId))
+                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators
+                        .withSuccess());
+
+        SurveySolutionsService service = new SurveySolutionsService(builder.build());
+
+        service.approveInterviewAsHeadquarters(interviewId, "Looks good");
+        service.unapproveInterviewAsHeadquarters(interviewId, null);
+        service.rejectInterviewAsHeadquarters(interviewId, "Needs revision", responsibleId);
+
+        server.verify();
+    }
+
+    @Test
     void usesAnswerValueAsOptionCodeWhenAnswerCodeIsMissing() {
         UUID questionnaireId = UUID.fromString("588daf2d-0c72-4b89-bec9-254459a68983");
         RestClient.Builder builder = RestClient.builder().baseUrl("http://hq.test");

@@ -13,8 +13,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.surveysolutions.analytics.questions.DataExportService;
@@ -39,6 +41,7 @@ public class AnalyticsController {
     private final FieldworkService fieldwork;
     private final ReportService reports;
     private final ReportArchive reportArchive;
+    private final InterviewActionService interviewActions;
 
     public AnalyticsController(
             DashboardService dashboard,
@@ -48,7 +51,8 @@ public class AnalyticsController {
             SyncService sync,
             FieldworkService fieldwork,
             ReportService reports,
-            ReportArchive reportArchive) {
+            ReportArchive reportArchive,
+            InterviewActionService interviewActions) {
         this.dashboard = dashboard;
         this.surveySolutions = surveySolutions;
         this.questionAnalytics = questionAnalytics;
@@ -57,6 +61,7 @@ public class AnalyticsController {
         this.fieldwork = fieldwork;
         this.reports = reports;
         this.reportArchive = reportArchive;
+        this.interviewActions = interviewActions;
     }
 
     @GetMapping("/api/health")
@@ -242,6 +247,42 @@ public class AnalyticsController {
             @RequestParam(required = false) Long version) {
         return dashboard.getOverview(questionnaireId, version);
     }
+
+    @PatchMapping("/api/questionnaires/{questionnaireId}/{version}/interviews/{interviewId}/hqapprove")
+    public InterviewActionService.ActionResult approveInterview(
+            @PathVariable UUID questionnaireId,
+            @PathVariable long version,
+            @PathVariable UUID interviewId,
+            @RequestBody(required = false) InterviewActionRequest request) {
+        return interviewActions.approve(
+                questionnaireId, version, interviewId, request == null ? null : request.comment());
+    }
+
+    @PatchMapping("/api/questionnaires/{questionnaireId}/{version}/interviews/{interviewId}/hqreject")
+    public InterviewActionService.ActionResult rejectInterview(
+            @PathVariable UUID questionnaireId,
+            @PathVariable long version,
+            @PathVariable UUID interviewId,
+            @RequestBody(required = false) InterviewActionRequest request) {
+        return interviewActions.reject(
+                questionnaireId,
+                version,
+                interviewId,
+                request == null ? null : request.comment(),
+                request == null ? null : request.responsibleId());
+    }
+
+    @PatchMapping("/api/questionnaires/{questionnaireId}/{version}/interviews/{interviewId}/hqunapprove")
+    public InterviewActionService.ActionResult unapproveInterview(
+            @PathVariable UUID questionnaireId,
+            @PathVariable long version,
+            @PathVariable UUID interviewId,
+            @RequestBody(required = false) InterviewActionRequest request) {
+        return interviewActions.unapprove(
+                questionnaireId, version, interviewId, request == null ? null : request.comment());
+    }
+
+    public record InterviewActionRequest(String comment, UUID responsibleId) {}
 
     public record HealthResponse(String status) {}
 }

@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientResponseException;
 import com.surveysolutions.analytics.questions.DataNotSynchronizedException;
+import com.surveysolutions.analytics.dashboard.InterviewActionConflictException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -26,6 +27,11 @@ public class ApiExceptionHandler {
         ProblemDetail problem = problem(HttpStatus.CONFLICT, exception.getMessage());
         problem.setProperty("syncPending", true);
         return problem;
+    }
+
+    @ExceptionHandler(InterviewActionConflictException.class)
+    ProblemDetail handleInterviewActionConflict(InterviewActionConflictException exception) {
+        return problem(HttpStatus.CONFLICT, exception.getMessage());
     }
 
     @ExceptionHandler(RestClientResponseException.class)

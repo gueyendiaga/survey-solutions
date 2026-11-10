@@ -47,6 +47,14 @@
     </section>
 
     <div class="detail">
+      @if (actionSuccess(); as message) {
+        <section class="alert action-feedback action-success" role="status">{{ message }}</section>
+      }
+      @if (actionError(); as message) {
+        <section class="alert action-feedback" role="alert">
+          <div><strong>Action impossible</strong><p>{{ message }}</p></div>
+        </section>
+      }
       @if (store.selectedQuestion(); as question) {
         <section class="card pad question-head">
           <div class="meta-row">
@@ -162,6 +170,38 @@
           }
 
           @if (analytics.observations.length) {
+            <section class="card interview-review-card">
+              <div class="card-head pad">
+                <div><h2>Revue des interviews</h2><p>Une ligne par interview ayant une réponse à cette variable</p></div>
+                <span class="count">{{ interviews(analytics).length }} interview(s)</span>
+              </div>
+              <div class="table-scroll">
+                <table class="data">
+                  <thead><tr><th class="l">Clé HQ</th><th class="l">Statut</th><th class="l">Actions</th></tr></thead>
+                  <tbody>
+                    @for (interview of interviews(analytics); track interview.interviewId) {
+                      <tr>
+                        <td class="l mono interview-key">{{ interview.interviewKey ?? '—' }}</td>
+                        <td class="l">{{ interviewStatusLabel(interview.status) }}</td>
+                        <td class="l">
+                          <div class="review-actions">
+                            @if (canApproveOrReject(interview.status)) {
+                              <button type="button" class="review-button approve" [disabled]="savingAction()" (click)="openAction(interview, 'hqapprove')">Approuver</button>
+                              <button type="button" class="review-button reject" [disabled]="savingAction()" (click)="openAction(interview, 'hqreject')">Rejeter</button>
+                            } @else if (interview.status === 'ApprovedByHeadquarters') {
+                              <button type="button" class="review-button unapprove" [disabled]="savingAction()" (click)="openAction(interview, 'hqunapprove')">Inapprouver</button>
+                            } @else {
+                              <span class="hint">Aucune action disponible</span>
+                            }
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
             <section class="card">
               <div class="card-head pad">
                 <div><h2>Réponses individuelles</h2><p>La clé HQ permet de retrouver l’interview pour le contrôle qualité</p></div>
@@ -191,5 +231,30 @@
         <p class="card empty">Sélectionnez une variable pour consulter sa distribution et ses statistiques.</p>
       }
     </div>
+
+    @if (pendingAction(); as pending) {
+      <div class="action-backdrop" (click)="cancelAction()">
+        <section class="action-dialog" role="dialog" aria-modal="true" aria-labelledby="action-title" (click)="$event.stopPropagation()">
+          <form (ngSubmit)="confirmAction()">
+            <span class="action-dialog-kicker">REVUE HQ · {{ pending.interview.interviewKey ?? 'Interview' }}</span>
+            <h2 id="action-title">{{ actionTitle(pending.action) }}</h2>
+            <p>{{ actionDescription(pending.action) }}</p>
+            <label class="comment-field">
+              Commentaire <span>(facultatif)</span>
+              <textarea name="comment" rows="3" maxlength="2000" [(ngModel)]="comment" placeholder="Ajouter un commentaire pour l’équipe terrain…"></textarea>
+            </label>
+            @if (actionError(); as message) {
+              <p class="dialog-error" role="alert">{{ message }}</p>
+            }
+            <div class="action-dialog-footer">
+              <button type="button" class="btn" [disabled]="savingAction()" (click)="cancelAction()">Annuler</button>
+              <button type="submit" class="btn action-confirm" [class.danger]="pending.action === 'hqreject'" [disabled]="savingAction()">
+                {{ savingAction() ? 'Envoi en cours…' : actionTitle(pending.action) }}
+              </button>
+            </div>
+          </form>
+        </section>
+      </div>
+    }
   </div>
 }

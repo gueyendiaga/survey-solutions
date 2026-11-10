@@ -7,6 +7,8 @@ import {
   CompletenessOverview,
   FieldworkOverview,
   FilterOptions,
+  HeadquartersInterviewAction,
+  InterviewActionResult,
   QuestionOption,
   Dashboard,
   QuestionAnalytics,
@@ -166,6 +168,21 @@ export class DashboardApiService {
     return this.http
       .get<unknown>(`${this.baseUrl}/questionnaires/${questionnaireId}/${version}/sync`)
       .pipe(map((response) => normalizeKeys(response) as SyncStatus));
+  }
+
+  interviewAction(
+    questionnaireId: string,
+    version: number,
+    interviewId: string,
+    action: HeadquartersInterviewAction,
+    comment: string
+  ): Observable<InterviewActionResult> {
+    return this.http
+      .patch<unknown>(
+        `${this.baseUrl}/questionnaires/${questionnaireId}/${version}/interviews/${interviewId}/${action}`,
+        { comment: comment.trim() || null }
+      )
+      .pipe(map((response) => normalizeKeys(response) as InterviewActionResult));
   }
 
   startSync(questionnaireId: string, version: number): Observable<SyncStatus> {

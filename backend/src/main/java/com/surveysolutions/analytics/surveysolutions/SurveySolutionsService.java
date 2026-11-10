@@ -362,6 +362,38 @@ public class SurveySolutionsService {
         return details;
     }
 
+    public void approveInterviewAsHeadquarters(UUID interviewId, String comment) {
+        patchInterviewAction(interviewId, "hqapprove", comment, null);
+    }
+
+    public void rejectInterviewAsHeadquarters(UUID interviewId, String comment, UUID responsibleId) {
+        patchInterviewAction(interviewId, "hqreject", comment, responsibleId);
+    }
+
+    public void unapproveInterviewAsHeadquarters(UUID interviewId, String comment) {
+        patchInterviewAction(interviewId, "hqunapprove", comment, null);
+    }
+
+    private void patchInterviewAction(
+            UUID interviewId,
+            String action,
+            String comment,
+            UUID responsibleId) {
+        client.patch()
+                .uri(uri -> {
+                    var builder = uri.path("/api/v1/interviews/{id}/" + action);
+                    if (comment != null && !comment.isBlank()) {
+                        builder.queryParam("comment", comment);
+                    }
+                    if (responsibleId != null) {
+                        builder.queryParam("responsibleId", responsibleId);
+                    }
+                    return builder.build(interviewId);
+                })
+                .retrieve()
+                .toBodilessEntity();
+    }
+
     private void ensurePaginationProgress(
             int received,
             int totalCount,

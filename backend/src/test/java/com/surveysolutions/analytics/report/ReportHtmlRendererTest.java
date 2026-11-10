@@ -37,7 +37,8 @@ class ReportHtmlRendererTest {
                 new QuestionCompleteness(region, "survey", 4, 0, 0, 4, 100.0),
                 new QuestionCompleteness(age, "survey", 2, 2, 0, 2, 50.0)), List.of("Completed"), 0, AT);
         QuestionAnalytics regionAnalytics = new QuestionAnalytics(region, 4, 4, 4, 0, 0, 100.0,
-                List.of(new AnswerObservation(1, "01-02-03-04", "", "Mme Secret")),
+                List.of(new AnswerObservation(
+                        1, "123e4567-e89b-12d3-a456-426614174000", "01-02-03-04", "Completed", "", "Mme Secret")),
                 List.of(new AnswerCount("Dakar", 3, 75.0), new AnswerCount("Thiès & environs", 1, 25.0)),
                 null, null, null, null, null, null, null, 0, PercentageBase.RESPONSES, List.of(), List.of("Completed"), 0, AT);
         QuestionAnalytics ageAnalytics = new QuestionAnalytics(age, 4, 2, 2, 2, 0, 50.0, List.of(),

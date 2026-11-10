@@ -74,8 +74,10 @@ class QuestionAnalyticsServiceTest {
         assertThat(result.median()).isEqualTo(new BigDecimal("15.00"));
         assertThat(result.sum()).isEqualTo(new BigDecimal("30"));
         assertThat(result.observations()).containsExactly(
-                new QuestionAnalyticsDtos.AnswerObservation(1, "key-1", "", "10"),
-                new QuestionAnalyticsDtos.AnswerObservation(2, "key-2", "", "20"));
+                new QuestionAnalyticsDtos.AnswerObservation(
+                        1, uuid(1).toString(), "key-1", "Completed", "", "10"),
+                new QuestionAnalyticsDtos.AnswerObservation(
+                        2, uuid(2).toString(), "key-2", "Completed", "", "20"));
         assertThat(result.syncedAt()).isEqualTo(SYNCED_AT);
     }
 
@@ -139,9 +141,9 @@ class QuestionAnalyticsServiceTest {
     void countsRosterRowsAsSeparateResponsesOfTheSameInterview() {
         question("Numeric", List.of());
         interviews(1, 1);
-        observations.add(new VariableObservation(uuid(1), "key-1", "1", "A", "30"));
-        observations.add(new VariableObservation(uuid(1), "key-1", "2", "A", "8"));
-        observations.add(new VariableObservation(uuid(1), "key-1", "3", "M", null));
+        observations.add(new VariableObservation(uuid(1), "key-1", "Completed", "1", "A", "30"));
+        observations.add(new VariableObservation(uuid(1), "key-1", "Completed", "2", "A", "8"));
+        observations.add(new VariableObservation(uuid(1), "key-1", "Completed", "3", "M", null));
 
         QuestionAnalyticsDtos.QuestionAnalytics result = service.analyze(QUESTIONNAIRE_ID, 1, VARIABLE, NO_FILTER);
 
@@ -242,7 +244,8 @@ class QuestionAnalyticsServiceTest {
     }
 
     private void observe(int interview, String state, String value) {
-        observations.add(new VariableObservation(uuid(interview), "key-" + interview, "", state, value));
+        observations.add(new VariableObservation(
+                uuid(interview), "key-" + interview, "Completed", "", state, value));
     }
 
     private UUID uuid(int value) {

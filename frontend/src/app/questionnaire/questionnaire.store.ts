@@ -332,6 +332,17 @@ export class QuestionnaireStore {
     }
   }
 
+  /** Rafraîchit les indicateurs après une action de revue répercutée dans l'entrepôt local. */
+  refreshAfterInterviewAction(): void {
+    const questionnaire = this.questionnaire();
+    if (!questionnaire) {
+      return;
+    }
+    this.loadFieldwork(questionnaire);
+    this.loadCompleteness(questionnaire);
+    this.reloadSelectedQuestion();
+  }
+
   private loadFieldwork(questionnaire: Questionnaire): void {
     this.fieldwork.set(null);
     this.fieldworkError.set(null);

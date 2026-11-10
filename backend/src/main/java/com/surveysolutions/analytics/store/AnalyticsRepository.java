@@ -43,6 +43,7 @@ public class AnalyticsRepository {
     public record VariableObservation(
             UUID interviewId,
             String interviewKey,
+            String status,
             String rowKey,
             String state,
             String value) {}
@@ -315,7 +316,7 @@ public class AnalyticsRepository {
         List<Object> args = new ArrayList<>(List.of(variable, variable, questionnaireId, version, variable));
         args.addAll(sql.args());
         return jdbc.query("""
-                SELECT u.interview_id, i.interview_key, u.row_key,
+                SELECT u.interview_id, i.interview_key, i.status, u.row_key,
                        u.answers -> ? ->> 's' AS state, u.answers -> ? ->> 'v' AS value
                 FROM answer_unit u
                 JOIN interview i ON i.interview_id = u.interview_id
@@ -324,10 +325,26 @@ public class AnalyticsRepository {
                 (rs, rowNum) -> new VariableObservation(
                         rs.getObject("interview_id", UUID.class),
                         rs.getString("interview_key"),
+                        rs.getString("status"),
                         rs.getString("row_key"),
                         rs.getString("state"),
                         rs.getString("value")),
                 args.toArray());
+    }
+
+    public Optional<String> interviewStatus(UUID interviewId, UUID questionnaireId, long version) {
+        return jdbc.query("""
+                SELECT status FROM interview
+                WHERE interview_id = ? AND questionnaire_id = ? AND version = ?
+                """, rs -> rs.next() ? Optional.of(rs.getString("status")) : Optional.empty(),
+                interviewId, questionnaireId, version);
+    }
+
+    public int updateInterviewStatus(UUID interviewId, UUID questionnaireId, long version, String status) {
+        return jdbc.update("""
+                UPDATE interview SET status = ?
+                WHERE interview_id = ? AND questionnaire_id = ? AND version = ?
+                """, status, interviewId, questionnaireId, version);
     }
 
     /** États agrégés de toutes les variables, calculés par PostgreSQL. */

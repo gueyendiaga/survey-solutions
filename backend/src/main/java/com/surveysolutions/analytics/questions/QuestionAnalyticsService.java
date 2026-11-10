@@ -44,7 +44,13 @@ public class QuestionAnalyticsService {
     private final List<String> analysisStatuses;
 
     /** Valeur répondue d'une unité (interview ou ligne de roster). */
-    private record Response(int interviewNumber, String interviewKey, String rowKey, String value) {}
+    private record Response(
+            int interviewNumber,
+            UUID interviewId,
+            String interviewKey,
+            String status,
+            String rowKey,
+            String value) {}
 
     /** Périmètre de l'analyse : interviews retenues et unités sans réponse de la variable. */
     private record AnalysisScope(
@@ -112,7 +118,7 @@ public class QuestionAnalyticsService {
                     row.interviewId(), ignored -> interviewNumbers.size() + 1);
             switch (row.state()) {
                 case TabularExportParser.ANSWERED -> responses.add(new Response(
-                        number, row.interviewKey(), row.rowKey(), row.value()));
+                        number, row.interviewId(), row.interviewKey(), row.status(), row.rowKey(), row.value()));
                 case TabularExportParser.MISSING -> missing++;
                 default -> notApplicable++;
             }
@@ -244,7 +250,8 @@ public class QuestionAnalyticsService {
                     ? String.join(", ", answerLabels(answerValue.trim(), optionLabels, multipleChoice))
                     : answerValue;
             observations.add(new AnswerObservation(
-                    response.interviewNumber(), response.interviewKey(), response.rowKey(), displayValue));
+                    response.interviewNumber(), response.interviewId().toString(), response.interviewKey(),
+                    response.status(), response.rowKey(), displayValue));
 
             if (numericQuestion) {
                 try {
