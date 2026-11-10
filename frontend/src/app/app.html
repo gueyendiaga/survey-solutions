@@ -8,28 +8,30 @@
       </span>
     </a>
 
-    <div class="nav-caption">Général</div>
-    <a
-      class="nav-item"
-      routerLink="/"
-      routerLinkActive="active"
-      [routerLinkActiveOptions]="{ exact: true }"
-      ariaCurrentWhenActive="page">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" /><rect x="14" y="12" width="7" height="9" rx="1.5" /><rect x="3" y="16" width="7" height="5" rx="1.5" /></svg>
-      Tableau de bord
-    </a>
-    <a
-      class="nav-item"
-      routerLink="/questionnaires"
-      routerLinkActive="active"
-      ariaCurrentWhenActive="page"
-      aria-label="Afficher le catalogue des questionnaires">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h11M9 12h11M9 19h11M4 5h.01M4 12h.01M4 19h.01" /></svg>
-      Questionnaires
-      @if (catalog.questionnaires().length) {
-        <span class="nav-count">{{ catalog.questionnaires().length }}</span>
-      }
-    </a>
+    <div class="nav-links">
+      <div class="nav-caption">Général</div>
+      <a
+        class="nav-item"
+        routerLink="/"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        ariaCurrentWhenActive="page">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" /><rect x="14" y="12" width="7" height="9" rx="1.5" /><rect x="3" y="16" width="7" height="5" rx="1.5" /></svg>
+        Tableau de bord
+      </a>
+      <a
+        class="nav-item"
+        routerLink="/questionnaires"
+        routerLinkActive="active"
+        ariaCurrentWhenActive="page"
+        aria-label="Afficher le catalogue des questionnaires">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h11M9 12h11M9 19h11M4 5h.01M4 12h.01M4 19h.01" /></svg>
+        Questionnaires
+        @if (catalog.questionnaires().length) {
+          <span class="nav-count">{{ catalog.questionnaires().length }}</span>
+        }
+      </a>
+    </div>
 
     <div class="sidebar-status">
       <strong><span class="status-dot" aria-hidden="true"></span>HQ connecté</strong>
@@ -41,5 +43,3 @@
     <router-outlet />
   </div>
 </div>
-
-
