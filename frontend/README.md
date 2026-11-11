@@ -1,4 +1,4 @@
-# Interface Angular
+ # Interface Angular
 
 L'interface du MVP est un tableau de bord en lecture seule. La configuration générale, les variables d'environnement, Docker Compose et les commandes de démarrage sont documentés dans le [README à la racine](../README.md).
 

@@ -3,21 +3,31 @@ package com.surveysolutions.analytics.dashboard;
 import static com.surveysolutions.analytics.surveysolutions.SurveySolutionsDtos.*;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.surveysolutions.analytics.questions.DataExportService;
 import com.surveysolutions.analytics.questions.QuestionAnalyticsDtos;
 import com.surveysolutions.analytics.questions.QuestionAnalyticsService;
+import com.surveysolutions.analytics.fieldwork.FieldworkDtos;
+import com.surveysolutions.analytics.fieldwork.FieldworkService;
+import com.surveysolutions.analytics.report.ReportArchive;
+import com.surveysolutions.analytics.report.ReportService;
 import com.surveysolutions.analytics.store.AnalyticsRepository;
+import com.surveysolutions.analytics.store.InterviewFilter;
 import com.surveysolutions.analytics.store.SyncService;
 import com.surveysolutions.analytics.surveysolutions.SurveySolutionsService;
 
@@ -28,18 +38,30 @@ public class AnalyticsController {
     private final QuestionAnalyticsService questionAnalytics;
     private final DataExportService dataExport;
     private final SyncService sync;
+    private final FieldworkService fieldwork;
+    private final ReportService reports;
+    private final ReportArchive reportArchive;
+    private final InterviewActionService interviewActions;
 
     public AnalyticsController(
             DashboardService dashboard,
             SurveySolutionsService surveySolutions,
             QuestionAnalyticsService questionAnalytics,
             DataExportService dataExport,
-            SyncService sync) {
+            SyncService sync,
+            FieldworkService fieldwork,
+            ReportService reports,
+            ReportArchive reportArchive,
+            InterviewActionService interviewActions) {
         this.dashboard = dashboard;
         this.surveySolutions = surveySolutions;
         this.questionAnalytics = questionAnalytics;
         this.dataExport = dataExport;
         this.sync = sync;
+        this.fieldwork = fieldwork;
+        this.reports = reports;
+        this.reportArchive = reportArchive;
+        this.interviewActions = interviewActions;
     }
 
     @GetMapping("/api/health")
@@ -72,15 +94,88 @@ public class AnalyticsController {
     public QuestionAnalyticsDtos.QuestionAnalytics questionAnalytics(
             @PathVariable UUID questionnaireId,
             @PathVariable long version,
-            @RequestParam String variableName) {
-        return questionAnalytics.analyze(questionnaireId, version, variableName);
+            @RequestParam String variableName,
+            @ModelAttribute FilterParams filter) {
+        return questionAnalytics.analyze(questionnaireId, version, variableName, filter.toFilter());
     }
 
     @GetMapping("/api/questionnaires/{questionnaireId}/{version}/question-completeness")
     public QuestionAnalyticsDtos.CompletenessOverview questionCompleteness(
             @PathVariable UUID questionnaireId,
+            @PathVariable long version,
+            @ModelAttribute FilterParams filter) {
+        return questionAnalytics.completeness(questionnaireId, version, filter.toFilter());
+    }
+
+    /** Suivi terrain : réalisation par rapport aux affectations, équipes, enquêteurs, tendance. */
+    @GetMapping("/api/questionnaires/{questionnaireId}/{version}/fieldwork")
+    public FieldworkDtos.FieldworkOverview fieldwork(
+            @PathVariable UUID questionnaireId,
+            @PathVariable long version,
+            @ModelAttribute FilterParams filter) {
+        if (version < 1) {
+            throw new IllegalArgumentException("La version doit être supérieure à zéro.");
+        }
+        return fieldwork.overview(questionnaireId, version, filter.toFilter());
+    }
+
+    @GetMapping("/api/questionnaires/{questionnaireId}/{version}/filter-options")
+    public FieldworkDtos.FilterOptions filterOptions(
+            @PathVariable UUID questionnaireId,
             @PathVariable long version) {
-        return questionAnalytics.completeness(questionnaireId, version);
+        return fieldwork.filterOptions(questionnaireId, version);
+    }
+
+    /** Rapport PDF à la demande, avec les filtres courants. */
+    @GetMapping("/api/questionnaires/{questionnaireId}/{version}/report.pdf")
+    public ResponseEntity<byte[]> report(
+            @PathVariable UUID questionnaireId,
+            @PathVariable long version,
+            @ModelAttribute FilterParams filter) {
+        if (version < 1) {
+            throw new IllegalArgumentException("La version doit être supérieure à zéro.");
+        }
+        return pdf(reports.generate(questionnaireId, version, filter.toFilter()));
+    }
+
+    /** Rapports archivés (générés automatiquement chaque jour). */
+    @GetMapping("/api/questionnaires/{questionnaireId}/{version}/reports")
+    public List<ReportArchive.ArchivedReport> archivedReports(
+            @PathVariable UUID questionnaireId,
+            @PathVariable long version) {
+        return reportArchive.list(questionnaireId, version);
+    }
+
+    @GetMapping("/api/reports/{id}")
+    public ResponseEntity<byte[]> archivedReport(@PathVariable long id) {
+        return reportArchive.content(id)
+                .map(this::pdf)
+                .orElseThrow(() -> new IllegalArgumentException("Ce rapport n'existe pas ou a été supprimé."));
+    }
+
+    private ResponseEntity<byte[]> pdf(ReportService.ReportFile file) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(file.filename(), StandardCharsets.UTF_8).build().toString())
+                .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
+                .body(file.content());
+    }
+
+    /**
+     * Filtres globaux en paramètres de requête : statuses (liste séparée par des virgules),
+     * from et to (AAAA-MM-JJ, date de complétion), supervisor, interviewer, variable et value.
+     */
+    public record FilterParams(
+            List<String> statuses,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            String supervisor,
+            String interviewer,
+            String variable,
+            String value) {
+        InterviewFilter toFilter() {
+            return new InterviewFilter(statuses, from, to, supervisor, interviewer, variable, value);
+        }
     }
 
     @GetMapping("/api/questionnaires/{questionnaireId}/{version}/export")
@@ -152,6 +247,42 @@ public class AnalyticsController {
             @RequestParam(required = false) Long version) {
         return dashboard.getOverview(questionnaireId, version);
     }
+
+    @PatchMapping("/api/questionnaires/{questionnaireId}/{version}/interviews/{interviewId}/hqapprove")
+    public InterviewActionService.ActionResult approveInterview(
+            @PathVariable UUID questionnaireId,
+            @PathVariable long version,
+            @PathVariable UUID interviewId,
+            @RequestBody(required = false) InterviewActionRequest request) {
+        return interviewActions.approve(
+                questionnaireId, version, interviewId, request == null ? null : request.comment());
+    }
+
+    @PatchMapping("/api/questionnaires/{questionnaireId}/{version}/interviews/{interviewId}/hqreject")
+    public InterviewActionService.ActionResult rejectInterview(
+            @PathVariable UUID questionnaireId,
+            @PathVariable long version,
+            @PathVariable UUID interviewId,
+            @RequestBody(required = false) InterviewActionRequest request) {
+        return interviewActions.reject(
+                questionnaireId,
+                version,
+                interviewId,
+                request == null ? null : request.comment(),
+                request == null ? null : request.responsibleId());
+    }
+
+    @PatchMapping("/api/questionnaires/{questionnaireId}/{version}/interviews/{interviewId}/hqunapprove")
+    public InterviewActionService.ActionResult unapproveInterview(
+            @PathVariable UUID questionnaireId,
+            @PathVariable long version,
+            @PathVariable UUID interviewId,
+            @RequestBody(required = false) InterviewActionRequest request) {
+        return interviewActions.unapprove(
+                questionnaireId, version, interviewId, request == null ? null : request.comment());
+    }
+
+    public record InterviewActionRequest(String comment, UUID responsibleId) {}
 
     public record HealthResponse(String status) {}
 }

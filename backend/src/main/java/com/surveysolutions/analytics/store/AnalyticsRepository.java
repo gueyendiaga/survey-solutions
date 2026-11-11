@@ -14,6 +14,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.support.TransactionTemplate;
 import com.surveysolutions.analytics.store.TabularExportParser.AnswerState;
+import com.surveysolutions.analytics.surveysolutions.SurveySolutionsDtos.Assignment;
 import com.surveysolutions.analytics.store.TabularExportParser.InterviewRecord;
 import com.surveysolutions.analytics.store.TabularExportParser.UnitRecord;
 
@@ -42,6 +43,7 @@ public class AnalyticsRepository {
     public record VariableObservation(
             UUID interviewId,
             String interviewKey,
+            String status,
             String rowKey,
             String state,
             String value) {}
@@ -142,10 +144,24 @@ public class AnalyticsRepository {
     public ImportCounts replaceVersion(
             UUID questionnaireId,
             long version,
+            List<Assignment> assignments,
             java.util.function.Consumer<TabularExportParser.Sink> importer) {
         return transactions.execute(status -> {
             jdbc.update("DELETE FROM interview WHERE questionnaire_id = ? AND version = ?",
                     questionnaireId, version);
+            jdbc.update("DELETE FROM assignment WHERE questionnaire_id = ? AND version = ?",
+                    questionnaireId, version);
+            jdbc.batchUpdate("""
+                    INSERT INTO assignment (questionnaire_id, version, assignment_id, responsible_name,
+                        quantity, interviews_count, archived)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, assignments.stream().map(assignment -> new Object[] {
+                        questionnaireId, version, assignment.id(), assignment.responsibleName(),
+                        assignment.quantity(), assignment.interviewsCount(), assignment.archived()
+                    }).toList(), new int[] {
+                        Types.OTHER, Types.BIGINT, Types.INTEGER, Types.VARCHAR,
+                        Types.INTEGER, Types.INTEGER, Types.BOOLEAN
+                    });
             BatchWriter writer = new BatchWriter(questionnaireId, version);
             importer.accept(writer);
             writer.flush();
@@ -172,7 +188,9 @@ public class AnalyticsRepository {
                 interview.interviewId(), questionnaireId, version, interview.interviewKey(),
                 interview.status(), interview.assignmentId(), interview.hasErrors(),
                 interview.errorsCount(), interview.rejectionsSupervisor(), interview.rejectionsHq(),
-                interview.interviewerCount(), interview.durationSeconds(), interview.unansweredCount()
+                interview.interviewerCount(), interview.durationSeconds(), interview.unansweredCount(),
+                interview.interviewerName(), timestamp(interview.createdAt()),
+                timestamp(interview.completedAt()), timestamp(interview.lastActionAt())
             });
             interviewCount++;
             if (interviews.size() >= BATCH_SIZE) {
@@ -205,12 +223,15 @@ public class AnalyticsRepository {
             jdbc.batchUpdate("""
                     INSERT INTO interview (interview_id, questionnaire_id, version, interview_key, status,
                         assignment_id, has_errors, errors_count, rejections_supervisor, rejections_hq,
-                        interviewer_count, duration_seconds, unanswered_count)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        interviewer_count, duration_seconds, unanswered_count,
+                        interviewer_name, created_at, completed_at, last_action_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, interviews, new int[] {
                         Types.OTHER, Types.OTHER, Types.BIGINT, Types.VARCHAR, Types.VARCHAR,
                         Types.INTEGER, Types.BOOLEAN, Types.INTEGER, Types.INTEGER, Types.INTEGER,
-                        Types.INTEGER, Types.BIGINT, Types.INTEGER
+                        Types.INTEGER, Types.BIGINT, Types.INTEGER,
+                        Types.VARCHAR, Types.TIMESTAMP_WITH_TIMEZONE, Types.TIMESTAMP_WITH_TIMEZONE,
+                        Types.TIMESTAMP_WITH_TIMEZONE
                     });
             interviews.clear();
         }
@@ -229,6 +250,21 @@ public class AnalyticsRepository {
         }
     }
 
+    /** Remplace la composition des équipes (globale à l'instance HQ). */
+    public void replaceTeams(Map<String, String> interviewerToSupervisor) {
+        transactions.executeWithoutResult(status -> {
+            jdbc.update("DELETE FROM team_member");
+            jdbc.batchUpdate("INSERT INTO team_member (interviewer_name, supervisor_name) VALUES (?, ?)",
+                    interviewerToSupervisor.entrySet().stream()
+                            .map(entry -> new Object[] {entry.getKey(), entry.getValue()})
+                            .toList());
+        });
+    }
+
+    private static java.time.OffsetDateTime timestamp(Instant instant) {
+        return instant == null ? null : instant.atOffset(java.time.ZoneOffset.UTC);
+    }
+
     private String json(Map<String, AnswerState> answers) {
         Map<String, Map<String, String>> compact = new java.util.LinkedHashMap<>();
         answers.forEach((variable, answer) -> compact.put(
@@ -245,17 +281,27 @@ public class AnalyticsRepository {
 
     // ---- Lecture ----------------------------------------------------------------------------
 
-    public int countInterviews(UUID questionnaireId, long version, List<String> statuses) {
-        Integer count = jdbc.queryForObject("""
-                SELECT count(*) FROM interview
-                WHERE questionnaire_id = ? AND version = ? AND status = ANY (?)
-                """, Integer.class, questionnaireId, version, statuses.toArray(String[]::new));
+    /** Paramètres : version, puis ceux du filtre. */
+    private static Object[] args(UUID questionnaireId, long version, InterviewFilter.Sql filter, Object... before) {
+        List<Object> args = new ArrayList<>(List.of(before));
+        args.add(questionnaireId);
+        args.add(version);
+        args.addAll(filter.args());
+        return args.toArray();
+    }
+
+    public int countInterviews(UUID questionnaireId, long version, InterviewFilter filter) {
+        InterviewFilter.Sql sql = filter.toSql();
+        Integer count = jdbc.queryForObject(
+                "SELECT count(*) FROM interview i WHERE i.questionnaire_id = ? AND i.version = ?"
+                        + sql.clause(),
+                Integer.class, args(questionnaireId, version, sql));
         return count == null ? 0 : count;
     }
 
     public int countAllInterviews(UUID questionnaireId, long version) {
         Integer count = jdbc.queryForObject(
-                "SELECT count(*) FROM interview WHERE questionnaire_id = ? AND version = ?",
+                "SELECT count(*) FROM interview WHERE questionnaire_id = ? AND version = ? AND status <> 'Deleted'",
                 Integer.class, questionnaireId, version);
         return count == null ? 0 : count;
     }
@@ -265,31 +311,48 @@ public class AnalyticsRepository {
             UUID questionnaireId,
             long version,
             String variable,
-            List<String> statuses) {
+            InterviewFilter filter) {
+        InterviewFilter.Sql sql = filter.toSql();
+        List<Object> args = new ArrayList<>(List.of(variable, variable, questionnaireId, version, variable));
+        args.addAll(sql.args());
         return jdbc.query("""
-                SELECT u.interview_id, i.interview_key, u.row_key,
+                SELECT u.interview_id, i.interview_key, i.status, u.row_key,
                        u.answers -> ? ->> 's' AS state, u.answers -> ? ->> 'v' AS value
                 FROM answer_unit u
                 JOIN interview i ON i.interview_id = u.interview_id
                 WHERE u.questionnaire_id = ? AND u.version = ? AND jsonb_exists(u.answers, ?)
-                  AND i.status = ANY (?)
-                ORDER BY i.interview_key, u.row_key
-                """,
+                """ + sql.clause() + " ORDER BY i.interview_key, u.row_key",
                 (rs, rowNum) -> new VariableObservation(
                         rs.getObject("interview_id", UUID.class),
                         rs.getString("interview_key"),
+                        rs.getString("status"),
                         rs.getString("row_key"),
                         rs.getString("state"),
                         rs.getString("value")),
-                variable, variable, questionnaireId, version, variable,
-                statuses.toArray(String[]::new));
+                args.toArray());
+    }
+
+    public Optional<String> interviewStatus(UUID interviewId, UUID questionnaireId, long version) {
+        return jdbc.query("""
+                SELECT status FROM interview
+                WHERE interview_id = ? AND questionnaire_id = ? AND version = ?
+                """, rs -> rs.next() ? Optional.of(rs.getString("status")) : Optional.empty(),
+                interviewId, questionnaireId, version);
+    }
+
+    public int updateInterviewStatus(UUID interviewId, UUID questionnaireId, long version, String status) {
+        return jdbc.update("""
+                UPDATE interview SET status = ?
+                WHERE interview_id = ? AND questionnaire_id = ? AND version = ?
+                """, status, interviewId, questionnaireId, version);
     }
 
     /** États agrégés de toutes les variables, calculés par PostgreSQL. */
     public List<VariableCompleteness> completeness(
             UUID questionnaireId,
             long version,
-            List<String> statuses) {
+            InterviewFilter filter) {
+        InterviewFilter.Sql sql = filter.toSql();
         return jdbc.query("""
                 SELECT kv.key AS variable, min(u.level) AS level,
                        count(*) FILTER (WHERE kv.value ->> 's' = 'A') AS answered_units,
@@ -299,9 +362,8 @@ public class AnalyticsRepository {
                 FROM answer_unit u
                 JOIN interview i ON i.interview_id = u.interview_id
                 CROSS JOIN LATERAL jsonb_each(u.answers) kv
-                WHERE u.questionnaire_id = ? AND u.version = ? AND i.status = ANY (?)
-                GROUP BY kv.key
-                """,
+                WHERE u.questionnaire_id = ? AND u.version = ?
+                """ + sql.clause() + " GROUP BY kv.key",
                 (rs, rowNum) -> new VariableCompleteness(
                         rs.getString("variable"),
                         rs.getString("level"),
@@ -309,6 +371,6 @@ public class AnalyticsRepository {
                         rs.getLong("missing_units"),
                         rs.getLong("disabled_units"),
                         rs.getLong("answered_interviews")),
-                questionnaireId, version, statuses.toArray(String[]::new));
+                args(questionnaireId, version, sql));
     }
 }

@@ -97,6 +97,76 @@ public class SurveySolutionsService {
         return page.totalCount();
     }
 
+    /**
+     * Affectations actives (non archivées) d'une version, toutes pages confondues. Contrairement
+     * aux autres listes HQ, Offset est ici le nombre de lignes à sauter (base 0).
+     */
+    public List<Assignment> getAssignments(UUID questionnaireId, long version) {
+        Map<Integer, Assignment> assignments = new java.util.LinkedHashMap<>();
+        int totalCount;
+        int pages = 0;
+        do {
+            int currentOffset = assignments.size();
+            AssignmentPage response = client.get()
+                    .uri(uri -> uri.path("/api/v1/assignments")
+                            .queryParam("QuestionnaireId", questionnaireId + "$" + version)
+                            .queryParam("ShowArchive", false)
+                            .queryParam("Limit", QUESTIONNAIRE_PAGE_SIZE)
+                            .queryParam("Offset", currentOffset)
+                            .build())
+                    .retrieve()
+                    .body(AssignmentPage.class);
+            if (response == null || response.assignments() == null) {
+                throw new IllegalStateException("HQ a renvoyé une liste d'affectations invalide.");
+            }
+            int before = assignments.size();
+            response.assignments().forEach(assignment -> assignments.putIfAbsent(assignment.id(), assignment));
+            totalCount = response.totalCount();
+            pages++;
+            ensurePaginationProgress(assignments.size(), totalCount, assignments.size() - before, pages);
+        } while (assignments.size() < totalCount);
+        return List.copyOf(assignments.values());
+    }
+
+    /** Composition des équipes : nom d'enquêteur → nom de son superviseur. */
+    public Map<String, String> getTeams() {
+        Map<String, String> teams = new java.util.LinkedHashMap<>();
+        for (User supervisor : getUsers("/api/v1/supervisors")) {
+            for (User interviewer : getUsers("/api/v1/supervisors/" + supervisor.userId() + "/interviewers")) {
+                if (interviewer.userName() != null) {
+                    teams.put(interviewer.userName(), supervisor.userName());
+                }
+            }
+        }
+        return Map.copyOf(teams);
+    }
+
+    private List<User> getUsers(String path) {
+        List<User> users = new ArrayList<>();
+        int page = 1;
+        int totalCount;
+        int pages = 0;
+        do {
+            int currentPage = page;
+            UserPage response = client.get()
+                    .uri(uri -> uri.path(path)
+                            .queryParam("limit", QUESTIONNAIRE_PAGE_SIZE)
+                            .queryParam("offset", currentPage)
+                            .build())
+                    .retrieve()
+                    .body(UserPage.class);
+            if (response == null || response.users() == null) {
+                throw new IllegalStateException("HQ a renvoyé une liste d'utilisateurs invalide.");
+            }
+            users.addAll(response.users());
+            totalCount = response.totalCount();
+            page++;
+            pages++;
+            ensurePaginationProgress(users.size(), totalCount, response.users().size(), pages);
+        } while (users.size() < totalCount);
+        return users;
+    }
+
     public List<Question> getQuestions(UUID questionnaireId, long version) {
         Question[] questions = client.get()
                 .uri(uri -> uri.path("/api/v1/statistics/questions")
@@ -290,6 +360,38 @@ public class SurveySolutionsService {
             throw new IllegalStateException("HQ a renvoyé les réponses d'interview dans un format invalide.");
         }
         return details;
+    }
+
+    public void approveInterviewAsHeadquarters(UUID interviewId, String comment) {
+        patchInterviewAction(interviewId, "hqapprove", comment, null);
+    }
+
+    public void rejectInterviewAsHeadquarters(UUID interviewId, String comment, UUID responsibleId) {
+        patchInterviewAction(interviewId, "hqreject", comment, responsibleId);
+    }
+
+    public void unapproveInterviewAsHeadquarters(UUID interviewId, String comment) {
+        patchInterviewAction(interviewId, "hqunapprove", comment, null);
+    }
+
+    private void patchInterviewAction(
+            UUID interviewId,
+            String action,
+            String comment,
+            UUID responsibleId) {
+        client.patch()
+                .uri(uri -> {
+                    var builder = uri.path("/api/v1/interviews/{id}/" + action);
+                    if (comment != null && !comment.isBlank()) {
+                        builder.queryParam("comment", comment);
+                    }
+                    if (responsibleId != null) {
+                        builder.queryParam("responsibleId", responsibleId);
+                    }
+                    return builder.build(interviewId);
+                })
+                .retrieve()
+                .toBodilessEntity();
     }
 
     private void ensurePaginationProgress(

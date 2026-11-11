@@ -48,11 +48,19 @@ export interface AnswerCount {
 
 export interface AnswerObservation {
   interviewNumber: number;
+  interviewId: string;
   /** Clé HQ lisible (ex. 01-50-90-18). */
   interviewKey: string | null;
+  status: string;
   /** Identifiant de ligne de roster ; vide au niveau principal. */
   rowKey: string;
   value: string;
+}
+
+export type HeadquartersInterviewAction = 'hqapprove' | 'hqreject' | 'hqunapprove';
+
+export interface InterviewActionResult {
+  status: string;
 }
 
 /** État de l'import des données d'une version dans la base Analytics. */
@@ -112,4 +120,101 @@ export interface QuestionAnalytics {
   includedStatuses: string[];
   excludedInterviewCount: number;
   syncedAt: string | null;
+}
+
+/** Filtres globaux : null = non filtré. status : null = statuts par défaut, 'ALL' = tous. */
+export interface AnalysisFilters {
+  from: string | null;
+  to: string | null;
+  supervisor: string | null;
+  interviewer: string | null;
+  status: string | null;
+  variable: string | null;
+  value: string | null;
+}
+
+export const NO_FILTERS: AnalysisFilters = {
+  from: null,
+  to: null,
+  supervisor: null,
+  interviewer: null,
+  status: null,
+  variable: null,
+  value: null
+};
+
+/** Rapport PDF archivé (génération automatique quotidienne). */
+export interface ArchivedReport {
+  id: number;
+  generatedAt: string;
+  trigger: 'SCHEDULED' | 'MANUAL';
+  filename: string;
+  sizeBytes: number;
+}
+
+export interface FilterOptions {
+  supervisors: string[];
+  interviewers: string[];
+  statuses: string[];
+}
+
+export interface QuestionOption {
+  answer: number;
+  text: string;
+}
+
+export interface StatusTotal {
+  status: string;
+  count: number;
+}
+
+export interface DailyProgress {
+  date: string;
+  completed: number;
+  cumulative: number;
+}
+
+export interface InterviewerProgress {
+  interviewer: string;
+  target: number;
+  total: number;
+  completed: number;
+  approved: number;
+  rejected: number;
+  inProgress: number;
+  withErrors: number;
+  rejections: number;
+  completionRate: number | null;
+  medianDurationMinutes: number | null;
+  activeDays: number;
+  completedPerActiveDay: number | null;
+  lastCompletion: string | null;
+}
+
+export interface TeamProgress {
+  supervisor: string;
+  target: number;
+  completed: number;
+  approved: number;
+  rejected: number;
+  inProgress: number;
+  withErrors: number;
+  completionRate: number | null;
+  interviewers: InterviewerProgress[];
+}
+
+/** Réalisation par rapport aux affectations HQ. completed = interviews terminées au moins une fois. */
+export interface FieldworkOverview {
+  syncedAt: string | null;
+  filtersApplied: boolean;
+  target: number;
+  unlimitedAssignments: number;
+  completed: number;
+  approved: number;
+  rejected: number;
+  inProgress: number;
+  completionRate: number | null;
+  statuses: StatusTotal[];
+  daily: DailyProgress[];
+  teams: TeamProgress[];
 }

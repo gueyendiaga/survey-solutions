@@ -1,0 +1,81 @@
+@if (store.questionnaire(); as questionnaire) {
+  <app-questionnaire-header
+    [questionnaire]="questionnaire"
+    [active]="store.tab()"
+    [syncStatus]="store.syncStatus()"
+    [syncRequesting]="store.syncRequesting()"
+    [exporting]="store.exporting() !== null"
+    [reportGenerating]="store.reportGenerating()"
+    [badges]="store.tabBadges()"
+    (tabChange)="selectTab($event)"
+    (changeQuestionnaire)="backToCatalog()"
+    (sync)="store.startSync()"
+    (exportData)="store.downloadExport($event)"
+    (report)="store.downloadReport()" />
+
+  <main class="page">
+    <div class="tab-panel" role="tabpanel" [id]="'panel-' + store.tab()" [attr.aria-labelledby]="'tab-' + store.tab()" tabindex="-1">
+      <div class="panel-toolbar">
+        <p class="lead">{{ store.lead() }}</p>
+        <app-filter-bar
+          [filters]="store.filters()"
+          [options]="store.filterOptions()"
+          [questions]="store.questions()"
+          [variableOptions]="store.variableOptions()"
+          [statusLabel]="statusLabel"
+          (filtersChange)="store.applyFilters($event)"
+          (variableSelected)="store.loadVariableOptions($event)" />
+      </div>
+
+      @if (!store.syncStatus()?.inProgress && store.syncStatus()?.lastStatus === 'FAILED') {
+        <section class="alert" role="alert">
+          <div><strong>La dernière synchronisation a échoué</strong><p>{{ store.syncStatus()?.lastError }}</p></div>
+          <button type="button" class="btn" (click)="store.startSync()">Réessayer</button>
+        </section>
+      }
+      @if (store.downloadError(); as message) {
+        <section class="alert" role="alert"><p>{{ message }}</p></section>
+      }
+
+      @switch (store.tab()) {
+        @case ('fieldwork') {
+          @if (store.fieldworkError(); as message) {
+            <section class="alert" role="alert">
+              <p>{{ message }}</p>
+              <button type="button" class="btn" (click)="store.reloadFieldwork()">Réessayer</button>
+            </section>
+          } @else if (store.fieldwork(); as overview) {
+            <app-fieldwork-panel [overview]="overview" />
+          } @else {
+            <app-loading-state label="Calcul du suivi terrain…" [importing]="!!store.syncStatus()?.inProgress" />
+          }
+        }
+        @case ('variables') {
+          <app-variables-tab />
+        }
+        @case ('quality') {
+          <app-quality-tab (openVariable)="openVariable($event)" />
+        }
+        @case ('reports') {
+          <app-reports-tab />
+        }
+      }
+    </div>
+  </main>
+} @else if (notFound()) {
+  <main class="page">
+    <section class="card empty-state-page">
+      <h1>Questionnaire introuvable</h1>
+      <p class="lead">Cette version n’existe pas dans HQ ou n’est pas accessible avec le compte API configuré.</p>
+      <a class="btn primary" routerLink="/questionnaires">Voir les questionnaires</a>
+    </section>
+  </main>
+} @else {
+  <main class="page">
+    @if (catalog.error(); as message) {
+      <section class="alert" role="alert"><p>{{ message }}</p></section>
+    } @else {
+      <app-loading-state label="Ouverture du questionnaire…" />
+    }
+  </main>
+}

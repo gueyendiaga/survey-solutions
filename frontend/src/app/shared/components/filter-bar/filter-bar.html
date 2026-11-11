@@ -1,0 +1,59 @@
+<div class="filter-chips" role="group" aria-label="Filtres">
+  <button type="button" class="chip" [class.set]="!!filters.from || !!filters.to" [attr.aria-expanded]="open" [attr.aria-controls]="open ? 'analysis-filter-form' : null" (click)="toggle()">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></svg>
+    {{ periodLabel() }}
+  </button>
+  <button type="button" class="chip" [class.set]="!!filters.supervisor" [attr.aria-expanded]="open" [attr.aria-controls]="open ? 'analysis-filter-form' : null" (click)="toggle()">Équipe : {{ filters.supervisor || 'toutes' }}</button>
+  <button type="button" class="chip" [class.set]="!!filters.interviewer" [attr.aria-expanded]="open" [attr.aria-controls]="open ? 'analysis-filter-form' : null" (click)="toggle()">Enquêteur : {{ filters.interviewer || 'tous' }}</button>
+  <button type="button" class="chip" [class.set]="!!filters.status" [attr.aria-expanded]="open" [attr.aria-controls]="open ? 'analysis-filter-form' : null" (click)="toggle()">{{ statusSummary() }}</button>
+  <button type="button" class="chip" [class.set]="!!filters.variable" [class.dashed]="!filters.variable" [attr.aria-expanded]="open" [attr.aria-controls]="open ? 'analysis-filter-form' : null" (click)="toggle()">
+    @if (filters.variable) {
+      Zone : {{ filters.variable }} = {{ filters.value }}
+    } @else {
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+      Zone
+    }
+  </button>
+  @if (active) {
+    <button type="button" class="chip ghost filter-reset" (click)="reset()">Réinitialiser</button>
+  }
+</div>
+
+@if (open) {
+  <form id="analysis-filter-form" class="filter-bar" [class.has-value]="!!draft.variable" (ngSubmit)="apply()" aria-label="Filtres des indicateurs">
+    <label class="date-from">
+      <span>Terminées du</span>
+      <input type="date" name="from" [(ngModel)]="draft.from" [max]="draft.to || null" />
+    </label>
+    <label class="date-to">
+      <span>au</span>
+      <input type="date" name="to" [(ngModel)]="draft.to" [min]="draft.from || null" />
+    </label>
+    <div class="filter-field">
+      <span>Équipe</span>
+      <app-search-select name="supervisor" ariaLabel="Équipe" [options]="supervisorOptions" [(ngModel)]="draft.supervisor" />
+    </div>
+    <div class="filter-field">
+      <span>Enquêteur</span>
+      <app-search-select name="interviewer" ariaLabel="Enquêteur" [options]="interviewerOptions" [(ngModel)]="draft.interviewer" />
+    </div>
+    <div class="filter-field">
+      <span>Statut</span>
+      <app-search-select name="status" ariaLabel="Statut" [options]="statusOptions" [(ngModel)]="draft.status" />
+    </div>
+    <div class="filter-field variable-field">
+      <span>Zone / ventilation</span>
+      <app-search-select name="variable" ariaLabel="Zone / ventilation" [options]="variableSelectOptions" [ngModel]="draft.variable" (ngModelChange)="selectVariable($event)" />
+    </div>
+    @if (draft.variable) {
+      <div class="filter-field value-field">
+        <span>Valeur</span>
+        <app-search-select name="value" ariaLabel="Valeur" [options]="valueSelectOptions" [(ngModel)]="draft.value" [disabled]="!variableOptions.length" />
+      </div>
+    }
+    <div class="filter-actions">
+      <button type="button" class="btn ghost" (click)="open = false">Annuler</button>
+      <button type="submit" class="btn primary filter-apply" [disabled]="!!draft.variable && !draft.value">Appliquer</button>
+    </div>
+  </form>
+}

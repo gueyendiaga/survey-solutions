@@ -33,7 +33,9 @@ public final class QuestionAnalyticsDtos {
     /** interviewKey : clé HQ lisible (ex. 01-50-90-18), null si HQ ne l'a pas fournie. */
     public record AnswerObservation(
             int interviewNumber,
+            String interviewId,
             String interviewKey,
+            String status,
             /** Identifiant de ligne de roster (vide au niveau principal). */
             String rowKey,
             String value) {}

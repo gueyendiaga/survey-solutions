@@ -46,6 +46,18 @@ public final class SurveySolutionsDtos {
             @JsonProperty("UserId") String userId,
             @JsonProperty("UserName") String userName) {}
 
+    public record AssignmentPage(
+            @JsonProperty("Assignments") List<Assignment> assignments,
+            @JsonProperty("TotalCount") int totalCount) {}
+
+    /** quantity null ou -1 : affectation sans quota. */
+    public record Assignment(
+            @JsonProperty("Id") int id,
+            @JsonProperty("ResponsibleName") String responsibleName,
+            @JsonProperty("Quantity") Integer quantity,
+            @JsonProperty("InterviewsCount") int interviewsCount,
+            @JsonProperty("Archived") boolean archived) {}
+
     public record InterviewDetails(
             @JsonProperty("Answers") List<InterviewAnswer> answers) {}
 

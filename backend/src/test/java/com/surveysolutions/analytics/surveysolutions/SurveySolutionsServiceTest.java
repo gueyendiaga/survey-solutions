@@ -190,6 +190,33 @@ class SurveySolutionsServiceTest {
     }
 
     @Test
+    void forwardsHeadquartersActionsWithOptionalCommentsAndRejectResponsibleId() {
+        UUID interviewId = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+        UUID responsibleId = UUID.fromString("123e4567-e89b-12d3-a456-426614174001");
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://hq.test");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo("http://hq.test/api/v1/interviews/" + interviewId
+                        + "/hqapprove?comment=Looks%20good"))
+                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators
+                        .withSuccess());
+        server.expect(requestTo("http://hq.test/api/v1/interviews/" + interviewId + "/hqunapprove"))
+                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators
+                        .withSuccess());
+        server.expect(requestTo("http://hq.test/api/v1/interviews/" + interviewId
+                        + "/hqreject?comment=Needs%20revision&responsibleId=" + responsibleId))
+                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators
+                        .withSuccess());
+
+        SurveySolutionsService service = new SurveySolutionsService(builder.build());
+
+        service.approveInterviewAsHeadquarters(interviewId, "Looks good");
+        service.unapproveInterviewAsHeadquarters(interviewId, null);
+        service.rejectInterviewAsHeadquarters(interviewId, "Needs revision", responsibleId);
+
+        server.verify();
+    }
+
+    @Test
     void usesAnswerValueAsOptionCodeWhenAnswerCodeIsMissing() {
         UUID questionnaireId = UUID.fromString("588daf2d-0c72-4b89-bec9-254459a68983");
         RestClient.Builder builder = RestClient.builder().baseUrl("http://hq.test");
@@ -248,6 +275,29 @@ class SurveySolutionsServiceTest {
 
         assertThat(fingerprint).isEqualTo("3|2026-11-05T08:42:20.035Z");
         server.verify();
+    }
+
+    @Test
+    void pagesThroughAssignmentsUsingARowOffset() {
+        UUID questionnaireId = UUID.fromString("588daf2d-0c72-4b89-bec9-254459a68983");
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://hq.test");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        String first = "{\"Assignments\":[" + assignment(3) + "," + assignment(4) + "],\"TotalCount\":3}";
+        String second = "{\"Assignments\":[" + assignment(5) + "],\"TotalCount\":3}";
+        server.expect(requestTo(org.hamcrest.Matchers.containsString("Offset=0")))
+                .andRespond(withSuccess(first, MediaType.APPLICATION_JSON));
+        server.expect(requestTo(org.hamcrest.Matchers.containsString("Offset=2")))
+                .andRespond(withSuccess(second, MediaType.APPLICATION_JSON));
+
+        var assignments = new SurveySolutionsService(builder.build()).getAssignments(questionnaireId, 1);
+
+        assertThat(assignments).extracting(SurveySolutionsDtos.Assignment::id).containsExactly(3, 4, 5);
+        server.verify();
+    }
+
+    private String assignment(int id) {
+        return "{\"Id\":" + id + ",\"ResponsibleName\":\"enq\",\"Quantity\":2,"
+                + "\"InterviewsCount\":1,\"Archived\":false}";
     }
 
     private String questionnairePage(int page, int totalCount) {

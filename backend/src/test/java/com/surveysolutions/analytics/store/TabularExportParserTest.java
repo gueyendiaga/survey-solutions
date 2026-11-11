@@ -53,7 +53,7 @@ class TabularExportParserTest {
 
         assertThat(interviews).containsExactly(new InterviewRecord(
                 INTERVIEW_ID, "01-50-90-18", "ApprovedByHeadquarters", 3, false, 4, 2, 0, 1,
-                86_400L + 334L, 7));
+                86_400L + 334L, 7, null, null, null, null));
         assertThat(units).singleElement().satisfies(unit -> {
             assertThat(unit.level()).isEqualTo("survey");
             assertThat(unit.rowKey()).isEmpty();
@@ -94,6 +94,45 @@ class TabularExportParserTest {
         assertThat(units.get(2).answers())
                 .containsEntry("age", new AnswerState("M", null))
                 .containsEntry("langues", new AnswerState("D", null));
+    }
+
+    @Test
+    void derivesInterviewerAndKeyDatesFromTheActionHistory() throws IOException {
+        String actions = "\uFEFFinterview__key\tinterview__id\tdate\ttime\taction\toriginator\trole\tresponsible__name\tresponsible__role\r\n"
+                + "01\t" + RAW_ID + "\t2026-11-04\t11:58:01\t12\tenq1\t1\tenq1\t1\r\n"
+                + "01\t" + RAW_ID + "\t2026-11-05\t08:42:20\t6\tadmin\t4\tenq2\t1\r\n"
+                + "01\t" + RAW_ID + "\t2026-11-04\t12:03:36\t3\tenq1\t1\tsup1\t2\r\n"
+                + "01\t" + RAW_ID + "\t2026-11-04\t15:00:00\t3\tenq1\t1\tsup1\t2\r\n";
+        Path zip = zip(Map.of(
+                "survey.tab", "interview__key\tinterview__id\tinterview__status\r\n01\t" + RAW_ID + "\t130\r\n",
+                "interview__actions.tab", actions));
+
+        new TabularExportParser().parse(zip, Map.of(), "survey", sink);
+
+        assertThat(interviews).singleElement().satisfies(interview -> {
+            assertThat(interview.interviewerName()).isEqualTo("enq1");
+            assertThat(interview.createdAt()).isEqualTo(java.time.Instant.parse("2026-11-04T11:58:01Z"));
+            assertThat(interview.completedAt()).isEqualTo(java.time.Instant.parse("2026-11-04T12:03:36Z"));
+            assertThat(interview.lastActionAt()).isEqualTo(java.time.Instant.parse("2026-11-05T08:42:20Z"));
+        });
+    }
+
+    @Test
+    void fallsBackToTheLastInterviewerResponsibleWhenNeverCompleted() throws IOException {
+        String actions = "interview__key\tinterview__id\tdate\ttime\taction\toriginator\trole\tresponsible__name\tresponsible__role\r\n"
+                + "01\t" + RAW_ID + "\t2026-11-04\t10:00:00\t1\tsup1\t2\tenq1\t1\r\n"
+                + "01\t" + RAW_ID + "\t2026-11-06\t10:00:00\t1\tsup1\t2\tenq3\t1\r\n";
+        Path zip = zip(Map.of(
+                "survey.tab", "interview__key\tinterview__id\tinterview__status\r\n01\t" + RAW_ID + "\t60\r\n",
+                "interview__actions.tab", actions));
+
+        new TabularExportParser().parse(zip, Map.of(), "survey", sink);
+
+        assertThat(interviews).singleElement().satisfies(interview -> {
+            assertThat(interview.interviewerName()).isEqualTo("enq3");
+            assertThat(interview.completedAt()).isNull();
+            assertThat(interview.status()).isEqualTo("InterviewerAssigned");
+        });
     }
 
     @Test

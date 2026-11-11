@@ -1,0 +1,7 @@
+@if (!posed) {
+  <span class="quality-status">Non posée</span>
+} @else if (item.missingCount) {
+  <span class="quality-status review-needed">À examiner</span>
+} @else {
+  <span class="quality-status complete">Complet</span>
+}

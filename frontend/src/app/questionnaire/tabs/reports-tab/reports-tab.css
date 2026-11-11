@@ -1,0 +1,17 @@
+.tile.big {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 14px;
+}
+
+.report-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.report-cta p {
+  margin: 0 0 12px;
+  color: var(--text-2);
+}

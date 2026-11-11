@@ -1,0 +1,24 @@
+<main class="page">
+  <div class="page-head">
+    <div>
+      <h1>Questionnaires</h1>
+      <p class="lead">Questionnaires et versions disponibles dans Survey Solutions HQ</p>
+    </div>
+    <button class="btn" type="button" (click)="catalog.refresh()" [disabled]="catalog.loading()">Actualiser</button>
+  </div>
+
+  @if (catalog.error(); as message) {
+    <section class="alert" role="alert">
+      <div><strong>Les données ne sont pas disponibles</strong><p>{{ message }}</p></div>
+      <button type="button" class="btn" (click)="catalog.refresh()">Réessayer</button>
+    </section>
+  }
+
+  @if (catalog.loading() && !catalog.questionnaires().length) {
+    <app-loading-state label="Chargement des questionnaires…" />
+  } @else {
+    <section class="card">
+      <app-questionnaire-catalog [questionnaires]="catalog.questionnaires()" />
+    </section>
+  }
+</main>

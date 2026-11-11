@@ -1,0 +1,45 @@
+<div class="select-control" (keydown)="closeOnEscape($event)">
+  <button
+    class="select-trigger"
+    type="button"
+    role="combobox"
+    aria-haspopup="listbox"
+    [attr.aria-label]="ariaLabel"
+    [attr.aria-expanded]="open"
+    [attr.aria-controls]="open ? 'search-select-options' : null"
+    [disabled]="disabled"
+    (click)="toggle()">
+    <span class="selected-label">{{ selectedLabel }}</span>
+    <svg viewBox="0 0 12 12" aria-hidden="true"><path d="m2 4 4 4 4-4" /></svg>
+  </button>
+  @if (open) {
+    <div class="select-menu">
+      <label class="search-box">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+        <span class="sr-only">Rechercher parmi les options</span>
+        <input
+          type="search"
+          [attr.aria-label]="'Rechercher dans ' + ariaLabel"
+          placeholder="Rechercher…"
+          [ngModel]="query"
+          (ngModelChange)="query = $event"
+          [ngModelOptions]="{ standalone: true }" />
+      </label>
+      <div class="option-list" role="listbox" id="search-select-options" [attr.aria-label]="ariaLabel">
+        @for (option of filteredOptions; track $index) {
+          <button
+            class="option"
+            type="button"
+            role="option"
+            [attr.aria-selected]="option.value === value"
+            [class.selected]="option.value === value"
+            (click)="choose(option)">
+            {{ option.label }}
+          </button>
+        } @empty {
+          <p class="no-results">Aucun résultat</p>
+        }
+      </div>
+    </div>
+  }
+</div>

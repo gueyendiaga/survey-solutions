@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -174,13 +175,16 @@ public class SyncService implements DisposableBean {
                 }
             });
 
+            List<Assignment> assignments = surveySolutions.getAssignments(questionnaireId, version);
+            refreshTeams();
+
             long jobId = exportClient.startTabularExport(questionnaireId, version);
             repository.recordExportJob(syncId, jobId);
             exportClient.awaitCompletion(jobId);
             archive = exportClient.download(jobId);
 
             Path file = archive;
-            ImportCounts counts = repository.replaceVersion(questionnaireId, version, writer ->
+            ImportCounts counts = repository.replaceVersion(questionnaireId, version, assignments, writer ->
                     parser.parse(file, questionTypes, questionnaire.variable(), writer));
             repository.finishSync(syncId, counts.interviews(), counts.units());
             LOG.info("Synchronisation {} v{} terminée : {} interview(s), {} unité(s).",
@@ -196,6 +200,16 @@ public class SyncService implements DisposableBean {
                     // Fichier temporaire : le système le nettoiera.
                 }
             }
+        }
+    }
+
+    /** Les équipes servent au regroupement par superviseur ; un échec n'empêche pas l'import. */
+    private void refreshTeams() {
+        try {
+            repository.replaceTeams(surveySolutions.getTeams());
+        } catch (RuntimeException exception) {
+            LOG.warn("Composition des équipes indisponible, l'ancienne est conservée : {}",
+                    exception.getMessage());
         }
     }
 
