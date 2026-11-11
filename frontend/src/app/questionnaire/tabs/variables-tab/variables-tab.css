@@ -112,7 +112,7 @@
 }
 
 .interview-key {
-  font-family: var(--mono);
+  font-family: var(--mono), serif;
   font-size: var(--fs-small);
 }
 
@@ -395,7 +395,7 @@
   border-radius: 6px;
   background: #f1f4f8;
   color: var(--text);
-  font-family: var(--mono);
+  font-family: var(--mono), serif;
   font-size: var(--fs-small);
 }
 

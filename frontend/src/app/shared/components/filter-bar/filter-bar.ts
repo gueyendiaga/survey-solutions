@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { SearchSelectComponent, SearchSelectOption } from '../search-select/search-select';
 import {
   AnalysisFilters,
   FilterOptions,
@@ -16,7 +17,7 @@ import {
 @Component({
   selector: 'app-filter-bar',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, SearchSelectComponent],
   templateUrl: './filter-bar.html',
   styleUrl: './filter-bar.css'
 })
@@ -38,6 +39,45 @@ export class FilterBarComponent implements OnChanges {
       const type = (question.type ?? '').toLowerCase();
       return question.optionCount > 0 && type.includes('single');
     });
+  }
+
+  protected get supervisorOptions(): SearchSelectOption[] {
+    return [
+      { value: null, label: 'Toutes' },
+      ...(this.options?.supervisors ?? []).map((value) => ({ value, label: value }))
+    ];
+  }
+
+  protected get interviewerOptions(): SearchSelectOption[] {
+    return [
+      { value: null, label: 'Tous' },
+      ...(this.options?.interviewers ?? []).map((value) => ({ value, label: value }))
+    ];
+  }
+
+  protected get statusOptions(): SearchSelectOption[] {
+    return [
+      { value: null, label: 'Terminées et approuvées (défaut)' },
+      { value: 'ALL', label: 'Tous les statuts' },
+      ...(this.options?.statuses ?? []).map((value) => ({ value, label: this.statusLabel(value) }))
+    ];
+  }
+
+  protected get variableSelectOptions(): SearchSelectOption[] {
+    return [
+      { value: null, label: 'Aucune' },
+      ...this.variables.map((question) => ({
+        value: question.variableName,
+        label: question.label || question.questionText || question.variableName
+      }))
+    ];
+  }
+
+  protected get valueSelectOptions(): SearchSelectOption[] {
+    return [
+      { value: null, label: 'Choisir…' },
+      ...this.variableOptions.map((option) => ({ value: `${option.answer}`, label: option.text }))
+    ];
   }
 
   protected get active(): boolean {

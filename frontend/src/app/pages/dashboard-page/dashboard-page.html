@@ -6,15 +6,15 @@
       <p class="lead">Activité de collecte de tous les questionnaires importés dans HQ</p>
     </div>
     <div class="actions">
-      <label class="select filter-control">
+      <div class="filter-control">
         <span class="filter-label">Questionnaire</span>
-        <select [ngModel]="catalog.selectedKey()" (ngModelChange)="catalog.selectQuestionnaire($event)" [disabled]="catalog.loading()">
-          <option value="">Tous les questionnaires</option>
-          @for (questionnaire of catalog.questionnaires(); track questionnaire.questionnaireIdentity) {
-            <option [value]="questionnaire.questionnaireId + '$' + questionnaire.version">{{ questionnaire.title }} · v{{ questionnaire.version }}</option>
-          }
-        </select>
-      </label>
+        <app-search-select
+          ariaLabel="Questionnaire"
+          [options]="questionnaireOptions"
+          [ngModel]="catalog.selectedKey()"
+          (ngModelChange)="catalog.selectQuestionnaire($event)"
+          [disabled]="catalog.loading()" />
+      </div>
       <button class="btn refresh-button" type="button" (click)="catalog.refresh()" [disabled]="catalog.loading()">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5" /><path d="M5.6 9a7 7 0 0 1 11.6-2L20 12M4 12l2.8 5a7 7 0 0 0 11.6-2" /></svg>
         Actualiser

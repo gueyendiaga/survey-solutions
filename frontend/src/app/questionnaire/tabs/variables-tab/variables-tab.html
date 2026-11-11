@@ -34,11 +34,11 @@
             (click)="store.selectQuestion(question)">
             <span class="row-top"><span class="mono strong">{{ question.variableName }}</span><span class="hint">{{ typeLabel(question) }}</span></span>
             <span class="row-label" [innerHTML]="question.questionText || question.label || question.variableName"></span>
-            @if (store.completenessFor(question); as item) {
-              @if (item.answeredCount + item.missingCount > 0) {
-                <span class="bar-cell small"><span class="track"><span class="fill" [class.warn]="item.responseRate < 80" [style.width.%]="item.responseRate"></span></span>{{ item.responseRate | number: '1.0-0' : 'fr-FR' }} %</span>
-              }
-            }
+<!--            @if (store.completenessFor(question); as item) {-->
+<!--              @if (item.answeredCount + item.missingCount > 0) {-->
+<!--                <span class="bar-cell small"><span class="track"><span class="fill" [class.warn]="item.responseRate < 80" [style.width.%]="item.responseRate"></span></span>{{ item.responseRate | number: '1.0-0' : 'fr-FR' }} %</span>-->
+<!--              }-->
+<!--            }-->
           </button>
         } @empty {
           <p class="empty">Aucune variable ne correspond.</p>

@@ -71,6 +71,35 @@ describe('Application routée', () => {
     expect(page().querySelector('.kpis')?.textContent).toContain('Questionnaires');
   });
 
+  it('recherche un questionnaire et filtre le tableau de bord avec la sélection', async () => {
+    await harness.navigateByUrl('/');
+    http.expectOne('/api/dashboard').flush(dashboardResponse());
+    harness.detectChanges();
+
+    const select = page().querySelector('app-search-select') as HTMLElement;
+    const trigger = select.querySelector<HTMLButtonElement>('.select-trigger')!;
+    expect(trigger.disabled).toBeFalse();
+    trigger.click();
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    expect(select.querySelector('.select-menu')).not.toBeNull();
+    const search = select.querySelector<HTMLInputElement>('input[type="search"]')!;
+    search.value = 'Test questionnaire';
+    search.dispatchEvent(new Event('input'));
+    harness.detectChanges();
+    expect(select.querySelectorAll('.option').length).toBe(1);
+    select.querySelector<HTMLButtonElement>('.option')!.click();
+
+    const request = http.expectOne((candidate) =>
+      candidate.url === '/api/dashboard'
+      && candidate.params.get('questionnaireId') === QUESTIONNAIRE_ID
+      && candidate.params.get('version') === '1');
+    request.flush(dashboardResponse());
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    expect(page().querySelector('.select-trigger')?.textContent).toContain('Test questionnaire');
+  });
+
   it('ouvre un questionnaire depuis le catalogue sur le suivi terrain', async () => {
     await harness.navigateByUrl('/questionnaires');
     http.expectOne('/api/dashboard').flush(dashboardResponse());
@@ -167,9 +196,18 @@ describe('Application routée', () => {
     harness.detectChanges();
     await harness.fixture.whenStable();
 
-    const interviewer = page().querySelector('select[name="interviewer"]') as HTMLSelectElement;
-    interviewer.value = interviewer.options[1].value;
-    interviewer.dispatchEvent(new Event('change'));
+    const interviewer = [...page().querySelectorAll<HTMLElement>('.filter-field')]
+      .find((field) => field.textContent?.includes('Enquêteur'))!
+      .querySelector('app-search-select') as HTMLElement;
+    interviewer.querySelector<HTMLButtonElement>('.select-trigger')!.click();
+    harness.detectChanges();
+    const search = interviewer.querySelector<HTMLInputElement>('input[type="search"]')!;
+    search.value = 'enq1';
+    search.dispatchEvent(new Event('input'));
+    harness.detectChanges();
+    expect(interviewer.querySelectorAll('.option').length).toBe(1);
+    interviewer.querySelector<HTMLButtonElement>('.option')!.click();
+    harness.detectChanges();
     const from = page().querySelector('input[name="from"]') as HTMLInputElement;
     from.value = '2026-11-01';
     from.dispatchEvent(new Event('input'));
@@ -239,6 +277,7 @@ describe('App (coquille)', () => {
       .toEqual(['Tableau de bord', 'Questionnaires']);
     expect(nav.textContent).not.toContain('Récent');
     expect(nav.querySelector('.nav-item[href="/questionnaires"]')).not.toBeNull();
+
   });
 });
 

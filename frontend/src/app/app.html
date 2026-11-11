@@ -1,32 +1,27 @@
-<div class="shell">
+<div class="shell" [class.sidebar-collapsed]="sidebarCollapsed">
   <nav class="sidebar" aria-label="Navigation principale">
     <a class="brand" routerLink="/">
-      <span class="brand-mark" aria-hidden="true">S</span>
-      <span>
-        <strong>Survey Analytics</strong>
-        <small>Suivi des collectes</small>
+      <span class="brand-mark" aria-hidden="true">
+        <img ngSrc="logo.png" alt="ANSD LOGO" width="35" height="35">
       </span>
+      <strong class="brand-name">Survey solutions</strong>
     </a>
-
     <div class="nav-links">
-      <div class="nav-caption">Général</div>
-      <a
-        class="nav-item"
+      <a class="nav-item"
         routerLink="/"
         routerLinkActive="active"
         [routerLinkActiveOptions]="{ exact: true }"
         ariaCurrentWhenActive="page">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" /><rect x="14" y="12" width="7" height="9" rx="1.5" /><rect x="3" y="16" width="7" height="5" rx="1.5" /></svg>
-        Tableau de bord
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" /><rect x="13" y="3" width="8" height="8" /><rect x="3" y="13" width="8" height="8" /><rect x="13" y="13" width="8" height="8" /></svg>
+        <span class="nav-label">Tableau de bord</span>
       </a>
-      <a
-        class="nav-item"
+      <a class="nav-item"
         routerLink="/questionnaires"
         routerLinkActive="active"
         ariaCurrentWhenActive="page"
         aria-label="Afficher le catalogue des questionnaires">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h11M9 12h11M9 19h11M4 5h.01M4 12h.01M4 19h.01" /></svg>
-        Questionnaires
+        <span class="nav-label">Questionnaires</span>
         @if (catalog.questionnaires().length) {
           <span class="nav-count">{{ catalog.questionnaires().length }}</span>
         }
@@ -35,7 +30,7 @@
 
     <div class="sidebar-status">
       <strong><span class="status-dot" aria-hidden="true"></span>HQ connecté</strong>
-      <span>Survey Solutions Headquarters · synchronisation automatique toutes les 30 min</span>
+      <span class="status-details">Survey Solutions Headquarters · synchronisation automatique</span>
     </div>
   </nav>
 

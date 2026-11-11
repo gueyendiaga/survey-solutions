@@ -108,7 +108,6 @@ Pour le développement local, le backend requiert Maven 3.9+ et Java 17; le lanc
 - `PATCH /api/questionnaires/{uuid}/{version}/interviews/{interviewId}/hqunapprove` : retire une approbation HQ.
 - `GET /api/questionnaires/{uuid}/{version}/sync` : état de la synchronisation (en cours, date des données, dernière erreur).
 - `POST /api/questionnaires/{uuid}/{version}/sync` : lance une synchronisation (réponse 202).
-
 - `GET /api/questionnaires/{uuid}/{version}/fieldwork` : suivi terrain (objectif des affectations, interviews réalisées, approuvées, rejetées, en cours, progression journalière, détail par équipe et par enquêteur).
 - `GET /api/questionnaires/{uuid}/{version}/filter-options` : superviseurs, enquêteurs et statuts proposés dans les filtres.
 
@@ -117,3 +116,4 @@ Pour le développement local, le backend requiert Maven 3.9+ et Java 17; le lanc
 Tant qu'une version n'a jamais été importée, `question-completeness` et `question-analytics` renvoient 409 avec `syncPending: true` et déclenchent la synchronisation.
 
 Les appels amont paginés sont parcourus jusqu'au total déclaré par HQ. En cas d'erreur API, d'autorisation ou de pagination incomplète, le backend renvoie une erreur explicite plutôt qu'un total partiel présenté comme complet.
+
