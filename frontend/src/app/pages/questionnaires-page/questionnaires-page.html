@@ -1,10 +1,14 @@
-<main class="page">
+<main class="page questionnaires-page">
   <div class="page-head">
-    <div>
+    <div class="page-intro">
+      <span class="eyebrow"><span class="eyebrow-mark"></span>VOTRE ESPACE DE TRAVAIL</span>
       <h1>Questionnaires</h1>
-      <p class="lead">Questionnaires et versions disponibles dans Survey Solutions HQ</p>
+      <p class="lead">Retrouvez les questionnaires et versions accessibles depuis Survey Solutions HQ.</p>
     </div>
-    <button class="btn" type="button" (click)="catalog.refresh()" [disabled]="catalog.loading()">Actualiser</button>
+    <button class="btn refresh-button" type="button" (click)="catalog.refresh()" [disabled]="catalog.loading()">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5" /><path d="M5.6 9a7 7 0 0 1 11.6-2L20 12M4 12l2.8 5a7 7 0 0 0 11.6-2" /></svg>
+      Actualiser
+    </button>
   </div>
 
   @if (catalog.error(); as message) {

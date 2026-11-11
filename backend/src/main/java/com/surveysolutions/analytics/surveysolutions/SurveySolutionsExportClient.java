@@ -29,7 +29,8 @@ import com.surveysolutions.analytics.config.SurveySolutionsProperties;
 public class SurveySolutionsExportClient {
     private static final Duration DEFAULT_POLL_INTERVAL = Duration.ofSeconds(3);
 
-    private final RestClient client;
+    private final SurveySolutionsClientFactory clients;
+    private final RestClient testClient;
     private final Duration timeout;
     private final Duration pollInterval;
     private final HttpClient redirectClient = HttpClient.newBuilder()
@@ -45,20 +46,29 @@ public class SurveySolutionsExportClient {
 
     @Autowired
     public SurveySolutionsExportClient(
-            RestClient surveySolutionsClient,
+            SurveySolutionsClientFactory clients,
             SurveySolutionsProperties properties) {
-        this(surveySolutionsClient, properties.getExportTimeout(), DEFAULT_POLL_INTERVAL);
+        this(clients, null, properties.getExportTimeout(), DEFAULT_POLL_INTERVAL);
     }
 
     SurveySolutionsExportClient(RestClient client, Duration timeout, Duration pollInterval) {
-        this.client = client;
+        this(null, client, timeout, pollInterval);
+    }
+
+    private SurveySolutionsExportClient(
+            SurveySolutionsClientFactory clients,
+            RestClient testClient,
+            Duration timeout,
+            Duration pollInterval) {
+        this.clients = clients;
+        this.testClient = testClient;
         this.timeout = timeout;
         this.pollInterval = pollInterval;
     }
 
     /** Toutes les interviews sont exportées : le filtrage par statut se fait ensuite en base. */
     public long startTabularExport(UUID questionnaireId, long version) {
-        ExportJob job = client.post()
+        ExportJob job = currentClient().post()
                 .uri("/api/v2/export")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of(
@@ -76,7 +86,7 @@ public class SurveySolutionsExportClient {
     public ExportJob awaitCompletion(long jobId) {
         Instant deadline = Instant.now().plus(timeout);
         while (true) {
-            ExportJob job = client.get()
+            ExportJob job = currentClient().get()
                     .uri("/api/v2/export/{id}", jobId)
                     .retrieve()
                     .body(ExportJob.class);
@@ -116,7 +126,7 @@ public class SurveySolutionsExportClient {
             throw new IllegalStateException("Impossible de créer le fichier temporaire d'export.", exception);
         }
         try {
-            URI redirect = client.get()
+            URI redirect = currentClient().get()
                     .uri("/api/v2/export/{id}/file", jobId)
                     .exchange((request, response) -> {
                         if (response.getStatusCode().is3xxRedirection()) {
@@ -164,5 +174,9 @@ public class SurveySolutionsExportClient {
         } catch (IOException ignored) {
             // Fichier temporaire : le système le nettoiera.
         }
+    }
+
+    private RestClient currentClient() {
+        return clients == null ? testClient : clients.currentUserClient();
     }
 }

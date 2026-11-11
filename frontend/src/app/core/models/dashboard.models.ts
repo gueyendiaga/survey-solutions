@@ -38,6 +38,7 @@ export interface QuestionSummary {
   type: string;
   breadcrumbs: string[];
   optionCount: number;
+  rosterTitleQuestionIds?: string[];
 }
 
 export interface AnswerCount {

@@ -15,7 +15,19 @@ public final class QuestionAnalyticsDtos {
             String label,
             String type,
             List<String> breadcrumbs,
-            int optionCount) {
+            int optionCount,
+            List<String> rosterTitleQuestionIds) {
+        public QuestionSummary(
+                String id,
+                String variableName,
+                String questionText,
+                String label,
+                String type,
+                List<String> breadcrumbs,
+                int optionCount) {
+            this(id, variableName, questionText, label, type, breadcrumbs, optionCount, List.of());
+        }
+
         public static QuestionSummary from(Question question) {
             return new QuestionSummary(
                     question.id(),
@@ -24,7 +36,8 @@ public final class QuestionAnalyticsDtos {
                     question.label(),
                     question.type(),
                     question.breadcrumbs() == null ? List.of() : question.breadcrumbs(),
-                    question.answers() == null ? 0 : question.answers().size());
+                    question.answers() == null ? 0 : question.answers().size(),
+                    question.rosterTitleQuestionIds() == null ? List.of() : question.rosterTitleQuestionIds());
         }
     }
 

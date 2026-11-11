@@ -6,9 +6,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -18,13 +21,22 @@ public class SurveySolutionsService {
     private static final int INTERVIEW_PAGE_SIZE = 100;
     private static final int MAX_PAGES = 1000;
 
-    private final RestClient client;
+    private final SurveySolutionsClientFactory clients;
+    private final RestClient testClient;
 
-    public SurveySolutionsService(RestClient surveySolutionsClient) {
-        this.client = surveySolutionsClient;
+    @Autowired
+    public SurveySolutionsService(SurveySolutionsClientFactory clients) {
+        this.clients = clients;
+        this.testClient = null;
+    }
+
+    SurveySolutionsService(RestClient testClient) {
+        this.clients = null;
+        this.testClient = testClient;
     }
 
     public List<Questionnaire> getQuestionnaires() {
+        RestClient client = currentClient();
         List<Questionnaire> questionnaires = new ArrayList<>();
         int offset = 1;
         int totalCount;
@@ -50,7 +62,35 @@ public class SurveySolutionsService {
         return List.copyOf(questionnaires);
     }
 
+    /**
+     * Vérifie les identifiants fournis par un utilisateur sur une route HQ réservée à l'API.
+     * Les identifiants sont retenus dans le principal de session pour les appels HQ ultérieurs.
+     */
+    public boolean isApiUser(String username, String password) {
+        try {
+            QuestionnairePage page = clientFor(username, password)
+                    .get()
+                    .uri(uri -> uri.path("/api/v1/questionnaires")
+                            .queryParam("limit", 1)
+                            .queryParam("offset", 1)
+                            .build())
+                    .retrieve()
+                    .body(QuestionnairePage.class);
+            if (page == null || page.questionnaires() == null) {
+                throw new IllegalStateException("HQ a renvoyé un catalogue de questionnaires vide ou invalide.");
+            }
+            return true;
+        } catch (RestClientResponseException exception) {
+            if (exception.getStatusCode().value() == HttpStatus.UNAUTHORIZED.value()
+                    || exception.getStatusCode().value() == HttpStatus.FORBIDDEN.value()) {
+                return false;
+            }
+            throw exception;
+        }
+    }
+
     public List<Interview> getInterviews(UUID questionnaireId, Long version) {
+        RestClient client = currentClient();
         List<Interview> interviews = new ArrayList<>();
         int pageNumber = 1;
         int totalCount;
@@ -85,6 +125,7 @@ public class SurveySolutionsService {
     }
 
     public int getSupervisorCount() {
+        RestClient client = currentClient();
         UserPage page = client.get()
                 .uri(uri -> uri.path("/api/v1/supervisors")
                         .queryParam("limit", 1)
@@ -103,6 +144,7 @@ public class SurveySolutionsService {
      * aux autres listes HQ, Offset est ici le nombre de lignes à sauter (base 0).
      */
     public List<Assignment> getAssignments(UUID questionnaireId, long version) {
+        RestClient client = currentClient();
         Map<Integer, Assignment> assignments = new java.util.LinkedHashMap<>();
         int totalCount;
         int pages = 0;
@@ -143,6 +185,7 @@ public class SurveySolutionsService {
     }
 
     private List<User> getUsers(String path) {
+        RestClient client = currentClient();
         List<User> users = new ArrayList<>();
         int page = 1;
         int totalCount;
@@ -169,6 +212,7 @@ public class SurveySolutionsService {
     }
 
     public List<Question> getQuestions(UUID questionnaireId, long version) {
+        RestClient client = currentClient();
         Question[] questions = client.get()
                 .uri(uri -> uri.path("/api/v1/statistics/questions")
                         .queryParam("questionnaireId", questionnaireId)
@@ -179,31 +223,61 @@ public class SurveySolutionsService {
         if (questions == null) {
             throw new IllegalStateException("HQ a renvoyé une liste de questions invalide.");
         }
+        JsonNode document = client.get()
+                .uri("/api/v1/questionnaires/{id}/{version}/document", questionnaireId, version)
+                .retrieve()
+                .body(JsonNode.class);
+        if (document == null || document.isNull()) {
+            throw new IllegalStateException("HQ a renvoyé un document de questionnaire invalide.");
+        }
+        List<Question> documentQuestions = new ArrayList<>();
+        collectDocumentQuestions(document, List.of(), List.of(), documentQuestions);
         if (questions.length == 0) {
-            JsonNode document = client.get()
-                    .uri("/api/v1/questionnaires/{id}/{version}/document", questionnaireId, version)
-                    .retrieve()
-                    .body(JsonNode.class);
-            if (document == null || document.isNull()) {
-                throw new IllegalStateException("HQ a renvoyé un document de questionnaire invalide.");
-            }
-            List<Question> documentQuestions = new ArrayList<>();
-            collectDocumentQuestions(document, List.of(), documentQuestions);
             return List.copyOf(documentQuestions);
         }
-        return List.of(questions);
+
+        Map<String, List<String>> rosterTitlesByQuestionId = documentQuestions.stream()
+                .filter(question -> question.id() != null
+                        && !question.id().isBlank()
+                        && !question.rosterTitleQuestionIds().isEmpty())
+                .collect(java.util.stream.Collectors.toMap(
+                        Question::id,
+                        Question::rosterTitleQuestionIds,
+                        (first, ignored) -> first));
+        return java.util.Arrays.stream(questions)
+                .map(question -> new Question(
+                        question.id(),
+                        question.variableName(),
+                        question.questionText(),
+                        question.label(),
+                        question.type(),
+                        question.breadcrumbs(),
+                        question.answers(),
+                        rosterTitlesByQuestionId.getOrDefault(question.id(), List.of())))
+                .toList();
     }
 
     private void collectDocumentQuestions(
             JsonNode node,
             List<String> breadcrumbs,
+            List<String> rosterTitleQuestionIds,
             List<Question> questions) {
         if (node.isArray()) {
-            node.forEach(child -> collectDocumentQuestions(child, breadcrumbs, questions));
+            node.forEach(child -> collectDocumentQuestions(child, breadcrumbs, rosterTitleQuestionIds, questions));
             return;
         }
         if (!node.isObject()) {
             return;
+        }
+
+        List<String> childRosterTitleQuestionIds = rosterTitleQuestionIds;
+        if (node.path("$type").asText().endsWith("Group") && node.path("IsRoster").asBoolean()) {
+            childRosterTitleQuestionIds = new ArrayList<>(rosterTitleQuestionIds);
+            JsonNode rosterTitleQuestionId = node.get("RosterTitleQuestionId");
+            childRosterTitleQuestionIds.add(
+                    rosterTitleQuestionId != null && !rosterTitleQuestionId.isNull()
+                            ? rosterTitleQuestionId.asText()
+                            : "");
         }
 
         JsonNode variable = node.get("VariableName");
@@ -211,7 +285,8 @@ public class SurveySolutionsService {
         if (variable != null && variable.isTextual()
                 && !variable.asText().isBlank()
                 && text != null && text.isTextual()) {
-            questions.add(documentQuestion(node, breadcrumbs, variable.asText(), text.asText()));
+            questions.add(documentQuestion(
+                    node, breadcrumbs, variable.asText(), text.asText(), childRosterTitleQuestionIds));
         }
 
         List<String> childBreadcrumbs = breadcrumbs;
@@ -225,7 +300,7 @@ public class SurveySolutionsService {
             childBreadcrumbs.add(title.asText());
         }
         if (children != null) {
-            collectDocumentQuestions(children, childBreadcrumbs, questions);
+            collectDocumentQuestions(children, childBreadcrumbs, childRosterTitleQuestionIds, questions);
         }
     }
 
@@ -233,7 +308,8 @@ public class SurveySolutionsService {
             JsonNode node,
             List<String> breadcrumbs,
             String variableName,
-            String questionText) {
+            String questionText,
+            List<String> rosterTitleQuestionIds) {
         List<QuestionOption> answers = new ArrayList<>();
         JsonNode answerNodes = node.get("Answers");
         if (answerNodes != null && answerNodes.isArray()) {
@@ -258,7 +334,8 @@ public class SurveySolutionsService {
                 node.path("VariableLabel").asText(""),
                 questionType,
                 List.copyOf(breadcrumbs),
-                List.copyOf(answers));
+                List.copyOf(answers),
+                List.copyOf(rosterTitleQuestionIds));
     }
 
     /**
@@ -285,6 +362,7 @@ public class SurveySolutionsService {
      * HQ n'est pas relancé.
      */
     public String getDataFingerprint(UUID questionnaireId, long version) {
+        RestClient client = currentClient();
         String query = """
                 query($questionnaireId: UUID!, $version: Long!) {
                   interviews(take: 1, where: {
@@ -353,6 +431,7 @@ public class SurveySolutionsService {
     }
 
     public InterviewDetails getInterviewDetails(UUID interviewId) {
+        RestClient client = currentClient();
         InterviewDetails details = client.get()
                 .uri("/api/v1/interviews/{id}", interviewId)
                 .retrieve()
@@ -364,6 +443,7 @@ public class SurveySolutionsService {
     }
 
     public InterviewTranscript getInterviewTranscript(UUID interviewId) {
+        RestClient client = currentClient();
         ResponseEntity<byte[]> response = client.get()
                 .uri("/api/v1/interviews/{id}/pdf", interviewId)
                 .accept(MediaType.APPLICATION_PDF)
@@ -398,7 +478,7 @@ public class SurveySolutionsService {
             String action,
             String comment,
             UUID responsibleId) {
-        client.patch()
+        currentClient().patch()
                 .uri(uri -> {
                     var builder = uri.path("/api/v1/interviews/{id}/" + action);
                     if (comment != null && !comment.isBlank()) {
@@ -424,6 +504,16 @@ public class SurveySolutionsService {
         if (pages >= MAX_PAGES && received < totalCount) {
             throw new IllegalStateException("La pagination HQ dépasse la limite de sécurité de 1000 pages.");
         }
+    }
+
+    private RestClient currentClient() {
+        return clients == null ? testClient : clients.currentUserClient();
+    }
+
+    private RestClient clientFor(String username, String password) {
+        return clients == null
+                ? testClient.mutate().defaultHeaders(headers -> headers.setBasicAuth(username, password)).build()
+                : clients.forCredentials(username, password);
     }
 
     public record InterviewTranscript(String filename, byte[] content) {}

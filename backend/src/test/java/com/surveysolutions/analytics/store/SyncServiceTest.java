@@ -19,6 +19,10 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.TimeUnit;
+import com.surveysolutions.analytics.config.HqApiUserPrincipal;
+import com.surveysolutions.analytics.surveysolutions.HqCredentialContext;
+import org.springframework.security.core.session.SessionInformation;
+import org.springframework.security.core.session.SessionRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import com.surveysolutions.analytics.surveysolutions.SurveySolutionsExportClient;
@@ -31,11 +35,17 @@ class SyncServiceTest {
     private final SurveySolutionsExportClient exportClient = mock(SurveySolutionsExportClient.class);
     private final TabularExportParser parser = mock(TabularExportParser.class);
     private final AnalyticsRepository repository = mock(AnalyticsRepository.class);
+    private final SessionRegistry sessionRegistry = mock(SessionRegistry.class);
+    private final HqApiUserPrincipal principal = new HqApiUserPrincipal("api-user", "secret");
     private final SyncService service = new SyncService(
-            surveySolutions, exportClient, parser, repository, new DirectExecutor());
+            surveySolutions, exportClient, parser, repository, sessionRegistry, new DirectExecutor());
 
     @BeforeEach
     void catalogue() {
+        when(sessionRegistry.getAllPrincipals()).thenReturn(List.of(principal));
+        when(sessionRegistry.getAllSessions(principal, false)).thenReturn(List.of(
+                new SessionInformation("session-1", principal.getName(),
+                        java.util.Date.from(java.time.Instant.now()))));
         when(surveySolutions.getQuestionnaires()).thenReturn(List.of(new Questionnaire(
                 "id$1", QUESTIONNAIRE_ID.toString(), 1, "Enquête", "survey", null, false, false)));
         when(surveySolutions.getQuestions(QUESTIONNAIRE_ID, 1)).thenReturn(List.of());
@@ -53,7 +63,8 @@ class SyncServiceTest {
         when(repository.replaceVersion(eq(QUESTIONNAIRE_ID), eq(1L), any(), any()))
                 .thenReturn(new AnalyticsRepository.ImportCounts(2, 5));
 
-        assertThat(service.requestSync(QUESTIONNAIRE_ID, 1, SyncService.Trigger.MANUAL)).isTrue();
+        assertThat(HqCredentialContext.with(principal,
+                () -> service.requestSync(QUESTIONNAIRE_ID, 1, SyncService.Trigger.MANUAL))).isTrue();
 
         verify(repository).startSync(QUESTIONNAIRE_ID, 1, "MANUAL", "2|2026-11-05");
         verify(repository).recordExportJob(7L, 42L);
@@ -69,7 +80,8 @@ class SyncServiceTest {
         when(exportClient.startTabularExport(QUESTIONNAIRE_ID, 1))
                 .thenThrow(new IllegalStateException("Export refusé"));
 
-        service.requestSync(QUESTIONNAIRE_ID, 1, SyncService.Trigger.MANUAL);
+        HqCredentialContext.with(principal, () -> service.requestSync(
+                QUESTIONNAIRE_ID, 1, SyncService.Trigger.MANUAL));
 
         verify(repository).failSync(eq(7L), contains("Export refusé"));
         verify(repository, never()).finishSync(anyLong(), any(Integer.class), any(Integer.class));

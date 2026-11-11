@@ -6,7 +6,7 @@ Application Analytics pour visualiser le catalogue des questionnaires, les volum
 
 Le Compose Analytics est indépendant du Compose HQ existant. Il ne recrée ni ne modifie la base de données HQ.
 
-1. Copier `.env.analytics.example` vers `.env.analytics` et renseigner le compte API Survey Solutions dédié.
+1. Copier `.env.analytics.example` vers `.env.analytics` et renseigner la configuration de la base Analytics.
 2. Démarrer l'application :
 
    ```sh
@@ -24,23 +24,27 @@ Pour arrêter uniquement Analytics, exécuter `docker compose --env-file .env.an
 ## Configuration et sécurité
 
 - `SURVEY_SOLUTIONS_BASE_URL` : URL accessible **depuis le backend**. La valeur par défaut Docker Desktop vise HQ sur le Mac via `host.docker.internal:8080`.
-- `SURVEY_SOLUTIONS_USERNAME` et `SURVEY_SOLUTIONS_PASSWORD` : identifiants Basic Auth d'un compte HQ dédié de rôle `ApiUser`. Ils restent dans le backend et ne sont jamais envoyés au navigateur.
+- La page de connexion vérifie les identifiants individuels directement auprès de Survey Solutions HQ. Seuls les comptes ayant accès à l'API HQ sont acceptés. Pendant la session, les appels HQ (y compris les synchronisations et rapports planifiés) utilisent l'identité de l'utilisateur connecté; le mot de passe est conservé uniquement en mémoire dans la session serveur, jamais dans l'environnement ni les journaux.
+- Les tâches planifiées s'exécutent avec les identifiants d'un utilisateur HQ dont la session est encore active. Sans utilisateur connecté, elles sont ignorées; une synchronisation manuelle ou à la demande nécessite également une session active.
+- `ANALYTICS_SESSION_COOKIE_SECURE` : mettre à `true` lorsque l'application est servie derrière un reverse proxy HTTPS. Le cookie de session est HttpOnly et SameSite=Lax.
 - `ANALYTICS_ALLOWED_ORIGIN` : origine autorisée pour les requêtes du frontend.
 - `.env.analytics` est ignoré par Git. Ne pas y mettre de secret dans un fichier versionné.
 
-Le backend lit l'API HQ, crée des jobs d'export (`POST /api/v2/export`) et relaie les actions de revue demandées dans Analytics. Les statistiques utilisent les statuts renvoyés par HQ; l'évolution temporelle compte les interviews selon leur `LastEntryDate` et doit donc être lue comme une activité de mise à jour, pas comme une date de complétion.
+Toutes les routes Analytics sauf `/api/health` et les routes de connexion exigent une session authentifiée. Les requêtes modifiant des données sont protégées contre les attaques CSRF. `/api/health` reste public et ne renvoie aucun détail sensible. Le Compose fourni n'expose l'application que sur `127.0.0.1`; pour un accès réseau, placer l'application derrière HTTPS et un contrôle d'accès réseau approprié, puis activer le cookie `Secure`.
 
-Les actions de revue sont disponibles depuis l'onglet Variables, pour les interviews qui ont une réponse à la variable sélectionnée. L'interface permet d'approuver une interview terminée ou approuvée par un superviseur, de la rejeter avec un commentaire facultatif, ou de retirer l'approbation HQ. Le backend contrôle que l'interview appartient à la version synchronisée et que son statut permet l'action, puis appelle `PATCH /api/v1/interviews/{id}/hqapprove`, `PATCH /api/v1/interviews/{id}/hqreject` ou `PATCH /api/v1/interviews/{id}/hqunapprove` dans HQ. Ces opérations exigent que le compte API configuré dispose des permissions HQ correspondantes; les actions réussies sont inscrites dans les journaux du backend.
+Le backend lit l'API HQ, crée des jobs d'export (`POST /api/v2/export`) et relaie les actions de revue demandées dans Analytics. Les appels sont effectués avec l'identité HQ de l'utilisateur connecté. Les statistiques utilisent les statuts renvoyés par HQ; l'évolution temporelle compte les interviews selon leur `LastEntryDate` et doit donc être lue comme une activité de mise à jour, pas comme une date de complétion.
 
-Analytics n'a pas d'authentification propre. Les actions utilisent le compte API partagé configuré côté backend et ne distinguent pas les utilisateurs Analytics. Garder l'application accessible uniquement sur `127.0.0.1` comme dans le Compose fourni; ne pas exposer l'interface ni le backend sur un réseau avant d'ajouter authentification, autorisation et attribution des actions à un utilisateur.
+Les actions de revue sont disponibles depuis l'onglet Variables, pour les interviews qui ont une réponse à la variable sélectionnée. L'interface permet d'approuver une interview terminée ou approuvée par un superviseur, de la rejeter avec un commentaire facultatif, ou de retirer l'approbation HQ. Le backend contrôle que l'interview appartient à la version synchronisée et que son statut permet l'action, puis appelle `PATCH /api/v1/interviews/{id}/hqapprove`, `PATCH /api/v1/interviews/{id}/hqreject` ou `PATCH /api/v1/interviews/{id}/hqunapprove` dans HQ avec les droits du compte connecté. Les actions réussies sont inscrites dans les journaux du backend.
 
-Les réponses des interviews sont importées dans une base PostgreSQL dédiée (`analytics-db`, non exposée sur le réseau, volume `analytics-db`). Elle contient des microdonnées : appliquer les mêmes règles d'accès, de sauvegarde et de conservation qu'à HQ. L'application n'inclut encore ni authentification propre ni administration. Le port web est limité à `127.0.0.1`; ne pas l'exposer sur un réseau ou en production avant d'ajouter l'authentification et les contrôles d'accès.
+Les actions HQ s'exécutent sous le compte de la personne connectée afin que les permissions et l'identité de l'utilisateur soient appliquées et journalisées par HQ.
+
+Les réponses des interviews sont importées dans une base PostgreSQL dédiée (`analytics-db`, non exposée sur le réseau, volume `analytics-db`). Elle contient des microdonnées : appliquer les mêmes règles d'accès, de sauvegarde et de conservation qu'à HQ. Le port web reste limité à `127.0.0.1` dans le Compose fourni.
 
 L'explorateur applique le [contrat API HQ](https://docs.mysurvey.solutions/headquarters/api/survey-solutions-api/) et utilise le Swagger de l'instance pour les routes et paramètres disponibles. Il liste les questions de `GET /api/v1/statistics/questions`; si HQ renvoie une liste vide, il les découvre dans le document de questionnaire de `GET /api/v1/questionnaires/{id}/{version}/document`. Les types numériques du document sont interprétés selon l'énumération Survey Solutions : `0` choix unique, `3` choix multiples, `4` numérique, `5` date/heure, `6` GPS, `7` texte, `9` liste de texte, `10` code-barres, `11` multimédia, `12` zone et `13` audio.
 
 La documentation du [rapport Survey Statistics](https://docs.mysurvey.solutions/headquarters/reporting/report-survey-statistics/) confirme les statistiques descriptives numériques et tableaux de fréquence catégoriels. Son endpoint `/api/v1/statistics` a aussi été testé sur cette instance, mais il renvoie zéro ligne pour la question catégorielle testée et une erreur serveur pour la question texte; l'Analytics calcule donc les indicateurs disponibles depuis `GET /api/v1/interviews/{id}` au lieu d'afficher ces résultats incomplets comme des zéros. Pour la question sélectionnée, l'interface montre également les valeurs réellement saisies, associées à un numéro d'interview temporaire sans nom ni identifiant HQ. Les variables numériques affichent moyenne, somme, médiane, minimum, maximum, P5, P95 et histogramme; les dates sont regroupées par jour; les modalités catégorielles sont agrégées côté serveur. Si une réponse réelle ne correspond ni au code ni aux libellés des modalités du document, elle reste affichée sous sa valeur brute dans la distribution au lieu d'être regroupée sous une catégorie générique.
 
-Les réponses individuelles peuvent contenir des informations personnelles ou sensibles. Elles sont désormais renvoyées au navigateur pour être affichées : conserver le service sur `127.0.0.1`, ne pas l'exposer sur un réseau ou en production sans authentification et contrôle d'accès, et n'accorder l'accès qu'aux personnes autorisées.
+Les réponses individuelles peuvent contenir des informations personnelles ou sensibles. Elles sont renvoyées au navigateur pour être affichées : conserver le service sur `127.0.0.1` dans le Compose fourni, limiter les comptes aux personnes autorisées et utiliser HTTPS si l'application est placée derrière un accès réseau.
 
 L'explorateur permet de télécharger les réponses du questionnaire sélectionné en CSV ou Excel (`.xlsx`). Chaque ligne représente une réponse renvoyée par HQ; les répétitions (notamment les rosters) restent sur des lignes distinctes. Les valeurs structurées sont présentées sous forme lisible (par exemple `Latitude : 48.8 ; Longitude : 2.3`) plutôt qu'en JSON brut, et les champs additionnels sont rendus en paires nom-valeur. Les réponses multimédia sont exportées comme valeurs/références renvoyées par l'API; les fichiers binaires ne sont pas téléchargés. L'export lit au plus 5 000 interviews et échoue explicitement au-delà. Excel limite une cellule à 32 767 caractères; les valeurs plus longues restent exportables en CSV. Les exports contiennent des réponses potentiellement sensibles : les mêmes précautions d'accès et de stockage que pour les données HQ s'appliquent.
 
@@ -80,21 +84,19 @@ Le backend écoute sur `http://localhost:8081`; le proxy Angular transmet `/api`
 ```sh
 cd backend
 SURVEY_SOLUTIONS_BASE_URL=http://localhost:8080 \
-SURVEY_SOLUTIONS_USERNAME='votre-compte-api' \
-SURVEY_SOLUTIONS_PASSWORD='votre-mot-de-passe' \
-docker run --rm -p 8081:8081 \
+docker run --rm -p 127.0.0.1:8081:8081 \
   -e SURVEY_SOLUTIONS_BASE_URL \
-  -e SURVEY_SOLUTIONS_USERNAME \
-  -e SURVEY_SOLUTIONS_PASSWORD \
   --add-host=host.docker.internal:host-gateway \
   survey-analytics-backend
 ```
 
-Pour le développement local, le backend requiert Maven 3.9+ et Java 17; le lancer dans `backend/` avec `mvn spring-boot:run` après avoir défini les trois variables `SURVEY_SOLUTIONS_*` dans l'environnement. Angular requiert Node.js 20.19+; exécuter `npm ci` puis `npm start` dans `frontend/`. Le proxy Angular transmet `/api` vers le backend local.
+Pour le développement local, le backend requiert Maven 3.9+ et Java 17; le lancer dans `backend/` avec `mvn spring-boot:run` après avoir défini `SURVEY_SOLUTIONS_BASE_URL`. Les utilisateurs se connectent ensuite dans l'interface avec leur propre compte HQ disposant du rôle API. Angular requiert Node.js 20.19+; exécuter `npm ci` puis `npm start` dans `frontend/`. Le proxy Angular transmet `/api` vers le backend local.
 
 ## Endpoints Analytics
 
 - `GET /api/health` : disponibilité du processus.
+- `GET /api/auth/csrf`, `GET /api/auth/session`, `POST /api/auth/login` et `POST /api/auth/logout` : gestion de la session HQ; le jeton CSRF est requis pour les requêtes POST.
+- Toutes les autres routes `/api/**` requièrent une session utilisateur HQ authentifiée. Les `POST` et `PATCH` exigent également un jeton CSRF.
 - `GET /api/questionnaires` : catalogue HQ paginé.
 - `GET /api/dashboard` : agrégats globaux.
 - `GET /api/dashboard?questionnaireId={uuid}&version={version}` : agrégats pour une version donnée.

@@ -216,7 +216,7 @@
 
             <section class="card">
               <div class="card-head pad">
-                <div><h2>Réponses individuelles</h2><p>La clé HQ permet de retrouver l’interview pour le contrôle qualité</p></div>
+                <div><h2>Réponses individuelles</h2></div>
                 <span class="count">{{ analytics.observations.length }} réponse(s)</span>
               </div>
               <div class="table-scroll tall">
@@ -283,6 +283,7 @@
         <div>
           <span class="action-dialog-kicker">RÉPONSES DE L’INTERVIEW</span>
           <h2 id="interview-details-title">{{ interview.interviewKey ?? 'Interview' }}</h2>
+          <p class="details-explanation">Le nom de la ligne du tableau remplace « %rostertitle% » dans les questions lorsqu’il est disponible.</p>
         </div>
         <button type="button" class="details-close" aria-label="Fermer" (click)="closeInterviewDetails()">×</button>
       </header>
@@ -298,9 +299,15 @@
               <div class="answer-pair">
                 <div>
                   <span class="answer-variable">{{ answer.variableName || 'Question' }}</span>
-                  <h3 [innerHTML]="answerQuestion(answer)?.questionText || answerQuestion(answer)?.label || answer.variableName || 'Question sans libellé'"></h3>
+                  @if (rosterLabel(answer); as roster) {
+                    <span class="answer-roster">{{ roster }}</span>
+                  }
+                  <h3 [innerHTML]="answerQuestionText(answer)"></h3>
                 </div>
-                <p>{{ displayValue(answer.answer) }}</p>
+                <div class="answer-value">
+                  <span>Réponse</span>
+                  <p>{{ displayValue(answer.answer) }}</p>
+                </div>
               </div>
               @if (answer.additionalFields; as fields) {
                 @if (objectEntries(fields).length) {

@@ -1,0 +1,30 @@
+<main class="login-page">
+  <section class="login-card" aria-labelledby="login-title">
+    <span class="login-mark" aria-hidden="true">
+      <img ngSrc="logo.png" alt="" width="46" height="46">
+    </span>
+    <p class="eyebrow">SURVEY ANALYTICS</p>
+    <h1 id="login-title">Connexion</h1>
+    <p class="login-intro">Connectez-vous avec votre compte Survey Solutions ayant le rôle API.</p>
+
+    @if (connectionError()) {
+      <p class="login-alert" role="alert">{{ connectionError() }}</p>
+    }
+    @if (error()) {
+      <p class="login-alert" role="alert">{{ error() }}</p>
+    }
+
+    <form (ngSubmit)="submit()">
+      <label for="username">Nom d'utilisateur HQ</label>
+      <input id="username" name="username" type="text" autocomplete="username"
+        [(ngModel)]="username" required [disabled]="submitting()">
+      <label for="password">Mot de passe</label>
+      <input id="password" name="password" type="password" autocomplete="current-password"
+        [(ngModel)]="password" required [disabled]="submitting()">
+      <button type="submit" [disabled]="submitting() || !username.trim() || !password">
+        {{ submitting() ? 'Connexion…' : 'Se connecter' }}
+      </button>
+    </form>
+    <p class="login-footnote">Vos identifiants sont vérifiés par HQ et ne sont pas enregistrés.</p>
+  </section>
+</main>

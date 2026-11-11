@@ -2,17 +2,96 @@ package com.surveysolutions.analytics.surveysolutions;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+import com.surveysolutions.analytics.config.HqApiUserPrincipal;
+import com.surveysolutions.analytics.config.SurveySolutionsProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.web.client.RestClient;
 
 class SurveySolutionsServiceTest {
+    @Test
+    void usesTheLoggedInUsersCredentialsForHeadquartersRequests() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        SurveySolutionsProperties properties = new SurveySolutionsProperties();
+        properties.setBaseUrl("http://hq.test");
+        properties.setWorkspace("primary");
+        HqApiUserPrincipal principal = new HqApiUserPrincipal("api-user", "secret");
+        SessionRegistryImpl sessions = new SessionRegistryImpl();
+        sessions.registerNewSession("active-session", principal);
+        server.expect(requestTo("http://hq.test/primary/api/v1/questionnaires?limit=40&offset=1"))
+                .andExpect(header(HttpHeaders.AUTHORIZATION, "Basic YXBpLXVzZXI6c2VjcmV0"))
+                .andRespond(withSuccess(questionnairePage(1, 1), MediaType.APPLICATION_JSON));
+        SecurityContextHolder.getContext().setAuthentication(UsernamePasswordAuthenticationToken.authenticated(
+                principal, null, java.util.List.of()));
+        try {
+            SurveySolutionsService service = new SurveySolutionsService(
+                    new SurveySolutionsClientFactory(builder, properties, sessions));
+
+            assertThat(service.getQuestionnaires()).hasSize(1);
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+        server.verify();
+    }
+
+    @Test
+    void refusesToReuseCredentialsAfterTheSessionIsInvalidated() {
+        RestClient.Builder builder = RestClient.builder();
+        SurveySolutionsProperties properties = new SurveySolutionsProperties();
+        properties.setBaseUrl("http://hq.test");
+        properties.setWorkspace("primary");
+        HqApiUserPrincipal principal = new HqApiUserPrincipal("api-user", "secret");
+        SessionRegistryImpl sessions = new SessionRegistryImpl();
+        SecurityContextHolder.getContext().setAuthentication(UsernamePasswordAuthenticationToken.authenticated(
+                principal, null, java.util.List.of()));
+        try {
+            SurveySolutionsService service = new SurveySolutionsService(
+                    new SurveySolutionsClientFactory(builder, properties, sessions));
+
+            org.assertj.core.api.Assertions.assertThatThrownBy(service::getQuestionnaires)
+                    .isInstanceOf(AuthenticationCredentialsNotFoundException.class);
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void verifiesTheSubmittedUserAgainstTheHeadquartersApi() {
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://hq.test");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo("http://hq.test/api/v1/questionnaires?limit=1&offset=1"))
+                .andExpect(header(HttpHeaders.AUTHORIZATION, "Basic YXBpLXVzZXI6c2VjcmV0"))
+                .andRespond(withSuccess(questionnairePage(1, 1), MediaType.APPLICATION_JSON));
+
+        assertThat(new SurveySolutionsService(builder.build()).isApiUser("api-user", "secret")).isTrue();
+        server.verify();
+    }
+
+    @Test
+    void rejectsHeadquartersCredentialsThatAreNotAuthorizedForTheApi() {
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://hq.test");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo("http://hq.test/api/v1/questionnaires?limit=1&offset=1"))
+                .andRespond(withStatus(HttpStatus.FORBIDDEN));
+
+        assertThat(new SurveySolutionsService(builder.build()).isApiUser("reader", "secret")).isFalse();
+        server.verify();
+    }
+
     @Test
     void downloadsInterviewTranscriptFromHeadquarters() {
         UUID interviewId = UUID.fromString("b60cb2fe-10c0-47c9-9d0d-ca2e69dd2ce1");
@@ -102,6 +181,8 @@ class SurveySolutionsServiceTest {
                           "Children": [{
                             "$type": "Group",
                             "Title": "Section A",
+                            "IsRoster": true,
+                            "RosterTitleQuestionId": "title-question-id",
                             "Children": [
                               {
                                 "$type": "SingleQuestion",
@@ -138,10 +219,64 @@ class SurveySolutionsServiceTest {
         assertThat(questions.get(0).variableName()).isEqualTo("choice");
         assertThat(questions.get(0).type()).isEqualTo("SingleOption");
         assertThat(questions.get(0).breadcrumbs()).containsExactly("Section A");
+        assertThat(questions.get(0).rosterTitleQuestionIds()).containsExactly("title-question-id");
         assertThat(questions.get(0).answers())
                 .containsExactly(new SurveySolutionsDtos.QuestionOption(1, "Yes", "yes"));
         assertThat(questions.get(1).variableName()).isEqualTo("comment");
         assertThat(questions.get(1).type()).isEqualTo("Text");
+        server.verify();
+    }
+
+    @Test
+    void enrichesStatisticsQuestionsWithRosterTitleQuestionIdsFromDocument() {
+        UUID questionnaireId = UUID.fromString("588daf2d-0c72-4b89-bec9-254459a68983");
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://hq.test");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo(
+                        "http://hq.test/api/v1/statistics/questions"
+                                + "?questionnaireId=" + questionnaireId + "&version=1"))
+                .andRespond(withSuccess(
+                        """
+                        [{
+                          "Id": "question-id",
+                          "VariableName": "relationship",
+                          "QuestionText": "Relation to %rostertitle%",
+                          "Type": "Text",
+                          "Breadcrumbs": [],
+                          "Answers": []
+                        }]
+                        """,
+                        MediaType.APPLICATION_JSON));
+        server.expect(requestTo(
+                        "http://hq.test/api/v1/questionnaires/" + questionnaireId + "/1/document"))
+                .andRespond(withSuccess(
+                        """
+                        {
+                          "$type": "QuestionnaireDocument",
+                          "Children": [{
+                            "$type": "Group",
+                            "Title": "Household members",
+                            "IsRoster": true,
+                            "RosterTitleQuestionId": "title-question-id",
+                            "Children": [{
+                              "$type": "TextQuestion",
+                              "PublicKey": "question-id",
+                              "VariableName": "relationship",
+                              "QuestionText": "Relation to %rostertitle%",
+                              "QuestionType": 7,
+                              "Answers": []
+                            }]
+                          }]
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON));
+
+        var questions = new SurveySolutionsService(builder.build())
+                .getQuestions(questionnaireId, 1);
+
+        assertThat(questions).singleElement()
+                .satisfies(question -> assertThat(question.rosterTitleQuestionIds())
+                        .containsExactly("title-question-id"));
         server.verify();
     }
 

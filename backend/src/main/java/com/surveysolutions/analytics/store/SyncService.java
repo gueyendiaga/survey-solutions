@@ -26,6 +26,9 @@ import com.surveysolutions.analytics.store.AnalyticsRepository.ImportCounts;
 import com.surveysolutions.analytics.store.AnalyticsRepository.SyncRun;
 import com.surveysolutions.analytics.surveysolutions.SurveySolutionsExportClient;
 import com.surveysolutions.analytics.surveysolutions.SurveySolutionsService;
+import com.surveysolutions.analytics.surveysolutions.HqCredentialContext;
+import com.surveysolutions.analytics.config.HqApiUserPrincipal;
+import org.springframework.security.core.session.SessionRegistry;
 
 /**
  * Alimente l'entrepôt Analytics depuis l'Export API de HQ.
@@ -45,6 +48,7 @@ public class SyncService implements DisposableBean {
     private final SurveySolutionsExportClient exportClient;
     private final TabularExportParser parser;
     private final AnalyticsRepository repository;
+    private final SessionRegistry sessionRegistry;
     private final ExecutorService worker;
     private final Set<VersionKey> pending = ConcurrentHashMap.newKeySet();
 
@@ -53,8 +57,9 @@ public class SyncService implements DisposableBean {
             SurveySolutionsService surveySolutions,
             SurveySolutionsExportClient exportClient,
             TabularExportParser parser,
-            AnalyticsRepository repository) {
-        this(surveySolutions, exportClient, parser, repository, Executors.newSingleThreadExecutor(runnable -> {
+            AnalyticsRepository repository,
+            SessionRegistry sessionRegistry) {
+        this(surveySolutions, exportClient, parser, repository, sessionRegistry, Executors.newSingleThreadExecutor(runnable -> {
             Thread thread = new Thread(runnable, "analytics-sync");
             thread.setDaemon(true);
             return thread;
@@ -66,11 +71,13 @@ public class SyncService implements DisposableBean {
             SurveySolutionsExportClient exportClient,
             TabularExportParser parser,
             AnalyticsRepository repository,
+            SessionRegistry sessionRegistry,
             ExecutorService worker) {
         this.surveySolutions = surveySolutions;
         this.exportClient = exportClient;
         this.parser = parser;
         this.repository = repository;
+        this.sessionRegistry = sessionRegistry;
         this.worker = worker;
     }
 
@@ -87,13 +94,15 @@ public class SyncService implements DisposableBean {
      * cours.
      */
     public boolean requestSync(UUID questionnaireId, long version, Trigger trigger) {
+        HqApiUserPrincipal principal = HqCredentialContext.current();
         VersionKey key = new VersionKey(questionnaireId, version);
         if (!pending.add(key)) {
             return false;
         }
         worker.submit(() -> {
             try {
-                synchronize(questionnaireId, version, trigger, null);
+                HqCredentialContext.with(principal,
+                        () -> synchronize(questionnaireId, version, trigger, null));
             } finally {
                 pending.remove(key);
             }
@@ -121,6 +130,12 @@ public class SyncService implements DisposableBean {
             initialDelayString = "PT1M",
             fixedDelayString = "${survey-solutions.sync-interval:PT30M}")
     public void synchronizeChangedQuestionnaires() {
+        for (HqApiUserPrincipal principal : activeHqUsers()) {
+            HqCredentialContext.with(principal, this::synchronizeChangedQuestionnairesForUser);
+        }
+    }
+
+    private void synchronizeChangedQuestionnairesForUser() {
         try {
             for (Questionnaire questionnaire : surveySolutions.getQuestionnaires()) {
                 UUID questionnaireId = UUID.fromString(questionnaire.questionnaireId());
@@ -136,9 +151,11 @@ public class SyncService implements DisposableBean {
                 if (unchanged || nothingToImport || !pending.add(key)) {
                     continue;
                 }
+                HqApiUserPrincipal principal = HqCredentialContext.current();
                 worker.submit(() -> {
                     try {
-                        synchronize(questionnaireId, version, Trigger.SCHEDULED, fingerprint);
+                        HqCredentialContext.with(principal,
+                                () -> synchronize(questionnaireId, version, Trigger.SCHEDULED, fingerprint));
                     } finally {
                         pending.remove(key);
                     }
@@ -147,6 +164,14 @@ public class SyncService implements DisposableBean {
         } catch (RuntimeException exception) {
             LOG.warn("Revue planifiée du catalogue HQ impossible : {}", exception.getMessage());
         }
+    }
+
+    private List<HqApiUserPrincipal> activeHqUsers() {
+        return sessionRegistry.getAllPrincipals().stream()
+                .filter(HqApiUserPrincipal.class::isInstance)
+                .map(HqApiUserPrincipal.class::cast)
+                .filter(principal -> !sessionRegistry.getAllSessions(principal, false).isEmpty())
+                .toList();
     }
 
     void synchronize(UUID questionnaireId, long version, Trigger trigger, String knownFingerprint) {

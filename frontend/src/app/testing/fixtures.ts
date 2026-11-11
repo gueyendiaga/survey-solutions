@@ -40,7 +40,16 @@ export function syncResponse() {
 }
 
 export function ageQuestion() {
-  return { id: 'question-1', variableName: 'age', questionText: 'Quel âge ?', label: 'Âge', type: 'Numeric', breadcrumbs: [], optionCount: 0 };
+  return {
+    id: 'question-1',
+    variableName: 'age',
+    questionText: 'Quel âge ?',
+    label: 'Âge',
+    type: 'Numeric',
+    breadcrumbs: [],
+    optionCount: 0,
+    rosterTitleQuestionIds: [] as string[]
+  };
 }
 
 export function completenessResponse() {

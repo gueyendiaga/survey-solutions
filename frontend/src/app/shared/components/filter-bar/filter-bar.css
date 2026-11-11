@@ -74,9 +74,9 @@
   width: 100%;
   padding: 20px;
   border: 1px solid #e1e6ef;
-  border-radius: 16px;
+  border-radius: 14px;
   background: var(--surface);
-  box-shadow: 0 12px 30px rgba(16, 24, 40, 0.07);
+  box-shadow: 0 14px 34px rgba(27, 39, 73, 0.085);
   animation: filter-panel-enter 140ms ease-out;
 }
 
@@ -127,9 +127,9 @@
 }
 
 .filter-bar input:focus-visible {
-  outline: 3px solid rgba(97, 118, 223, 0.18);
+  outline: 3px solid rgba(30, 51, 152, 0.14);
   outline-offset: 1px;
-  border-color: #8190e4;
+  border-color: var(--primary-2);
 }
 
 .filter-actions {

@@ -5,13 +5,40 @@
 }
 
 .report-cta {
+  min-height: 228px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 6px;
+  border-color: #e7eaf1;
+  border-radius: 16px;
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+.report-cta:hover {
+  transform: translateY(-2px);
+  border-color: #d9deeb;
+  box-shadow: 0 8px 22px rgba(27, 39, 73, 0.07);
+}
+
+.report-cta h2 {
+  color: #273149;
 }
 
 .report-cta p {
   margin: 0 0 12px;
   color: var(--text-2);
+  line-height: 1.6;
+}
+
+@media (max-width: 600px) {
+  .report-cta {
+    min-height: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .report-cta {
+    transition: none;
+  }
 }

@@ -1,5 +1,5 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, HostListener, inject, signal } from '@angular/core';
+import { Component, HostListener, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import type { EChartsCoreOption } from 'echarts/core';
 import {
@@ -50,6 +50,17 @@ export class VariablesTabComponent {
   protected readonly downloadingTranscript = signal<string | null>(null);
   protected readonly detailInterview = signal<InterviewReviewRow | null>(null);
   protected readonly interviewAnswers = signal<InterviewAnswer[]>([]);
+  private readonly rosterTitles = computed(() => {
+    const titles = new Map<string, string>();
+    for (const answer of this.interviewAnswers()) {
+      const questionId = this.interviewAnswerQuestionId(answer)?.toLowerCase();
+      const vector = this.rosterVector(answer);
+      if (questionId && vector.length && answer.answer !== null && answer.answer !== undefined && answer.answer !== '') {
+        titles.set(`${questionId}:${vector.join(',')}`, this.displayValue(answer.answer));
+      }
+    }
+    return titles;
+  });
   protected readonly interviewDetailsLoading = signal(false);
   protected readonly interviewDetailsError = signal<string | null>(null);
   protected comment = '';
@@ -129,6 +140,77 @@ export class VariablesTabComponent {
 
   protected answerQuestion(answer: InterviewAnswer): QuestionSummary | undefined {
     return this.store.questions().find((question) => question.variableName === answer.variableName);
+  }
+
+  protected answerQuestionText(answer: InterviewAnswer): string {
+    const question = this.answerQuestion(answer);
+    const questionText = question?.questionText || question?.label || answer.variableName || 'Question sans libellé';
+    const vector = this.rosterVector(answer);
+    if (!vector.length || !questionText.toLowerCase().includes('%rostertitle%')) {
+      return questionText;
+    }
+
+    const title = this.rosterTitle(answer, vector.length - 1);
+    return questionText.replace(
+      /%rostertitle%/gi,
+      this.escapeHtml(title ?? `Élément n° ${vector[vector.length - 1]}`)
+    );
+  }
+
+  protected rosterLabel(answer: InterviewAnswer): string | null {
+    const vector = this.rosterVector(answer);
+    if (!vector.length) {
+      return null;
+    }
+
+    const elements = vector.map((index, depth) => {
+      const title = this.rosterTitle(answer, depth);
+      return title ? `« ${title} » (n° ${index})` : `élément n° ${index}`;
+    });
+    return `Dans le tableau : ${elements.join(' › ')}`;
+  }
+
+  private rosterTitle(answer: InterviewAnswer, depth: number): string | null {
+    const questionId = this.answerQuestion(answer)?.rosterTitleQuestionIds?.[depth];
+    const vector = this.rosterVector(answer);
+    if (!questionId || !vector.length) {
+      return null;
+    }
+
+    return this.rosterTitles().get(`${questionId.toLowerCase()}:${vector.slice(0, depth + 1).join(',')}`) ?? null;
+  }
+
+  private interviewAnswerQuestionId(answer: InterviewAnswer): string | null {
+    const questionId = answer.additionalFields['QuestionId'];
+    if (!questionId || typeof questionId !== 'object' || Array.isArray(questionId)) {
+      return null;
+    }
+
+    const id = (questionId as Record<string, unknown>)['Id'];
+    return typeof id === 'string' ? id : null;
+  }
+
+  private rosterVector(answer: InterviewAnswer): number[] {
+    const questionId = answer.additionalFields['QuestionId'];
+    if (!questionId || typeof questionId !== 'object' || Array.isArray(questionId)) {
+      return [];
+    }
+
+    const vector = (questionId as Record<string, unknown>)['RosterVector'];
+    if (!Array.isArray(vector) || !vector.every((index) => typeof index === 'number' && Number.isFinite(index))) {
+      return [];
+    }
+    return vector as number[];
+  }
+
+  private escapeHtml(value: string): string {
+    return value.replace(/[&<>"']/g, (character) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    })[character]!);
   }
 
   protected displayValue(value: unknown): string {

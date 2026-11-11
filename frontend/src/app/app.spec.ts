@@ -4,8 +4,10 @@ import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { Router, provideRouter, withComponentInputBinding } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
+import { of } from 'rxjs';
 import { App } from './app';
 import { routes } from './app.routes';
+import { AuthService } from './core/services/auth.service';
 import { DashboardChartComponent } from './shared/components/dashboard-chart/dashboard-chart';
 import {
   BASE, QUESTIONNAIRE_ID, analyticsResponse, completenessResponse, dashboardResponse, fieldworkResponse,
@@ -20,7 +22,12 @@ describe('Application routée', () => {
 
   beforeEach(async () => {
     TestBed.configureTestingModule({
-      providers: [provideRouter(routes, withComponentInputBinding()), provideHttpClient(), provideHttpClientTesting()]
+      providers: [
+        provideRouter(routes, withComponentInputBinding()),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: AuthService, useValue: { ensureSession: () => of({ authenticated: true }) } }
+      ]
     });
     http = TestBed.inject(HttpTestingController);
     harness = await RouterTestingHarness.create();
@@ -199,7 +206,8 @@ describe('Application routée', () => {
   it('affiche les réponses HQ dans la modale de détail d’une interview', async () => {
     await openQuestionnaire('variables', [{
       ...ageQuestion(),
-      questionText: '1.03. Quel lien avec <font color="blue">%rostertitle%</font> ?<br><br>Question suivante'
+      questionText: '1.03. Quel lien avec <font color="blue">%rostertitle%</font> ?<br><br>Question suivante',
+      rosterTitleQuestionIds: ['title-question-id']
     }]);
     const detailButton = [...page().querySelectorAll<HTMLButtonElement>('.review-button.details')]
       .find((button) => button.textContent?.includes('Détail'))!;
@@ -214,8 +222,23 @@ describe('Application routée', () => {
           variableName: 'age',
           answer: '45',
           additionalFields: {
-            QuestionId: { Id: 'question-guid', RosterVector: [] }
+            QuestionId: { Id: 'question-guid', RosterVector: [1] }
           }
+        },
+        {
+          variableName: 'age',
+          answer: '25',
+          additionalFields: { QuestionId: { Id: 'question-guid', RosterVector: [2] } }
+        },
+        {
+          variableName: 'name',
+          answer: 'Ndiaga GUEYE',
+          additionalFields: { QuestionId: { Id: 'title-question-id', RosterVector: [1] } }
+        },
+        {
+          variableName: 'name',
+          answer: 'Fama GUEYE',
+          additionalFields: { QuestionId: { Id: 'title-question-id', RosterVector: [2] } }
         },
         { variableName: 'situation', answer: 'Entrepreneur(e)', additionalFields: {} }
       ]
@@ -224,11 +247,19 @@ describe('Application routée', () => {
     harness.detectChanges();
 
     const dialog = page().querySelector('.interview-details-dialog')!;
-    const questionTitle = dialog.querySelector('.answer-card h3')!;
-    expect(questionTitle.textContent).toContain('%rostertitle%');
-    expect(questionTitle.textContent).toContain('Question suivante');
-    expect(questionTitle.textContent).not.toContain('<font');
-    expect(questionTitle.querySelector('br')).not.toBeNull();
+    const questionTitles = [...dialog.querySelectorAll('.answer-card h3')];
+    expect(questionTitles[0].textContent).toContain('Ndiaga GUEYE');
+    expect(questionTitles[1].textContent).toContain('Fama GUEYE');
+    expect(questionTitles[0].textContent).toContain('Question suivante');
+    expect(questionTitles[0].textContent).not.toContain('%rostertitle%');
+    expect(questionTitles[0].textContent).not.toContain('<font');
+    expect(questionTitles[0].querySelector('br')).not.toBeNull();
+    expect([...dialog.querySelectorAll('.answer-roster')].map((badge) => badge.textContent?.trim()))
+      .toContain('Dans le tableau : « Ndiaga GUEYE » (n° 1)');
+    expect([...dialog.querySelectorAll('.answer-roster')].map((badge) => badge.textContent?.trim()))
+      .toContain('Dans le tableau : « Fama GUEYE » (n° 2)');
+    expect(dialog.querySelector('.details-explanation')?.textContent)
+      .toContain('tableau');
     expect(dialog.textContent).toContain('45');
     expect(dialog.textContent).toContain('Identifiant de question');
     expect(dialog.textContent).toContain('question-guid');
@@ -333,6 +364,9 @@ describe('App (coquille)', () => {
       providers: [provideRouter(routes, withComponentInputBinding()), provideHttpClient(), provideHttpClientTesting()]
     }).compileComponents();
     const fixture = TestBed.createComponent(App);
+    const auth = TestBed.inject(AuthService);
+    auth.phase.set('authenticated');
+    auth.username.set('hq-user');
     fixture.detectChanges();
     const nav = (fixture.nativeElement as HTMLElement).querySelector('nav.sidebar') as HTMLElement;
 
@@ -340,7 +374,6 @@ describe('App (coquille)', () => {
       .toEqual(['Tableau de bord', 'Questionnaires']);
     expect(nav.textContent).not.toContain('Récent');
     expect(nav.querySelector('.nav-item[href="/questionnaires"]')).not.toBeNull();
-
   });
 });
 
@@ -349,7 +382,12 @@ describe('Attente de l’import des données', () => {
 
   it('attend la fin de l’import puis recharge les indicateurs', async () => {
     TestBed.configureTestingModule({
-      providers: [provideRouter(routes, withComponentInputBinding()), provideHttpClient(), provideHttpClientTesting()]
+      providers: [
+        provideRouter(routes, withComponentInputBinding()),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: AuthService, useValue: { ensureSession: () => of({ authenticated: true }) } }
+      ]
     });
     const http = TestBed.inject(HttpTestingController);
     const pending = { status: 409, statusText: 'Conflict' };

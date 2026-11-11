@@ -2,6 +2,12 @@ server:
   port: 8081
   error:
     include-message: never
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        same-site: lax
+        secure: ${ANALYTICS_SESSION_COOKIE_SECURE:false}
 
 spring:
   datasource:
@@ -20,8 +26,6 @@ survey-solutions:
   report-retention: ${ANALYTICS_REPORT_RETENTION:30}
   # Génération automatique des rapports (cron Spring : s m h j M jS), heure de Dakar (UTC).
   report-cron: ${ANALYTICS_REPORT_CRON:0 0 7 * * *}
-  username: ${SURVEY_SOLUTIONS_USERNAME:}
-  password: ${SURVEY_SOLUTIONS_PASSWORD:}
   allowed-origin: ${ANALYTICS_ALLOWED_ORIGIN:http://localhost:4200}
   connect-timeout: 5s
   read-timeout: 30s

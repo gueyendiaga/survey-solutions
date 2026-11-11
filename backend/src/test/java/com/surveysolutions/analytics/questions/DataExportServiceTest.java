@@ -17,6 +17,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import com.surveysolutions.analytics.surveysolutions.SurveySolutionsService;
+import com.surveysolutions.analytics.config.HqApiUserPrincipal;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 class DataExportServiceTest {
     private static final UUID QUESTIONNAIRE_ID =
@@ -31,6 +34,8 @@ class DataExportServiceTest {
 
     @BeforeEach
     void setUp() {
+        SecurityContextHolder.getContext().setAuthentication(UsernamePasswordAuthenticationToken.authenticated(
+                new HqApiUserPrincipal("api-user", "secret"), null, List.of()));
         service = new DataExportService(surveySolutions, executor, objectMapper);
         when(surveySolutions.getQuestions(QUESTIONNAIRE_ID, 1)).thenReturn(List.of(
                 new Question("age-id", "age", "Age", "Age of respondent", "Numeric", List.of("Household"), List.of()),
@@ -49,6 +54,7 @@ class DataExportServiceTest {
     @AfterEach
     void tearDown() {
         executor.shutdownNow();
+        SecurityContextHolder.clearContext();
     }
 
     @Test

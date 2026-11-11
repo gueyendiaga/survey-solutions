@@ -1,11 +1,20 @@
+@if (auth.phase() === 'authenticated') {
 <div class="shell" [class.sidebar-collapsed]="sidebarCollapsed">
   <nav class="sidebar" aria-label="Navigation principale">
-    <a class="brand" routerLink="/">
-      <span class="brand-mark" aria-hidden="true">
-        <img ngSrc="logo.png" alt="ANSD LOGO" width="35" height="35">
-      </span>
-      <strong class="brand-name">Survey solutions</strong>
-    </a>
+    <div class="sidebar-head">
+      <a class="brand" routerLink="/">
+        <span class="brand-mark" aria-hidden="true">
+          <img ngSrc="logo.png" alt="" width="35" height="35">
+        </span>
+        <strong class="brand-name">Survey solutions</strong>
+      </a>
+      <button class="sidebar-toggle" type="button" (click)="toggleSidebar()"
+        [attr.aria-label]="sidebarCollapsed ? 'Développer le menu' : 'Réduire le menu'"
+        [attr.aria-expanded]="!sidebarCollapsed">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6" /></svg>
+      </button>
+    </div>
+    <span class="nav-section-label">ESPACE DE TRAVAIL</span>
     <div class="nav-links">
       <a class="nav-item"
         routerLink="/"
@@ -30,7 +39,15 @@
 
     <div class="sidebar-status">
       <strong><span class="status-dot" aria-hidden="true"></span>HQ connecté</strong>
+      <span class="status-details">{{ auth.username() }}</span>
       <span class="status-details">Survey Solutions Headquarters · synchronisation automatique</span>
+      @if (logoutError) {
+        <span class="logout-error" role="alert">Déconnexion impossible.</span>
+      }
+      <button class="logout-button" type="button" (click)="logout()" aria-label="Se déconnecter" title="Se déconnecter">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3" /><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" /></svg>
+        <span class="logout-label">Se déconnecter</span>
+      </button>
     </div>
   </nav>
 
@@ -38,3 +55,6 @@
     <router-outlet />
   </div>
 </div>
+} @else {
+  <router-outlet />
+}

@@ -24,6 +24,7 @@ import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import com.surveysolutions.analytics.surveysolutions.SurveySolutionsService;
+import com.surveysolutions.analytics.surveysolutions.HqCredentialContext;
 
 @Service
 public class DataExportService {
@@ -110,6 +111,7 @@ public class DataExportService {
     }
 
     private List<ExportRow> loadRows(List<Interview> interviews, List<Question> questions) {
+        var principal = HqCredentialContext.current();
         Map<String, Question> questionsByVariable = questions.stream()
                 .filter(question -> question.variableName() != null)
                 .collect(java.util.stream.Collectors.toMap(
@@ -122,10 +124,12 @@ public class DataExportService {
                         .mapToObj(index -> {
                             Interview interview = interviews.get(index);
                             return CompletableFuture.supplyAsync(() -> {
-                                List<InterviewAnswer> answers = surveySolutions.getInterviewDetails(
-                                                UUID.fromString(interview.interviewId()))
-                                        .answers();
-                                return new InterviewAnswers(index + 1, interview, answers);
+                                return HqCredentialContext.with(principal, () -> {
+                                    List<InterviewAnswer> answers = surveySolutions.getInterviewDetails(
+                                                    UUID.fromString(interview.interviewId()))
+                                            .answers();
+                                    return new InterviewAnswers(index + 1, interview, answers);
+                                });
                             }, executor);
                         })
                         .toList();

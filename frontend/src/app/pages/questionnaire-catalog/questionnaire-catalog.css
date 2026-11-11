@@ -1,3 +1,49 @@
 .avatar.square {
   border-radius: 8px;
 }
+
+:host {
+  display: block;
+}
+
+.person strong {
+  color: #29344d;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.open-questionnaire-button {
+  border-color: #dce2f2;
+  background: #f8f9fe;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.open-questionnaire-button:hover {
+  border-color: var(--primary-line);
+  background: var(--primary-soft);
+  color: var(--primary-hover);
+}
+
+@media (max-width: 600px) {
+  .table-scroll {
+    margin: 0;
+  }
+
+  table.data th,
+  table.data td {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  table.data th:first-child,
+  table.data td:first-child {
+    padding-left: 14px;
+  }
+
+  table.data th:last-child,
+  table.data td:last-child {
+    padding-right: 14px;
+  }
+}

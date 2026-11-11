@@ -33,8 +33,10 @@
   --line: #e6eaf0;
   --line-2: #f0f2f6;
   --control: #d9dee7;
-  --bg: #f4f6fa;
+  --bg: #f5f7fb;
   --surface: #ffffff;
+  --surface-soft: #f8f9fc;
+  --text-strong: #192238;
   --sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
   /* Échelle typographique : 24 titre, 16 carte, 14 texte, 13 secondaire, 12 légende ; 28 chiffres clés. */
@@ -44,8 +46,8 @@
   --fs-small: 13px;
   --fs-caption: 12px;
   --fs-figure: 28px;
-  --radius: 14px;
-  --shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --radius: 16px;
+  --shadow: 0 2px 8px rgba(27, 39, 73, 0.035), 0 10px 24px rgba(27, 39, 73, 0.025);
   font-family: var(--sans);
   font-size: var(--fs-body);
   line-height: 1.5;
@@ -77,6 +79,14 @@ input {
 
 button {
   cursor: pointer;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(30, 51, 152, 0.2);
+  outline-offset: 2px;
 }
 
 a {
@@ -138,11 +148,17 @@ a:hover {
   font-size: var(--fs-body);
   font-weight: 500;
   white-space: nowrap;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
 }
 
 .btn:hover:not(:disabled) {
   border-color: #b8c1cf;
-  background: #fbfcfe;
+  background: #f8f9fc;
+  box-shadow: 0 2px 5px rgba(27, 39, 73, 0.06);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .btn:disabled {
@@ -341,6 +357,8 @@ h3 {
 }
 
 .kpi {
+  min-width: 0;
+  min-height: 142px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -360,6 +378,7 @@ h3 {
 }
 
 .kpi-value {
+  color: var(--text-strong);
   font-size: var(--fs-figure);
   font-weight: 700;
   line-height: 1.1;
@@ -495,7 +514,7 @@ table.data th {
   top: 0;
   padding: 12px 12px;
   border-bottom: 1px solid var(--line);
-  background: #f8fafc;
+  background: #f7f9fc;
   color: var(--text-2);
   font-size: var(--fs-caption);
   font-weight: 600;
@@ -516,7 +535,7 @@ table.data tbody tr:last-child td {
 }
 
 table.data tbody tr:hover td {
-  background: #fbfcfe;
+  background: #f8faff;
 }
 
 table.data .l {
@@ -597,4 +616,15 @@ table.data td.wrap {
 
 a.btn {
   text-decoration: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

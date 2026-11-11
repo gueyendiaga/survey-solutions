@@ -100,7 +100,19 @@ public final class SurveySolutionsDtos {
             @JsonProperty("Label") String label,
             @JsonProperty("Type") String type,
             @JsonProperty("Breadcrumbs") List<String> breadcrumbs,
-            @JsonProperty("Answers") List<QuestionOption> answers) {}
+            @JsonProperty("Answers") List<QuestionOption> answers,
+            List<String> rosterTitleQuestionIds) {
+        public Question(
+                String id,
+                String variableName,
+                String questionText,
+                String label,
+                String type,
+                List<String> breadcrumbs,
+                List<QuestionOption> answers) {
+            this(id, variableName, questionText, label, type, breadcrumbs, answers, List.of());
+        }
+    }
 
     public record QuestionOption(
             @JsonProperty("Answer") int answer,
