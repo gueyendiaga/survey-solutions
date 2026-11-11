@@ -5,10 +5,13 @@ import static com.surveysolutions.analytics.surveysolutions.SurveySolutionsDtos.
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -152,6 +155,32 @@ public class AnalyticsController {
                 .map(this::pdf)
                 .orElseThrow(() -> new IllegalArgumentException("Ce rapport n'existe pas ou a été supprimé."));
     }
+
+    @GetMapping("/api/interviews/{interviewId}/pdf")
+    public ResponseEntity<byte[]> interviewTranscript(@PathVariable UUID interviewId) {
+        SurveySolutionsService.InterviewTranscript transcript = surveySolutions.getInterviewTranscript(interviewId);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(transcript.filename(), StandardCharsets.UTF_8).build().toString())
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(transcript.content());
+    }
+
+    @GetMapping("/api/interviews/{interviewId}")
+    public InterviewAnswers interviewAnswers(@PathVariable UUID interviewId) {
+        InterviewDetails details = surveySolutions.getInterviewDetails(interviewId);
+        return new InterviewAnswers(details.answers().stream()
+                .map(answer -> new InterviewAnswer(
+                        answer.variableName(), answer.answer(), answer.additionalFields()))
+                .toList());
+    }
+
+    public record InterviewAnswers(List<InterviewAnswer> answers) {}
+
+    public record InterviewAnswer(
+            String variableName,
+            Object answer,
+            Map<String, JsonNode> additionalFields) {}
 
     private ResponseEntity<byte[]> pdf(ReportService.ReportFile file) {
         return ResponseEntity.ok()

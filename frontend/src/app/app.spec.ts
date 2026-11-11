@@ -37,7 +37,7 @@ describe('Application routée', () => {
   }
 
   /** Requêtes émises à l'ouverture d'un questionnaire sur le suivi terrain. */
-  function flushQuestionnaireOpening(tab = 'suivi-terrain'): void {
+  function flushQuestionnaireOpening(tab = 'suivi-terrain', questions = [ageQuestion()]): void {
     http.expectOne(`${BASE}/sync`).flush(syncResponse());
     http.expectOne(`${BASE}/filter-options`).flush(filterOptionsResponse());
     if (tab === 'suivi-terrain') {
@@ -46,7 +46,7 @@ describe('Application routée', () => {
     http.expectOne(`${BASE}/reports`).flush([
       { id: 7, generatedAt: '2026-11-09T07:00:00Z', trigger: 'SCHEDULED', filename: 'rapport.pdf', sizeBytes: 51200 }
     ]);
-    http.expectOne(`${BASE}/question-list`).flush([ageQuestion()]);
+    http.expectOne(`${BASE}/question-list`).flush(questions);
     harness.detectChanges();
     http.expectOne((request) => request.url === `${BASE}/question-completeness`).flush(completenessResponse());
     http.expectOne((request) => request.url === `${BASE}/question-analytics`
@@ -54,10 +54,10 @@ describe('Application routée', () => {
     harness.detectChanges();
   }
 
-  async function openQuestionnaire(tab = 'suivi-terrain'): Promise<void> {
+  async function openQuestionnaire(tab = 'suivi-terrain', questions = [ageQuestion()]): Promise<void> {
     await harness.navigateByUrl(`${QUESTIONNAIRE_URL}/${tab}`);
     http.expectOne('/api/dashboard').flush(dashboardResponse());
-    flushQuestionnaireOpening(tab);
+    flushQuestionnaireOpening(tab, questions);
     await harness.fixture.whenStable();
     harness.detectChanges();
   }
@@ -173,6 +173,69 @@ describe('Application routée', () => {
     spyOn(chart, 'download');
     (content.querySelector('[aria-label="Télécharger le graphique en PNG"]') as HTMLButtonElement).click();
     expect(chart.download).toHaveBeenCalled();
+  });
+
+  it('télécharge le PDF de transcription de chaque interview', async () => {
+    spyOn(URL, 'createObjectURL').and.returnValue('blob:transcript');
+    spyOn(URL, 'revokeObjectURL');
+    spyOn(HTMLAnchorElement.prototype, 'click');
+    await openQuestionnaire('variables');
+    const button = [...page().querySelectorAll<HTMLButtonElement>('.review-button.transcript')]
+      .find((item) => item.textContent?.includes('Transcription PDF'))!;
+    button.click();
+
+    const request = http.expectOne('/api/interviews/interview-1/pdf');
+    expect(request.request.method).toBe('GET');
+    expect(request.request.responseType).toBe('blob');
+    request.flush(new Blob(['%PDF-'], { type: 'application/pdf' }));
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+
+    expect(URL.createObjectURL).toHaveBeenCalled();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:transcript');
+    expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled();
+  });
+
+  it('affiche les réponses HQ dans la modale de détail d’une interview', async () => {
+    await openQuestionnaire('variables', [{
+      ...ageQuestion(),
+      questionText: '1.03. Quel lien avec <font color="blue">%rostertitle%</font> ?<br><br>Question suivante'
+    }]);
+    const detailButton = [...page().querySelectorAll<HTMLButtonElement>('.review-button.details')]
+      .find((button) => button.textContent?.includes('Détail'))!;
+    detailButton.click();
+    harness.detectChanges();
+
+    const request = http.expectOne('/api/interviews/interview-1');
+    expect(request.request.method).toBe('GET');
+    request.flush({
+      answers: [
+        {
+          variableName: 'age',
+          answer: '45',
+          additionalFields: {
+            QuestionId: { Id: 'question-guid', RosterVector: [] }
+          }
+        },
+        { variableName: 'situation', answer: 'Entrepreneur(e)', additionalFields: {} }
+      ]
+    });
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+
+    const dialog = page().querySelector('.interview-details-dialog')!;
+    const questionTitle = dialog.querySelector('.answer-card h3')!;
+    expect(questionTitle.textContent).toContain('%rostertitle%');
+    expect(questionTitle.textContent).toContain('Question suivante');
+    expect(questionTitle.textContent).not.toContain('<font');
+    expect(questionTitle.querySelector('br')).not.toBeNull();
+    expect(dialog.textContent).toContain('45');
+    expect(dialog.textContent).toContain('Identifiant de question');
+    expect(dialog.textContent).toContain('question-guid');
+    expect(dialog.textContent).toContain('Entrepreneur(e)');
+    (dialog.querySelector('.details-close') as HTMLButtonElement).click();
+    harness.detectChanges();
+    expect(page().querySelector('.interview-details-dialog')).toBeNull();
   });
 
   it('ouvre une variable depuis l’écran qualité', async () => {

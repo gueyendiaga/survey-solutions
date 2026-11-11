@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.UUID;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -362,6 +363,24 @@ public class SurveySolutionsService {
         return details;
     }
 
+    public InterviewTranscript getInterviewTranscript(UUID interviewId) {
+        ResponseEntity<byte[]> response = client.get()
+                .uri("/api/v1/interviews/{id}/pdf", interviewId)
+                .accept(MediaType.APPLICATION_PDF)
+                .retrieve()
+                .toEntity(byte[].class);
+        byte[] content = response.getBody();
+        if (content == null || content.length == 0) {
+            throw new IllegalStateException("HQ a renvoyé une transcription PDF vide.");
+        }
+
+        String filename = response.getHeaders().getContentDisposition().getFilename();
+        if (filename == null || filename.isBlank()) {
+            filename = "interview-" + interviewId + ".pdf";
+        }
+        return new InterviewTranscript(filename, content);
+    }
+
     public void approveInterviewAsHeadquarters(UUID interviewId, String comment) {
         patchInterviewAction(interviewId, "hqapprove", comment, null);
     }
@@ -406,4 +425,6 @@ public class SurveySolutionsService {
             throw new IllegalStateException("La pagination HQ dépasse la limite de sécurité de 1000 pages.");
         }
     }
+
+    public record InterviewTranscript(String filename, byte[] content) {}
 }

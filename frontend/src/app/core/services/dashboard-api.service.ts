@@ -9,6 +9,7 @@ import {
   FilterOptions,
   HeadquartersInterviewAction,
   InterviewActionResult,
+  InterviewAnswers,
   QuestionOption,
   Dashboard,
   QuestionAnalytics,
@@ -162,6 +163,16 @@ export class DashboardApiService {
 
   archivedReport(id: number): Observable<Blob> {
     return this.http.get(`${this.baseUrl}/reports/${id}`, { responseType: 'blob' });
+  }
+
+  interviewTranscript(interviewId: string): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/interviews/${encodeURIComponent(interviewId)}/pdf`, {
+      responseType: 'blob'
+    });
+  }
+
+  interviewAnswers(interviewId: string): Observable<InterviewAnswers> {
+    return this.http.get<InterviewAnswers>(`${this.baseUrl}/interviews/${encodeURIComponent(interviewId)}`);
   }
 
   syncStatus(questionnaireId: string, version: number): Observable<SyncStatus> {

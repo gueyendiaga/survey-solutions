@@ -57,6 +57,16 @@ export interface AnswerObservation {
   value: string;
 }
 
+export interface InterviewAnswer {
+  variableName: string | null;
+  answer: unknown;
+  additionalFields: Record<string, unknown>;
+}
+
+export interface InterviewAnswers {
+  answers: InterviewAnswer[];
+}
+
 export type HeadquartersInterviewAction = 'hqapprove' | 'hqreject' | 'hqunapprove';
 
 export interface InterviewActionResult {

@@ -65,7 +65,7 @@ export function analyticsResponse() {
     missingCount: 0,
     notApplicableCount: 2,
     responseRate: 100,
-    observations: [{ interviewNumber: 1, interviewKey: '01-50-90-18', rowKey: '', value: '20' }],
+    observations: [{ interviewNumber: 1, interviewId: 'interview-1', interviewKey: '01-50-90-18', rowKey: '', value: '20' }],
     distribution: [{ label: '20', count: 1, percentage: 100 }],
     minimum: 20, maximum: 20, mean: 20, median: 20, sum: 20, percentile05: 20, percentile95: 20,
     nonNumericResponseCount: 0,

@@ -4,13 +4,32 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
 class SurveySolutionsServiceTest {
+    @Test
+    void downloadsInterviewTranscriptFromHeadquarters() {
+        UUID interviewId = UUID.fromString("b60cb2fe-10c0-47c9-9d0d-ca2e69dd2ce1");
+        byte[] pdf = "%PDF- transcript".getBytes(StandardCharsets.UTF_8);
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://hq.test/primary");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo("http://hq.test/primary/api/v1/interviews/" + interviewId + "/pdf"))
+                .andRespond(withSuccess(pdf, MediaType.APPLICATION_PDF)
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=51-40-70-47.pdf"));
+
+        var transcript = new SurveySolutionsService(builder.build()).getInterviewTranscript(interviewId);
+
+        assertThat(transcript.filename()).isEqualTo("51-40-70-47.pdf");
+        assertThat(transcript.content()).isEqualTo(pdf);
+        server.verify();
+    }
+
     @Test
     void mapsTheDocumentedQuestionnaireEnvelopeAndFollowsPageNumbers() {
         RestClient.Builder builder = RestClient.builder().baseUrl("http://hq.test");

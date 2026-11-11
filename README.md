@@ -101,6 +101,8 @@ Pour le développement local, le backend requiert Maven 3.9+ et Java 17; le lanc
 - `GET /api/questionnaires/{uuid}/{version}/question-list` : variables et métadonnées de questions.
 - `GET /api/questionnaires/{uuid}/{version}/question-completeness` : taux de réponse agrégé par variable, sans exposer les réponses individuelles.
 - `GET /api/questionnaires/{uuid}/{version}/question-analytics?variableName={variable}` : agrégats d'une variable.
+- `GET /api/interviews/{interviewId}` : réponses d'une interview, relayées depuis HQ (`answers` avec variable, réponse et champs additionnels).
+- `GET /api/interviews/{interviewId}/pdf` : transcription PDF d'une interview, relayée depuis HQ.
 - `GET /api/questionnaires/{uuid}/{version}/export?format=csv|xlsx` : export des réponses du questionnaire en CSV ou Excel.
 - `GET /api/questionnaires/{uuid}/{version}/questions` : métadonnées des questions HQ.
 - `PATCH /api/questionnaires/{uuid}/{version}/interviews/{interviewId}/hqapprove` : approuve une interview.
@@ -116,4 +118,3 @@ Pour le développement local, le backend requiert Maven 3.9+ et Java 17; le lanc
 Tant qu'une version n'a jamais été importée, `question-completeness` et `question-analytics` renvoient 409 avec `syncPending: true` et déclenchent la synchronisation.
 
 Les appels amont paginés sont parcourus jusqu'au total déclaré par HQ. En cas d'erreur API, d'autorisation ou de pagination incomplète, le backend renvoie une erreur explicite plutôt qu'un total partiel présenté comme complet.
-

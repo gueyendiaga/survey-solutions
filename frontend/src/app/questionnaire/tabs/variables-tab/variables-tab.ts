@@ -1,9 +1,10 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, HostListener, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import type { EChartsCoreOption } from 'echarts/core';
 import {
   HeadquartersInterviewAction,
+  InterviewAnswer,
   QuestionAnalytics,
   QuestionSummary
 } from '../../../core/models/dashboard.models';
@@ -13,7 +14,7 @@ import { CompletenessStatusComponent } from '../../../shared/components/complete
 import { DashboardChartComponent } from '../../../shared/components/dashboard-chart/dashboard-chart';
 import { isSensitiveQuestion, statusList, typeLabel } from '../../../shared/utils/labels';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state';
-import { apiErrorMessage } from '../../../shared/utils/http-utils';
+import { apiErrorMessage, blobErrorDetail, saveFile } from '../../../shared/utils/http-utils';
 import { QuestionnaireStore } from '../../questionnaire.store';
 
 interface InterviewReviewRow {
@@ -45,6 +46,12 @@ export class VariablesTabComponent {
   protected readonly savingAction = signal(false);
   protected readonly actionError = signal<string | null>(null);
   protected readonly actionSuccess = signal<string | null>(null);
+  protected readonly transcriptError = signal<string | null>(null);
+  protected readonly downloadingTranscript = signal<string | null>(null);
+  protected readonly detailInterview = signal<InterviewReviewRow | null>(null);
+  protected readonly interviewAnswers = signal<InterviewAnswer[]>([]);
+  protected readonly interviewDetailsLoading = signal(false);
+  protected readonly interviewDetailsError = signal<string | null>(null);
   protected comment = '';
 
   protected interviews(analytics: QuestionAnalytics): InterviewReviewRow[] {
@@ -71,6 +78,96 @@ export class VariablesTabComponent {
 
   protected canApproveOrReject(status: string): boolean {
     return status === 'Completed' || status === 'ApprovedBySupervisor';
+  }
+
+  protected downloadTranscript(interview: InterviewReviewRow): void {
+    if (this.downloadingTranscript()) {
+      return;
+    }
+
+    this.downloadingTranscript.set(interview.interviewId);
+    this.transcriptError.set(null);
+    this.api.interviewTranscript(interview.interviewId).subscribe({
+      next: (file) => {
+        this.downloadingTranscript.set(null);
+        const key = (interview.interviewKey ?? interview.interviewId).replace(/[^a-zA-Z0-9._-]+/g, '-');
+        saveFile(file, `interview-${key}.pdf`);
+      },
+      error: (error: unknown) => {
+        this.downloadingTranscript.set(null);
+        this.transcriptError.set(apiErrorMessage(error, 'La transcription PDF n’a pas pu être téléchargée.'));
+        void blobErrorDetail(error).then((detail) => detail && this.transcriptError.set(detail));
+      }
+    });
+  }
+
+  protected openInterviewDetails(interview: InterviewReviewRow): void {
+    this.detailInterview.set(interview);
+    this.interviewAnswers.set([]);
+    this.interviewDetailsError.set(null);
+    this.interviewDetailsLoading.set(true);
+    this.api.interviewAnswers(interview.interviewId).subscribe({
+      next: (details) => {
+        if (this.detailInterview()?.interviewId === interview.interviewId) {
+          this.interviewAnswers.set(details.answers ?? []);
+          this.interviewDetailsLoading.set(false);
+        }
+      },
+      error: (error: unknown) => {
+        if (this.detailInterview()?.interviewId === interview.interviewId) {
+          this.interviewDetailsLoading.set(false);
+          this.interviewDetailsError.set(apiErrorMessage(error, 'Les réponses de cette interview ne sont pas disponibles.'));
+        }
+      }
+    });
+  }
+
+  protected closeInterviewDetails(): void {
+    this.detailInterview.set(null);
+    this.interviewDetailsError.set(null);
+  }
+
+  protected answerQuestion(answer: InterviewAnswer): QuestionSummary | undefined {
+    return this.store.questions().find((question) => question.variableName === answer.variableName);
+  }
+
+  protected displayValue(value: unknown): string {
+    if (value === null || value === undefined || value === '') {
+      return '—';
+    }
+    if (Array.isArray(value)) {
+      return value.map((item) => this.displayValue(item)).join(', ');
+    }
+    if (typeof value === 'object') {
+      return Object.entries(value as Record<string, unknown>)
+        .map(([key, item]) => `${this.fieldLabel(key)} : ${this.displayValue(item)}`)
+        .join(' · ');
+    }
+    return String(value);
+  }
+
+  protected objectEntries(value: Record<string, unknown>): { key: string; value: unknown }[] {
+    return Object.entries(value).map(([key, item]) => ({ key, value: item }));
+  }
+
+  protected fieldLabel(field: string): string {
+    const labels: Record<string, string> = {
+      QuestionId: 'Identifiant de question',
+      Id: 'Identifiant',
+      RosterVector: 'Ligne de tableau',
+      VariableName: 'Variable',
+      Answer: 'Réponse'
+    };
+    return labels[field] ?? field
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+      .replace(/^./, (letter) => letter.toLocaleUpperCase('fr'));
+  }
+
+  @HostListener('document:keydown.escape')
+  protected closeDetailsOnEscape(): void {
+    if (this.detailInterview()) {
+      this.closeInterviewDetails();
+    }
   }
 
   protected openAction(interview: InterviewReviewRow, action: HeadquartersInterviewAction): void {

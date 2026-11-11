@@ -175,6 +175,9 @@
                 <div><h2>Revue des interviews</h2><p>Une ligne par interview ayant une réponse à cette variable</p></div>
                 <span class="count">{{ interviews(analytics).length }} interview(s)</span>
               </div>
+              @if (transcriptError(); as message) {
+                <section class="alert action-feedback" role="alert">{{ message }}</section>
+              }
               <div class="table-scroll">
                 <table class="data">
                   <thead><tr><th class="l">Clé HQ</th><th class="l">Statut</th><th class="l">Actions</th></tr></thead>
@@ -193,6 +196,15 @@
                             } @else {
                               <span class="hint">Aucune action disponible</span>
                             }
+                            <button type="button" class="review-button details" (click)="openInterviewDetails(interview)">Détail</button>
+                            <button
+                              type="button"
+                              class="review-button transcript"
+                              [disabled]="!!downloadingTranscript()"
+                              [attr.aria-busy]="downloadingTranscript() === interview.interviewId"
+                              (click)="downloadTranscript(interview)">
+                              {{ downloadingTranscript() === interview.interviewId ? 'Téléchargement…' : 'Transcription PDF' }}
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -256,5 +268,61 @@
         </section>
       </div>
     }
+  </div>
+}
+
+@if (detailInterview(); as interview) {
+  <div class="action-backdrop details-backdrop" (click)="closeInterviewDetails()">
+    <section
+      class="action-dialog interview-details-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="interview-details-title"
+      (click)="$event.stopPropagation()">
+      <header class="details-header">
+        <div>
+          <span class="action-dialog-kicker">RÉPONSES DE L’INTERVIEW</span>
+          <h2 id="interview-details-title">{{ interview.interviewKey ?? 'Interview' }}</h2>
+        </div>
+        <button type="button" class="details-close" aria-label="Fermer" (click)="closeInterviewDetails()">×</button>
+      </header>
+
+      @if (interviewDetailsLoading()) {
+        <app-loading-state label="Chargement des réponses…" />
+      } @else if (interviewDetailsError(); as message) {
+        <section class="alert" role="alert">{{ message }}</section>
+      } @else if (interviewAnswers().length) {
+        <div class="answer-list">
+          @for (answer of interviewAnswers(); track $index) {
+            <article class="answer-card">
+              <div class="answer-pair">
+                <div>
+                  <span class="answer-variable">{{ answer.variableName || 'Question' }}</span>
+                  <h3 [innerHTML]="answerQuestion(answer)?.questionText || answerQuestion(answer)?.label || answer.variableName || 'Question sans libellé'"></h3>
+                </div>
+                <p>{{ displayValue(answer.answer) }}</p>
+              </div>
+              @if (answer.additionalFields; as fields) {
+                @if (objectEntries(fields).length) {
+                  <dl class="answer-metadata">
+                    @for (field of objectEntries(fields); track field.key) {
+                      <div>
+                        <dt>{{ fieldLabel(field.key) }}</dt>
+                        <dd>{{ displayValue(field.value) }}</dd>
+                      </div>
+                    }
+                  </dl>
+                }
+              }
+            </article>
+          }
+        </div>
+      } @else {
+        <p class="empty">Aucune réponse n’a été renvoyée pour cette interview.</p>
+      }
+      <footer class="details-footer">
+        <button type="button" class="btn" (click)="closeInterviewDetails()">Fermer</button>
+      </footer>
+    </section>
   </div>
 }
