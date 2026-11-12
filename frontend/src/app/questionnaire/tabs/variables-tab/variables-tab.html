@@ -1,39 +1,39 @@
 @if (store.questionsError() || store.analyticsError(); as message) {
-  <section class="alert" role="alert">
-    <div><strong>Analyse indisponible</strong><p>{{ message }}</p></div>
-    <button type="button" class="btn" (click)="retry()">Réessayer</button>
+  <section class="alert [display:flex] [flex-wrap:wrap] [gap:12px] [align-items:center] [justify-content:space-between] [margin-bottom:16px] [padding:14px_18px] [border:1px_solid_#f2c46d] [border-radius:12px] [background:var(--ochre-soft)] [color:var(--ochre-text)]" role="alert">
+    <div><strong>Analyse indisponible</strong><p class="[.alert_&]:[margin:2px_0_0]">{{ message }}</p></div>
+    <button type="button" class="btn [display:inline-flex] [align-items:center] [justify-content:center] [gap:8px] [min-height:40px] [padding:0_14px] [border:1px_solid_var(--control)] [border-radius:10px] [background:var(--surface)] [color:var(--text)] [font-size:var(--fs-body)] [font-weight:500] [white-space:nowrap] [transition:border-color_140ms_ease,_background_140ms_ease,_color_140ms_ease,_box-shadow_140ms_ease,_transform_140ms_ease] [&:hover:not(:disabled)]:[border-color:#b8c1cf] [&:hover:not(:disabled)]:[background:#f8f9fc] [&:hover:not(:disabled)]:[box-shadow:0_2px_5px_rgba(27,_39,_73,_0.06)] [&:active:not(:disabled)]:[transform:translateY(1px)] [&:disabled]:[cursor:default] [&:disabled]:[opacity:0.55] [&.primary]:[border-color:var(--primary)] [&.primary]:[background:var(--primary)] [&.primary]:[color:#fff] [&.primary:hover:not(:disabled)]:[border-color:var(--primary-hover)] [&.primary:hover:not(:disabled)]:[background:var(--primary-hover)] [&.small]:[min-height:34px] [&.small]:[padding:0_12px] [&.small]:[font-size:var(--fs-small)] [text-decoration:none]" (click)="retry()">Réessayer</button>
   </section>
 }
 @if (store.questionsLoading() && !store.questions().length) {
   <app-loading-state label="Lecture des variables du questionnaire…" [importing]="!!store.syncStatus()?.inProgress" />
 } @else if (!store.questions().length && !store.questionsError()) {
-  <p class="card empty">Aucune variable analysable n’a été renvoyée pour cette version du questionnaire.</p>
+  <p class="card empty [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px] [margin:0] [padding:28px_24px] [color:var(--text-2)] [text-align:center]">Aucune variable analysable n’a été renvoyée pour cette version du questionnaire.</p>
 } @else {
-  <div class="explorer">
-    <section class="card list-card" aria-label="Liste des variables">
-      <div class="list-head">
-        <label class="search">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
-          <span class="sr-only">Rechercher une variable</span>
-          <input type="search" placeholder="Rechercher une variable" [ngModel]="store.variableSearch()" (ngModelChange)="store.variableSearch.set($event)" />
+  <div class="explorer [display:grid] [grid-template-columns:minmax(260px,_330px)_minmax(0,_1fr)] [gap:16px] [align-items:start] [@media(max-width:1100px)]:[grid-template-columns:minmax(0,_1fr)]">
+    <section class="card list-card [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px] [position:sticky] [top:172px] [overflow:hidden] [@media(max-width:1100px)]:[position:static]" aria-label="Liste des variables">
+      <div class="list-head [display:flex] [flex-direction:column] [gap:12px] [padding:16px_18px] [border-bottom:1px_solid_var(--line-2)]">
+        <label class="search [display:flex] [flex:1_1_220px] [max-width:420px] [align-items:center] [gap:8px] [min-height:40px] [padding:0_12px] [border:1px_solid_#e1e6ee] [border-radius:10px] [background:#f8fafc] [color:var(--text-2)] [&:focus-within]:[border-color:var(--primary-line)] [&:focus-within]:[background:#fff] [.list-head_&]:[flex:none] [.list-head_&]:[max-width:none]">
+          <svg viewBox="0 0 24 24" aria-hidden="true" class="[.search_&]:[width:18px] [.search_&]:[height:18px] [.search_&]:[flex-shrink:0] [.search_&]:[fill:none] [.search_&]:[stroke:currentColor] [.search_&]:[stroke-width:1.8] [.search_&]:[stroke-linecap:round] [.search_&]:[stroke-linejoin:round] [.search_&]:[width:16px] [.search_&]:[height:16px]"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+          <span class="sr-only [position:absolute] [width:1px] [height:1px] [overflow:hidden] [clip:rect(0,_0,_0,_0)] [white-space:nowrap] [clip-path:inset(50%)]">Rechercher une variable</span>
+          <input type="search" placeholder="Rechercher une variable" [ngModel]="store.variableSearch()" (ngModelChange)="store.variableSearch.set($event)"  class="[.search_&]:[flex:1] [.search_&]:[min-width:0] [.search_&]:[border:0] [.search_&]:[background:transparent] [.search_&]:[color:var(--text)] [.search_&]:[outline:none] [.search_&]:[font-size:var(--fs-body)]"/>
         </label>
-        <div class="type-chips" role="group" aria-label="Type de question">
-          <button type="button" class="chip" [class.set]="store.variableType() === 'all'" [attr.aria-pressed]="store.variableType() === 'all'" (click)="store.variableType.set('all')">Toutes {{ store.questions().length }}</button>
+        <div class="type-chips [display:flex] [flex-wrap:wrap] [gap:6px]" role="group" aria-label="Type de question">
+          <button type="button" class="chip [display:inline-flex] [align-items:center] [gap:8px] [min-height:36px] [padding:0_12px] [border:1px_solid_var(--control)] [border-radius:999px] [background:var(--surface)] [color:#374151] [font-size:var(--fs-small)] [font-weight:500] [white-space:nowrap] [&:hover]:[border-color:#b8c1cf] [&.set]:[border-color:var(--primary-line)] [&.set]:[background:var(--primary-soft)] [&.set]:[color:var(--primary-hover)] [.type-chips_&]:[min-height:30px]" [class.set]="store.variableType() === 'all'" [attr.aria-pressed]="store.variableType() === 'all'" (click)="store.variableType.set('all')">Toutes {{ store.questions().length }}</button>
           @for (kind of store.variableKinds(); track kind.kind) {
-            <button type="button" class="chip" [class.set]="store.variableType() === kind.kind" [attr.aria-pressed]="store.variableType() === kind.kind" (click)="store.variableType.set(kind.kind)">{{ kind.label }} {{ kind.count }}</button>
+            <button type="button" class="chip [display:inline-flex] [align-items:center] [gap:8px] [min-height:36px] [padding:0_12px] [border:1px_solid_var(--control)] [border-radius:999px] [background:var(--surface)] [color:#374151] [font-size:var(--fs-small)] [font-weight:500] [white-space:nowrap] [&:hover]:[border-color:#b8c1cf] [&.set]:[border-color:var(--primary-line)] [&.set]:[background:var(--primary-soft)] [&.set]:[color:var(--primary-hover)] [.type-chips_&]:[min-height:30px]" [class.set]="store.variableType() === kind.kind" [attr.aria-pressed]="store.variableType() === kind.kind" (click)="store.variableType.set(kind.kind)">{{ kind.label }} {{ kind.count }}</button>
           }
         </div>
       </div>
-      <div class="question-list">
+      <div class="question-list [max-height:calc(100vh_-_380px)] [overflow-y:auto] [@media(max-width:1100px)]:[max-height:340px]">
         @for (question of store.filteredQuestions(); track question.variableName) {
           <button
-            class="question-list-item"
+            class="question-list-item [display:flex] [width:100%] [flex-direction:column] [gap:4px] [padding:14px_18px] [border:0] [border-bottom:1px_solid_var(--line-2)] [background:none] [text-align:left] [&:hover]:[background:#f8fafc] [&.selected]:[background:var(--primary-soft)] [&.selected]:[box-shadow:inset_3px_0_0_var(--primary)]"
             [class.selected]="store.selectedQuestion()?.variableName === question.variableName"
             [attr.aria-current]="store.selectedQuestion()?.variableName === question.variableName ? 'true' : null"
             type="button"
             (click)="store.selectQuestion(question)">
-            <span class="row-top"><span class="mono strong">{{ question.variableName }}</span><span class="hint">{{ typeLabel(question) }}</span></span>
-            <span class="row-label" [innerHTML]="question.questionText || question.label || question.variableName"></span>
+            <span class="row-top [display:flex] [justify-content:space-between] [gap:8px] [align-items:center]"><span class="mono strong [font-family:var(--mono)] [font-size:var(--fs-small)] [font-weight:600] [.question-list-item.selected_&]:[color:var(--primary-hover)]">{{ question.variableName }}</span><span class="hint [color:var(--text-2)] [font-size:var(--fs-small)] [.row-top_&]:[font-size:var(--fs-caption)]">{{ typeLabel(question) }}</span></span>
+            <span class="row-label [font-size:var(--fs-body)] [line-height:1.4]" [innerHTML]="question.questionText || question.label || question.variableName"></span>
 <!--            @if (store.completenessFor(question); as item) {-->
 <!--              @if (item.answeredCount + item.missingCount > 0) {-->
 <!--                <span class="bar-cell small"><span class="track"><span class="fill" [class.warn]="item.responseRate < 80" [style.width.%]="item.responseRate"></span></span>{{ item.responseRate | number: '1.0-0' : 'fr-FR' }} %</span>-->
@@ -41,38 +41,38 @@
 <!--            }-->
           </button>
         } @empty {
-          <p class="empty">Aucune variable ne correspond.</p>
+          <p class="empty [margin:0] [padding:28px_24px] [color:var(--text-2)] [text-align:center]">Aucune variable ne correspond.</p>
         }
       </div>
     </section>
 
-    <div class="detail">
+    <div class="detail [min-width:0]">
       @if (actionSuccess(); as message) {
-        <section class="alert action-feedback action-success" role="status">{{ message }}</section>
+        <section class="alert action-feedback action-success [display:flex] [flex-wrap:wrap] [gap:12px] [align-items:center] [justify-content:space-between] [margin-bottom:16px] [padding:14px_18px] [border:1px_solid_#f2c46d] [border-radius:12px] [background:var(--ochre-soft)] [color:var(--ochre-text)] [margin-bottom:12px] [font-size:var(--fs-small)] [border-color:#b8e4d1] [background:#f0faf5] [color:#1d714e]" role="status">{{ message }}</section>
       }
       @if (actionError(); as message) {
-        <section class="alert action-feedback" role="alert">
-          <div><strong>Action impossible</strong><p>{{ message }}</p></div>
+        <section class="alert action-feedback [display:flex] [flex-wrap:wrap] [gap:12px] [align-items:center] [justify-content:space-between] [margin-bottom:16px] [padding:14px_18px] [border:1px_solid_#f2c46d] [border-radius:12px] [background:var(--ochre-soft)] [color:var(--ochre-text)] [margin-bottom:12px] [font-size:var(--fs-small)]" role="alert">
+          <div><strong>Action impossible</strong><p class="[.alert_&]:[margin:2px_0_0]">{{ message }}</p></div>
         </section>
       }
       @if (store.selectedQuestion(); as question) {
-        <section class="card pad question-head">
-          <div class="meta-row">
-            <span class="code">{{ question.variableName }}</span>
+        <section class="card pad question-head [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px] [padding:20px_22px]">
+          <div class="meta-row [display:flex] [flex-wrap:wrap] [gap:10px] [align-items:center] [color:var(--text-2)] [font-size:var(--fs-small)]">
+            <span class="code [padding:3px_9px] [border-radius:6px] [background:#f1f4f8] [color:var(--text)] [font-family:var(--mono),_serif] [font-size:var(--fs-small)]">{{ question.variableName }}</span>
             <span>{{ typeLabel(question) }}@if (question.breadcrumbs.length) { · {{ question.breadcrumbs.join(' › ') }} }</span>
             @if (store.completenessFor(question); as item) {
               <app-completeness-status [item]="item" />
             }
           </div>
-          <h2 class="question-title" [innerHTML]="question.questionText || question.label || question.variableName"></h2>
+          <h2 class="question-title [margin-top:14px] [font-size:20px] [font-weight:600] [letter-spacing:-0.01em]" [innerHTML]="question.questionText || question.label || question.variableName"></h2>
           @if (store.analytics(); as analytics) {
-            <div class="kstrip question-kpi-grid">
-              <div><strong>{{ analytics.responseCount | number: '1.0-0' : 'fr-FR' }}</strong><span>Réponses</span></div>
-              <div><strong>{{ analytics.missingCount | number: '1.0-0' : 'fr-FR' }}</strong><span>Sans réponse</span></div>
-              <div><strong>{{ analytics.notApplicableCount | number: '1.0-0' : 'fr-FR' }}</strong><span>Non applicable</span></div>
-              <div><strong class="accent">{{ analytics.responseRate | number: '1.0-1' : 'fr-FR' }} %</strong><span>Taux de réponse</span></div>
+            <div class="kstrip question-kpi-grid [display:grid] [grid-template-columns:repeat(auto-fit,_minmax(120px,_1fr))] [margin:18px_0_8px] [border-top:1px_solid_var(--line-2)] [&.flush]:[margin:0] [&.flush]:[border-top:0]">
+              <div class="[.kstrip_&]:[display:flex] [.kstrip_&]:[flex-direction:column] [.kstrip_&]:[gap:4px] [.kstrip_&]:[padding:14px_18px] [.kstrip_&]:[border-left:1px_solid_var(--line-2)] [.kstrip_:first-child]:[padding-left:0] [.kstrip_:first-child]:[border-left:0]"><strong class="[.kstrip_&]:[font-size:24px] [.kstrip_&]:[font-weight:700] [.kstrip_&]:[letter-spacing:-0.02em] [.kstrip_&]:[font-variant-numeric:tabular-nums]">{{ analytics.responseCount | number: '1.0-0' : 'fr-FR' }}</strong><span class="[.kstrip_&]:[color:var(--text-2)] [.kstrip_&]:[font-size:var(--fs-small)]">Réponses</span></div>
+              <div class="[.kstrip_&]:[display:flex] [.kstrip_&]:[flex-direction:column] [.kstrip_&]:[gap:4px] [.kstrip_&]:[padding:14px_18px] [.kstrip_&]:[border-left:1px_solid_var(--line-2)] [.kstrip_:first-child]:[padding-left:0] [.kstrip_:first-child]:[border-left:0]"><strong class="[.kstrip_&]:[font-size:24px] [.kstrip_&]:[font-weight:700] [.kstrip_&]:[letter-spacing:-0.02em] [.kstrip_&]:[font-variant-numeric:tabular-nums]">{{ analytics.missingCount | number: '1.0-0' : 'fr-FR' }}</strong><span class="[.kstrip_&]:[color:var(--text-2)] [.kstrip_&]:[font-size:var(--fs-small)]">Sans réponse</span></div>
+              <div class="[.kstrip_&]:[display:flex] [.kstrip_&]:[flex-direction:column] [.kstrip_&]:[gap:4px] [.kstrip_&]:[padding:14px_18px] [.kstrip_&]:[border-left:1px_solid_var(--line-2)] [.kstrip_:first-child]:[padding-left:0] [.kstrip_:first-child]:[border-left:0]"><strong class="[.kstrip_&]:[font-size:24px] [.kstrip_&]:[font-weight:700] [.kstrip_&]:[letter-spacing:-0.02em] [.kstrip_&]:[font-variant-numeric:tabular-nums]">{{ analytics.notApplicableCount | number: '1.0-0' : 'fr-FR' }}</strong><span class="[.kstrip_&]:[color:var(--text-2)] [.kstrip_&]:[font-size:var(--fs-small)]">Non applicable</span></div>
+              <div class="[.kstrip_&]:[display:flex] [.kstrip_&]:[flex-direction:column] [.kstrip_&]:[gap:4px] [.kstrip_&]:[padding:14px_18px] [.kstrip_&]:[border-left:1px_solid_var(--line-2)] [.kstrip_:first-child]:[padding-left:0] [.kstrip_:first-child]:[border-left:0]"><strong class="accent [.kstrip_&]:[color:var(--primary)] [.kstrip_&]:[font-size:24px] [.kstrip_&]:[font-weight:700] [.kstrip_&]:[letter-spacing:-0.02em] [.kstrip_&]:[font-variant-numeric:tabular-nums]">{{ analytics.responseRate | number: '1.0-1' : 'fr-FR' }} %</strong><span class="[.kstrip_&]:[color:var(--text-2)] [.kstrip_&]:[font-size:var(--fs-small)]">Taux de réponse</span></div>
             </div>
-            <p class="hint">
+            <p class="hint [color:var(--text-2)] [font-size:var(--fs-small)] [.question-head_&]:[margin:0]">
               {{ analytics.interviewCount | number: '1.0-0' : 'fr-FR' }} interview(s) · {{ statusList(analytics.includedStatuses) }}
               @if (analytics.excludedInterviewCount) {
                 · {{ analytics.excludedInterviewCount | number: '1.0-0' : 'fr-FR' }} exclue(s)
@@ -87,22 +87,22 @@
           <app-loading-state label="Import des données en cours…" [importing]="!!store.syncStatus()?.inProgress" />
         } @else if (store.analytics(); as analytics) {
           @if (analytics.mean !== null) {
-            <section class="card pad">
-              <div class="kstrip flush">
-                <div><strong>{{ analytics.mean | number: '1.0-2' : 'fr-FR' }}</strong><span>Moyenne</span></div>
-                <div><strong>{{ analytics.median | number: '1.0-2' : 'fr-FR' }}</strong><span>Médiane</span></div>
-                <div><strong>{{ analytics.minimum | number: '1.0-2' : 'fr-FR' }} – {{ analytics.maximum | number: '1.0-2' : 'fr-FR' }}</strong><span>Minimum – maximum</span></div>
-                <div><strong>{{ analytics.percentile05 | number: '1.0-2' : 'fr-FR' }} – {{ analytics.percentile95 | number: '1.0-2' : 'fr-FR' }}</strong><span>P5 – P95</span></div>
+            <section class="card pad [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px] [padding:20px_22px]">
+              <div class="kstrip flush [display:grid] [grid-template-columns:repeat(auto-fit,_minmax(120px,_1fr))] [margin:18px_0_8px] [border-top:1px_solid_var(--line-2)] [&.flush]:[margin:0] [&.flush]:[border-top:0]">
+                <div class="[.kstrip_&]:[display:flex] [.kstrip_&]:[flex-direction:column] [.kstrip_&]:[gap:4px] [.kstrip_&]:[padding:14px_18px] [.kstrip_&]:[border-left:1px_solid_var(--line-2)] [.kstrip_:first-child]:[padding-left:0] [.kstrip_:first-child]:[border-left:0]"><strong class="[.kstrip_&]:[font-size:24px] [.kstrip_&]:[font-weight:700] [.kstrip_&]:[letter-spacing:-0.02em] [.kstrip_&]:[font-variant-numeric:tabular-nums]">{{ analytics.mean | number: '1.0-2' : 'fr-FR' }}</strong><span class="[.kstrip_&]:[color:var(--text-2)] [.kstrip_&]:[font-size:var(--fs-small)]">Moyenne</span></div>
+                <div class="[.kstrip_&]:[display:flex] [.kstrip_&]:[flex-direction:column] [.kstrip_&]:[gap:4px] [.kstrip_&]:[padding:14px_18px] [.kstrip_&]:[border-left:1px_solid_var(--line-2)] [.kstrip_:first-child]:[padding-left:0] [.kstrip_:first-child]:[border-left:0]"><strong class="[.kstrip_&]:[font-size:24px] [.kstrip_&]:[font-weight:700] [.kstrip_&]:[letter-spacing:-0.02em] [.kstrip_&]:[font-variant-numeric:tabular-nums]">{{ analytics.median | number: '1.0-2' : 'fr-FR' }}</strong><span class="[.kstrip_&]:[color:var(--text-2)] [.kstrip_&]:[font-size:var(--fs-small)]">Médiane</span></div>
+                <div class="[.kstrip_&]:[display:flex] [.kstrip_&]:[flex-direction:column] [.kstrip_&]:[gap:4px] [.kstrip_&]:[padding:14px_18px] [.kstrip_&]:[border-left:1px_solid_var(--line-2)] [.kstrip_:first-child]:[padding-left:0] [.kstrip_:first-child]:[border-left:0]"><strong class="[.kstrip_&]:[font-size:24px] [.kstrip_&]:[font-weight:700] [.kstrip_&]:[letter-spacing:-0.02em] [.kstrip_&]:[font-variant-numeric:tabular-nums]">{{ analytics.minimum | number: '1.0-2' : 'fr-FR' }} – {{ analytics.maximum | number: '1.0-2' : 'fr-FR' }}</strong><span class="[.kstrip_&]:[color:var(--text-2)] [.kstrip_&]:[font-size:var(--fs-small)]">Minimum – maximum</span></div>
+                <div class="[.kstrip_&]:[display:flex] [.kstrip_&]:[flex-direction:column] [.kstrip_&]:[gap:4px] [.kstrip_&]:[padding:14px_18px] [.kstrip_&]:[border-left:1px_solid_var(--line-2)] [.kstrip_:first-child]:[padding-left:0] [.kstrip_:first-child]:[border-left:0]"><strong class="[.kstrip_&]:[font-size:24px] [.kstrip_&]:[font-weight:700] [.kstrip_&]:[letter-spacing:-0.02em] [.kstrip_&]:[font-variant-numeric:tabular-nums]">{{ analytics.percentile05 | number: '1.0-2' : 'fr-FR' }} – {{ analytics.percentile95 | number: '1.0-2' : 'fr-FR' }}</strong><span class="[.kstrip_&]:[color:var(--text-2)] [.kstrip_&]:[font-size:var(--fs-small)]">P5 – P95</span></div>
               </div>
             </section>
           }
 
           @if (analytics.distribution.length && !isSensitiveQuestion(analytics.question)) {
-            <section class="card pad">
-              <div class="card-head">
+            <section class="card pad [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px] [padding:20px_22px]">
+              <div class="card-head [display:flex] [flex-wrap:wrap] [gap:12px] [align-items:center] [justify-content:space-between] [.card.pad_&]:[margin-bottom:14px]">
                 <div>
                   <h2>{{ analytics.mean !== null ? 'Distribution des valeurs' : 'Répartition des réponses' }}</h2>
-                  <p>
+                  <p class="[.card-head_&]:[margin:4px_0_0] [.card-head_&]:[color:var(--text-2)] [.card-head_&]:[font-size:var(--fs-small)]">
                     @if (analytics.percentageBase === 'RESPONDENTS') {
                       Choix multiples : part des réponses ayant coché chaque modalité ; le total peut dépasser 100 %
                     } @else {
@@ -110,35 +110,35 @@
                     }
                   </p>
                 </div>
-                <div class="chart-tools">
-                  <div class="tools" role="group" aria-label="Type de graphique">
-                    <button type="button" class="tool" [class.on]="store.chartType() === 'bar'" [attr.aria-pressed]="store.chartType() === 'bar'" aria-label="Afficher un graphique en barres" title="Graphique en barres" (click)="store.chartType.set('bar')">
-                      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 14V8h3v6H2Zm4.5 0V3h3v11h-3Zm4.5 0V6h3v8h-3Z" /></svg>
+                <div class="chart-tools [display:flex] [gap:8px] [align-items:center]">
+                  <div class="tools [display:inline-flex] [align-items:center] [gap:2px] [padding:3px] [border-radius:10px] [background:#f1f4f8]" role="group" aria-label="Type de graphique">
+                    <button type="button" class="tool [display:inline-flex] [width:36px] [height:34px] [align-items:center] [justify-content:center] [border:0] [border-radius:8px] [background:transparent] [color:var(--text-2)] [&:hover]:[color:var(--text)] [&.on]:[background:#fff] [&.on]:[color:var(--primary)] [&.on]:[box-shadow:0_1px_2px_rgba(16,_24,_40,_0.12)]" [class.on]="store.chartType() === 'bar'" [attr.aria-pressed]="store.chartType() === 'bar'" aria-label="Afficher un graphique en barres" title="Graphique en barres" (click)="store.chartType.set('bar')">
+                      <svg viewBox="0 0 16 16" aria-hidden="true" class="[.tool_&]:[width:16px] [.tool_&]:[height:16px] [.tool_&]:[fill:currentColor]"><path d="M2 14V8h3v6H2Zm4.5 0V3h3v11h-3Zm4.5 0V6h3v8h-3Z" /></svg>
                     </button>
-                    <button type="button" class="tool" [class.on]="store.chartType() === 'horizontalBar'" [attr.aria-pressed]="store.chartType() === 'horizontalBar'" aria-label="Afficher un graphique en barres horizontales" title="Graphique en barres horizontales" (click)="store.chartType.set('horizontalBar')">
-                      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2h6v3H2V2Zm0 4.5h11v3H2v-3ZM2 11h8v3H2v-3Z" /></svg>
+                    <button type="button" class="tool [display:inline-flex] [width:36px] [height:34px] [align-items:center] [justify-content:center] [border:0] [border-radius:8px] [background:transparent] [color:var(--text-2)] [&:hover]:[color:var(--text)] [&.on]:[background:#fff] [&.on]:[color:var(--primary)] [&.on]:[box-shadow:0_1px_2px_rgba(16,_24,_40,_0.12)]" [class.on]="store.chartType() === 'horizontalBar'" [attr.aria-pressed]="store.chartType() === 'horizontalBar'" aria-label="Afficher un graphique en barres horizontales" title="Graphique en barres horizontales" (click)="store.chartType.set('horizontalBar')">
+                      <svg viewBox="0 0 16 16" aria-hidden="true" class="[.tool_&]:[width:16px] [.tool_&]:[height:16px] [.tool_&]:[fill:currentColor]"><path d="M2 2h6v3H2V2Zm0 4.5h11v3H2v-3ZM2 11h8v3H2v-3Z" /></svg>
                     </button>
-                    <button type="button" class="tool" [class.on]="store.chartType() === 'pie'" [attr.aria-pressed]="store.chartType() === 'pie'" aria-label="Afficher un graphique circulaire" title="Graphique circulaire" (click)="store.chartType.set('pie')">
-                      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7.25 1.1A6.9 6.9 0 1 0 14.9 8H8V1.1h-.75ZM9.5 1.35V6.5h5.15A6.92 6.92 0 0 0 9.5 1.35Z" /></svg>
+                    <button type="button" class="tool [display:inline-flex] [width:36px] [height:34px] [align-items:center] [justify-content:center] [border:0] [border-radius:8px] [background:transparent] [color:var(--text-2)] [&:hover]:[color:var(--text)] [&.on]:[background:#fff] [&.on]:[color:var(--primary)] [&.on]:[box-shadow:0_1px_2px_rgba(16,_24,_40,_0.12)]" [class.on]="store.chartType() === 'pie'" [attr.aria-pressed]="store.chartType() === 'pie'" aria-label="Afficher un graphique circulaire" title="Graphique circulaire" (click)="store.chartType.set('pie')">
+                      <svg viewBox="0 0 16 16" aria-hidden="true" class="[.tool_&]:[width:16px] [.tool_&]:[height:16px] [.tool_&]:[fill:currentColor]"><path d="M7.25 1.1A6.9 6.9 0 1 0 14.9 8H8V1.1h-.75ZM9.5 1.35V6.5h5.15A6.92 6.92 0 0 0 9.5 1.35Z" /></svg>
                     </button>
                   </div>
-                  <div class="tools">
-                    <button type="button" class="tool" aria-label="Télécharger le graphique en PNG" title="Télécharger le graphique en PNG" (click)="answerChart.download()">
-                      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7 1h2v7l2.5-2.5L13 7l-5 5-5-5 1.5-1.5L7 8V1ZM2 13h12v2H2v-2Z" /></svg>
+                  <div class="tools [display:inline-flex] [align-items:center] [gap:2px] [padding:3px] [border-radius:10px] [background:#f1f4f8]">
+                    <button type="button" class="tool [display:inline-flex] [width:36px] [height:34px] [align-items:center] [justify-content:center] [border:0] [border-radius:8px] [background:transparent] [color:var(--text-2)] [&:hover]:[color:var(--text)] [&.on]:[background:#fff] [&.on]:[color:var(--primary)] [&.on]:[box-shadow:0_1px_2px_rgba(16,_24,_40,_0.12)]" aria-label="Télécharger le graphique en PNG" title="Télécharger le graphique en PNG" (click)="answerChart.download()">
+                      <svg viewBox="0 0 16 16" aria-hidden="true" class="[.tool_&]:[width:16px] [.tool_&]:[height:16px] [.tool_&]:[fill:currentColor]"><path d="M7 1h2v7l2.5-2.5L13 7l-5 5-5-5 1.5-1.5L7 8V1ZM2 13h12v2H2v-2Z" /></svg>
                     </button>
                   </div>
                 </div>
               </div>
               <app-dashboard-chart #answerChart [options]="chartOptions(analytics)" [height]="320" [downloadFilename]="'repartition-' + analytics.question.variableName" />
-              <div class="table-scroll distribution-table flush">
-                <table class="data">
-                  <thead><tr><th class="l">{{ analytics.mean !== null ? 'Intervalle' : 'Modalité' }}</th><th>Effectif</th><th>%</th></tr></thead>
+              <div class="table-scroll distribution-table flush [overflow-x:auto] [&.tall]:[max-height:440px] [&.tall]:[overflow-y:auto] [.card.pad_&.flush]:[margin:16px_-22px_-20px]">
+                <table class="data [width:100%] [border-collapse:collapse] [font-size:var(--fs-body)] [font-variant-numeric:tabular-nums]">
+                  <thead><tr><th class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">{{ analytics.mean !== null ? 'Intervalle' : 'Modalité' }}</th><th class="[table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Effectif</th><th class="[table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">%</th></tr></thead>
                   <tbody>
                     @for (answer of analytics.distribution; track answer.label) {
                       <tr>
-                        <td class="l wrap">{{ answer.label }}</td>
-                        <td>{{ answer.count | number: '1.0-0' : 'fr-FR' }}</td>
-                        <td>{{ answer.percentage | number: '1.0-1' : 'fr-FR' }} %</td>
+                        <td class="l !text-left wrap [table.data_&]:[text-align:left] [table.data_&]:[min-width:220px] [table.data_&]:[white-space:normal] [table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]">{{ answer.label }}</td>
+                        <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]">{{ answer.count | number: '1.0-0' : 'fr-FR' }}</td>
+                        <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]">{{ answer.percentage | number: '1.0-1' : 'fr-FR' }} %</td>
                       </tr>
                     }
                   </tbody>
@@ -146,21 +146,21 @@
               </div>
             </section>
           } @else if (!analytics.observations.length) {
-            <p class="card empty">Aucune réponse exploitable pour cette variable.</p>
+            <p class="card empty [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px] [margin:0] [padding:28px_24px] [color:var(--text-2)] [text-align:center]">Aucune réponse exploitable pour cette variable.</p>
           }
 
           @if (hasSpecialValues(analytics)) {
-            <section class="card special-values-panel">
-              <div class="card-head pad"><div><h2>Valeurs spéciales</h2><p>Codes de non-réponse exclus de la moyenne, de la médiane et des percentiles</p></div></div>
-              <div class="table-scroll">
-                <table class="data">
-                  <thead><tr><th class="l">Valeur spéciale</th><th>Effectif</th><th>% des réponses</th></tr></thead>
+            <section class="card special-values-panel [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px]">
+              <div class="card-head pad [display:flex] [flex-wrap:wrap] [gap:12px] [align-items:center] [justify-content:space-between] [padding:20px_22px]"><div><h2>Valeurs spéciales</h2><p class="[.card-head_&]:[margin:4px_0_0] [.card-head_&]:[color:var(--text-2)] [.card-head_&]:[font-size:var(--fs-small)]">Codes de non-réponse exclus de la moyenne, de la médiane et des percentiles</p></div></div>
+              <div class="table-scroll [overflow-x:auto] [&.tall]:[max-height:440px] [&.tall]:[overflow-y:auto]">
+                <table class="data [width:100%] [border-collapse:collapse] [font-size:var(--fs-body)] [font-variant-numeric:tabular-nums]">
+                  <thead><tr><th class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Valeur spéciale</th><th class="[table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Effectif</th><th class="[table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">% des réponses</th></tr></thead>
                   <tbody>
                     @for (special of analytics.specialValues; track special.label) {
                       <tr>
-                        <td class="l">{{ special.label }}</td>
-                        <td>{{ special.count | number: '1.0-0' : 'fr-FR' }}</td>
-                        <td>{{ special.percentage | number: '1.0-1' : 'fr-FR' }} %</td>
+                        <td class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]">{{ special.label }}</td>
+                        <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]">{{ special.count | number: '1.0-0' : 'fr-FR' }}</td>
+                        <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]">{{ special.percentage | number: '1.0-1' : 'fr-FR' }} %</td>
                       </tr>
                     }
                   </tbody>
@@ -170,36 +170,36 @@
           }
 
           @if (analytics.observations.length) {
-            <section class="card interview-review-card">
-              <div class="card-head pad">
-                <div><h2>Revue des interviews</h2><p>Une ligne par interview ayant une réponse à cette variable</p></div>
-                <span class="count">{{ interviews(analytics).length }} interview(s)</span>
+            <section class="card interview-review-card [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px] [overflow:hidden]">
+              <div class="card-head pad [display:flex] [flex-wrap:wrap] [gap:12px] [align-items:center] [justify-content:space-between] [padding:20px_22px] [.interview-review-card_&]:[padding:18px_22px] [.interview-review-card_&]:[border-bottom:1px_solid_var(--line-2)]">
+                <div><h2>Revue des interviews</h2><p class="[.card-head_&]:[margin:4px_0_0] [.card-head_&]:[color:var(--text-2)] [.card-head_&]:[font-size:var(--fs-small)]">Une ligne par interview ayant une réponse à cette variable</p></div>
+                <span class="count [color:var(--text-2)] [font-size:var(--fs-small)]">{{ interviews(analytics).length }} interview(s)</span>
               </div>
               @if (transcriptError(); as message) {
-                <section class="alert action-feedback" role="alert">{{ message }}</section>
+                <section class="alert action-feedback [display:flex] [flex-wrap:wrap] [gap:12px] [align-items:center] [justify-content:space-between] [margin-bottom:16px] [padding:14px_18px] [border:1px_solid_#f2c46d] [border-radius:12px] [background:var(--ochre-soft)] [color:var(--ochre-text)] [margin-bottom:12px] [font-size:var(--fs-small)]" role="alert">{{ message }}</section>
               }
-              <div class="table-scroll">
-                <table class="data">
-                  <thead><tr><th class="l">Clé HQ</th><th class="l">Statut</th><th class="l">Actions</th></tr></thead>
+              <div class="table-scroll [overflow-x:auto] [&.tall]:[max-height:440px] [&.tall]:[overflow-y:auto]">
+                <table class="data [width:100%] [border-collapse:collapse] [font-size:var(--fs-body)] [font-variant-numeric:tabular-nums]">
+                  <thead><tr><th class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Clé HQ</th><th class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Statut</th><th class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Actions</th></tr></thead>
                   <tbody>
                     @for (interview of interviews(analytics); track interview.interviewId) {
                       <tr>
-                        <td class="l mono interview-key">{{ interview.interviewKey ?? '—' }}</td>
-                        <td class="l">{{ interviewStatusLabel(interview.status) }}</td>
-                        <td class="l">
-                          <div class="review-actions">
+                        <td class="l !text-left mono interview-key [table.data_&]:[text-align:left] [font-family:var(--mono)] [font-size:var(--fs-small)] [table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [font-family:var(--mono),_serif] [font-size:var(--fs-small)]">{{ interview.interviewKey ?? '—' }}</td>
+                        <td class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]">{{ interviewStatusLabel(interview.status) }}</td>
+                        <td class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]">
+                          <div class="review-actions [display:flex] [flex-wrap:wrap] [gap:6px]">
                             @if (canApproveOrReject(interview.status)) {
-                              <button type="button" class="review-button approve" [disabled]="savingAction()" (click)="openAction(interview, 'hqapprove')">Approuver</button>
-                              <button type="button" class="review-button reject" [disabled]="savingAction()" (click)="openAction(interview, 'hqreject')">Rejeter</button>
+                              <button type="button" class="review-button approve [min-height:31px] [padding:0_10px] [border:1px_solid_var(--line)] [border-radius:8px] [background:#fff] [color:#47516a] [font-size:11px] [font-weight:600] [white-space:nowrap] [&:hover:not(:disabled)]:[background:#f8f9fc] [&:disabled]:[cursor:wait] [&:disabled]:[opacity:0.55] [&.approve]:[border-color:#b8e4d1] [&.approve]:[background:#f0faf5] [&.approve]:[color:#1d714e] [&.approve:hover:not(:disabled)]:[background:#e4f6ed] [&.reject]:[border-color:#f0d2cf] [&.reject]:[background:#fff8f7] [&.reject]:[color:#a7443e] [&.reject:hover:not(:disabled)]:[background:#fff0ee] [&.unapprove]:[border-color:#e1d8f6] [&.unapprove]:[background:#f8f6fd] [&.unapprove]:[color:#6552a2] [&.transcript]:[border-color:#d7ddec] [&.transcript]:[background:#f7f8fc] [&.transcript]:[color:#334477] [&.transcript:hover:not(:disabled)]:[border-color:#bcc7df] [&.transcript:hover:not(:disabled)]:[background:#eef1f8] [&.details]:[border-color:#d7ddec] [&.details]:[background:#fff] [&.details]:[color:var(--primary)] [&.details:hover:not(:disabled)]:[background:var(--primary-soft)]" [disabled]="savingAction()" (click)="openAction(interview, 'hqapprove')">Approuver</button>
+                              <button type="button" class="review-button reject [min-height:31px] [padding:0_10px] [border:1px_solid_var(--line)] [border-radius:8px] [background:#fff] [color:#47516a] [font-size:11px] [font-weight:600] [white-space:nowrap] [&:hover:not(:disabled)]:[background:#f8f9fc] [&:disabled]:[cursor:wait] [&:disabled]:[opacity:0.55] [&.approve]:[border-color:#b8e4d1] [&.approve]:[background:#f0faf5] [&.approve]:[color:#1d714e] [&.approve:hover:not(:disabled)]:[background:#e4f6ed] [&.reject]:[border-color:#f0d2cf] [&.reject]:[background:#fff8f7] [&.reject]:[color:#a7443e] [&.reject:hover:not(:disabled)]:[background:#fff0ee] [&.unapprove]:[border-color:#e1d8f6] [&.unapprove]:[background:#f8f6fd] [&.unapprove]:[color:#6552a2] [&.transcript]:[border-color:#d7ddec] [&.transcript]:[background:#f7f8fc] [&.transcript]:[color:#334477] [&.transcript:hover:not(:disabled)]:[border-color:#bcc7df] [&.transcript:hover:not(:disabled)]:[background:#eef1f8] [&.details]:[border-color:#d7ddec] [&.details]:[background:#fff] [&.details]:[color:var(--primary)] [&.details:hover:not(:disabled)]:[background:var(--primary-soft)]" [disabled]="savingAction()" (click)="openAction(interview, 'hqreject')">Rejeter</button>
                             } @else if (interview.status === 'ApprovedByHeadquarters') {
-                              <button type="button" class="review-button unapprove" [disabled]="savingAction()" (click)="openAction(interview, 'hqunapprove')">Inapprouver</button>
+                              <button type="button" class="review-button unapprove [min-height:31px] [padding:0_10px] [border:1px_solid_var(--line)] [border-radius:8px] [background:#fff] [color:#47516a] [font-size:11px] [font-weight:600] [white-space:nowrap] [&:hover:not(:disabled)]:[background:#f8f9fc] [&:disabled]:[cursor:wait] [&:disabled]:[opacity:0.55] [&.approve]:[border-color:#b8e4d1] [&.approve]:[background:#f0faf5] [&.approve]:[color:#1d714e] [&.approve:hover:not(:disabled)]:[background:#e4f6ed] [&.reject]:[border-color:#f0d2cf] [&.reject]:[background:#fff8f7] [&.reject]:[color:#a7443e] [&.reject:hover:not(:disabled)]:[background:#fff0ee] [&.unapprove]:[border-color:#e1d8f6] [&.unapprove]:[background:#f8f6fd] [&.unapprove]:[color:#6552a2] [&.transcript]:[border-color:#d7ddec] [&.transcript]:[background:#f7f8fc] [&.transcript]:[color:#334477] [&.transcript:hover:not(:disabled)]:[border-color:#bcc7df] [&.transcript:hover:not(:disabled)]:[background:#eef1f8] [&.details]:[border-color:#d7ddec] [&.details]:[background:#fff] [&.details]:[color:var(--primary)] [&.details:hover:not(:disabled)]:[background:var(--primary-soft)]" [disabled]="savingAction()" (click)="openAction(interview, 'hqunapprove')">Inapprouver</button>
                             } @else {
-                              <span class="hint">Aucune action disponible</span>
+                              <span class="hint [color:var(--text-2)] [font-size:var(--fs-small)]">Aucune action disponible</span>
                             }
-                            <button type="button" class="review-button details" (click)="openInterviewDetails(interview)">Détail</button>
+                            <button type="button" class="review-button details [min-height:31px] [padding:0_10px] [border:1px_solid_var(--line)] [border-radius:8px] [background:#fff] [color:#47516a] [font-size:11px] [font-weight:600] [white-space:nowrap] [&:hover:not(:disabled)]:[background:#f8f9fc] [&:disabled]:[cursor:wait] [&:disabled]:[opacity:0.55] [&.approve]:[border-color:#b8e4d1] [&.approve]:[background:#f0faf5] [&.approve]:[color:#1d714e] [&.approve:hover:not(:disabled)]:[background:#e4f6ed] [&.reject]:[border-color:#f0d2cf] [&.reject]:[background:#fff8f7] [&.reject]:[color:#a7443e] [&.reject:hover:not(:disabled)]:[background:#fff0ee] [&.unapprove]:[border-color:#e1d8f6] [&.unapprove]:[background:#f8f6fd] [&.unapprove]:[color:#6552a2] [&.transcript]:[border-color:#d7ddec] [&.transcript]:[background:#f7f8fc] [&.transcript]:[color:#334477] [&.transcript:hover:not(:disabled)]:[border-color:#bcc7df] [&.transcript:hover:not(:disabled)]:[background:#eef1f8] [&.details]:[border-color:#d7ddec] [&.details]:[background:#fff] [&.details]:[color:var(--primary)] [&.details:hover:not(:disabled)]:[background:var(--primary-soft)]" (click)="openInterviewDetails(interview)">Détail</button>
                             <button
                               type="button"
-                              class="review-button transcript"
+                              class="review-button transcript [min-height:31px] [padding:0_10px] [border:1px_solid_var(--line)] [border-radius:8px] [background:#fff] [color:#47516a] [font-size:11px] [font-weight:600] [white-space:nowrap] [&:hover:not(:disabled)]:[background:#f8f9fc] [&:disabled]:[cursor:wait] [&:disabled]:[opacity:0.55] [&.approve]:[border-color:#b8e4d1] [&.approve]:[background:#f0faf5] [&.approve]:[color:#1d714e] [&.approve:hover:not(:disabled)]:[background:#e4f6ed] [&.reject]:[border-color:#f0d2cf] [&.reject]:[background:#fff8f7] [&.reject]:[color:#a7443e] [&.reject:hover:not(:disabled)]:[background:#fff0ee] [&.unapprove]:[border-color:#e1d8f6] [&.unapprove]:[background:#f8f6fd] [&.unapprove]:[color:#6552a2] [&.transcript]:[border-color:#d7ddec] [&.transcript]:[background:#f7f8fc] [&.transcript]:[color:#334477] [&.transcript:hover:not(:disabled)]:[border-color:#bcc7df] [&.transcript:hover:not(:disabled)]:[background:#eef1f8] [&.details]:[border-color:#d7ddec] [&.details]:[background:#fff] [&.details]:[color:var(--primary)] [&.details:hover:not(:disabled)]:[background:var(--primary-soft)]"
                               [disabled]="!!downloadingTranscript()"
                               [attr.aria-busy]="downloadingTranscript() === interview.interviewId"
                               (click)="downloadTranscript(interview)">
@@ -214,20 +214,20 @@
               </div>
             </section>
 
-            <section class="card">
-              <div class="card-head pad">
+            <section class="card [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px]">
+              <div class="card-head pad [display:flex] [flex-wrap:wrap] [gap:12px] [align-items:center] [justify-content:space-between] [padding:20px_22px]">
                 <div><h2>Réponses individuelles</h2></div>
-                <span class="count">{{ analytics.observations.length }} réponse(s)</span>
+                <span class="count [color:var(--text-2)] [font-size:var(--fs-small)]">{{ analytics.observations.length }} réponse(s)</span>
               </div>
-              <div class="table-scroll tall">
-                <table class="data">
-                  <thead><tr><th class="l">Clé HQ</th><th class="l">Ligne</th><th class="l">Réponse</th></tr></thead>
+              <div class="table-scroll tall [overflow-x:auto] [&.tall]:[max-height:440px] [&.tall]:[overflow-y:auto]">
+                <table class="data [width:100%] [border-collapse:collapse] [font-size:var(--fs-body)] [font-variant-numeric:tabular-nums]">
+                  <thead><tr><th class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Clé HQ</th><th class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Ligne</th><th class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Réponse</th></tr></thead>
                   <tbody>
                     @for (observation of analytics.observations; track $index) {
                       <tr>
-                        <td class="l mono interview-key">{{ observation.interviewKey ?? '—' }}</td>
-                        <td class="l">{{ observation.rowKey || '—' }}</td>
-                        <td class="l wrap">{{ observation.value }}</td>
+                        <td class="l !text-left mono interview-key [table.data_&]:[text-align:left] [font-family:var(--mono)] [font-size:var(--fs-small)] [table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [font-family:var(--mono),_serif] [font-size:var(--fs-small)]">{{ observation.interviewKey ?? '—' }}</td>
+                        <td class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]">{{ observation.rowKey || '—' }}</td>
+                        <td class="l !text-left wrap [table.data_&]:[text-align:left] [table.data_&]:[min-width:220px] [table.data_&]:[white-space:normal] [table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]">{{ observation.value }}</td>
                       </tr>
                     }
                   </tbody>
@@ -236,31 +236,31 @@
             </section>
           }
           @if (analytics.nonNumericResponseCount) {
-            <p class="footnote">{{ analytics.nonNumericResponseCount }} réponse(s) non numériques exclues des statistiques.</p>
+            <p class="footnote [margin:12px_0_0] [color:var(--text-2)] [font-size:var(--fs-caption)] [line-height:1.5]">{{ analytics.nonNumericResponseCount }} réponse(s) non numériques exclues des statistiques.</p>
           }
         }
       } @else {
-        <p class="card empty">Sélectionnez une variable pour consulter sa distribution et ses statistiques.</p>
+        <p class="card empty [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px] [margin:0] [padding:28px_24px] [color:var(--text-2)] [text-align:center]">Sélectionnez une variable pour consulter sa distribution et ses statistiques.</p>
       }
     </div>
 
     @if (pendingAction(); as pending) {
-      <div class="action-backdrop" (click)="cancelAction()">
-        <section class="action-dialog" role="dialog" aria-modal="true" aria-labelledby="action-title" (click)="$event.stopPropagation()">
+      <div class="action-backdrop [position:fixed] [z-index:20] [inset:0] [display:grid] [align-items:center] [justify-items:center] [padding:20px] [background:rgba(18,_25,_43,_0.48)] [backdrop-filter:blur(3px)] [@media(max-width:600px)]:[padding:12px]" (click)="cancelAction()">
+        <section class="action-dialog [width:min(100%,_460px)] [padding:24px] [border:1px_solid_#e8ebf1] [border-radius:16px] [background:#fff] [box-shadow:0_24px_80px_rgba(18,_25,_43,_0.24)]" role="dialog" aria-modal="true" aria-labelledby="action-title" (click)="$event.stopPropagation()">
           <form (ngSubmit)="confirmAction()">
-            <span class="action-dialog-kicker">REVUE HQ · {{ pending.interview.interviewKey ?? 'Interview' }}</span>
-            <h2 id="action-title">{{ actionTitle(pending.action) }}</h2>
-            <p>{{ actionDescription(pending.action) }}</p>
-            <label class="comment-field">
-              Commentaire <span>(facultatif)</span>
-              <textarea name="comment" rows="3" maxlength="2000" [(ngModel)]="comment" placeholder="Ajouter un commentaire pour l’équipe terrain…"></textarea>
+            <span class="action-dialog-kicker [color:#778198] [font-size:10px] [font-weight:700] [letter-spacing:0.12em]">REVUE HQ · {{ pending.interview.interviewKey ?? 'Interview' }}</span>
+            <h2 id="action-title" class="[.action-dialog_&]:[margin-top:8px] [.action-dialog_&]:[color:#1d263b] [.action-dialog_&]:[font-size:20px] [.action-dialog_&]:[letter-spacing:-0.02em]">{{ actionTitle(pending.action) }}</h2>
+            <p class="[.action-dialog_form_&]:[margin:8px_0_18px] [.action-dialog_form_&]:[color:#68728b] [.action-dialog_form_&]:[font-size:13px]">{{ actionDescription(pending.action) }}</p>
+            <label class="comment-field [display:flex] [flex-direction:column] [gap:7px] [color:#465069] [font-size:12px] [font-weight:600]">
+              Commentaire <span class="[.comment-field_&]:[display:inline] [.comment-field_&]:[color:#9299a8] [.comment-field_&]:[font-size:11px] [.comment-field_&]:[font-weight:400]">(facultatif)</span>
+              <textarea name="comment" rows="3" maxlength="2000" [(ngModel)]="comment" placeholder="Ajouter un commentaire pour l’équipe terrain…" class="[.comment-field_&]:[min-height:88px] [.comment-field_&]:[padding:10px_12px] [.comment-field_&]:[border:1px_solid_#dfe3eb] [.comment-field_&]:[border-radius:9px] [.comment-field_&]:[resize:vertical] [.comment-field_&]:[font-size:13px]"></textarea>
             </label>
             @if (actionError(); as message) {
-              <p class="dialog-error" role="alert">{{ message }}</p>
+              <p class="dialog-error [margin:10px_0_0] [color:#a7443e] [font-size:12px] [.action-dialog_form_&]:[margin:8px_0_18px] [.action-dialog_form_&]:[color:#68728b] [.action-dialog_form_&]:[font-size:13px]" role="alert">{{ message }}</p>
             }
-            <div class="action-dialog-footer">
-              <button type="button" class="btn" [disabled]="savingAction()" (click)="cancelAction()">Annuler</button>
-              <button type="submit" class="btn action-confirm" [class.danger]="pending.action === 'hqreject'" [disabled]="savingAction()">
+            <div class="action-dialog-footer [display:flex] [justify-content:flex-end] [gap:8px] [margin-top:20px]">
+              <button type="button" class="btn [display:inline-flex] [align-items:center] [justify-content:center] [gap:8px] [min-height:40px] [padding:0_14px] [border:1px_solid_var(--control)] [border-radius:10px] [background:var(--surface)] [color:var(--text)] [font-size:var(--fs-body)] [font-weight:500] [white-space:nowrap] [transition:border-color_140ms_ease,_background_140ms_ease,_color_140ms_ease,_box-shadow_140ms_ease,_transform_140ms_ease] [&:hover:not(:disabled)]:[border-color:#b8c1cf] [&:hover:not(:disabled)]:[background:#f8f9fc] [&:hover:not(:disabled)]:[box-shadow:0_2px_5px_rgba(27,_39,_73,_0.06)] [&:active:not(:disabled)]:[transform:translateY(1px)] [&:disabled]:[cursor:default] [&:disabled]:[opacity:0.55] [&.primary]:[border-color:var(--primary)] [&.primary]:[background:var(--primary)] [&.primary]:[color:#fff] [&.primary:hover:not(:disabled)]:[border-color:var(--primary-hover)] [&.primary:hover:not(:disabled)]:[background:var(--primary-hover)] [&.small]:[min-height:34px] [&.small]:[padding:0_12px] [&.small]:[font-size:var(--fs-small)] [text-decoration:none] [.action-dialog-footer_&]:[min-height:38px] [.action-dialog-footer_&]:[font-size:12px]" [disabled]="savingAction()" (click)="cancelAction()">Annuler</button>
+              <button type="submit" class="btn action-confirm [display:inline-flex] [align-items:center] [justify-content:center] [gap:8px] [min-height:40px] [padding:0_14px] [border:1px_solid_var(--control)] [border-radius:10px] [background:var(--surface)] [color:var(--text)] [font-size:var(--fs-body)] [font-weight:500] [white-space:nowrap] [transition:border-color_140ms_ease,_background_140ms_ease,_color_140ms_ease,_box-shadow_140ms_ease,_transform_140ms_ease] [&:hover:not(:disabled)]:[border-color:#b8c1cf] [&:hover:not(:disabled)]:[background:#f8f9fc] [&:hover:not(:disabled)]:[box-shadow:0_2px_5px_rgba(27,_39,_73,_0.06)] [&:active:not(:disabled)]:[transform:translateY(1px)] [&:disabled]:[cursor:default] [&:disabled]:[opacity:0.55] [&.primary]:[border-color:var(--primary)] [&.primary]:[background:var(--primary)] [&.primary]:[color:#fff] [&.primary:hover:not(:disabled)]:[border-color:var(--primary-hover)] [&.primary:hover:not(:disabled)]:[background:var(--primary-hover)] [&.small]:[min-height:34px] [&.small]:[padding:0_12px] [&.small]:[font-size:var(--fs-small)] [text-decoration:none] [.action-dialog-footer_&]:[min-height:38px] [.action-dialog-footer_&]:[font-size:12px] [border-color:#3450bd] [background:#3450bd] [color:#fff] [font-weight:600] [&:hover:not(:disabled)]:[border-color:#273f9f] [&:hover:not(:disabled)]:[background:#273f9f] [&.danger]:[border-color:#b74f49] [&.danger]:[background:#b74f49] [&.danger:hover:not(:disabled)]:[border-color:#9d3e38] [&.danger:hover:not(:disabled)]:[background:#9d3e38]" [class.danger]="pending.action === 'hqreject'" [disabled]="savingAction()">
                 {{ savingAction() ? 'Envoi en cours…' : actionTitle(pending.action) }}
               </button>
             </div>
@@ -272,50 +272,50 @@
 }
 
 @if (detailInterview(); as interview) {
-  <div class="action-backdrop details-backdrop" (click)="closeInterviewDetails()">
+  <div class="action-backdrop details-backdrop [position:fixed] [z-index:20] [inset:0] [display:grid] [align-items:center] [justify-items:center] [padding:20px] [background:rgba(18,_25,_43,_0.48)] [backdrop-filter:blur(3px)] [@media(max-width:600px)]:[padding:12px] [z-index:30] [background:rgba(15,_23,_42,_0.58)] [backdrop-filter:blur(7px)]" (click)="closeInterviewDetails()">
     <section
-      class="action-dialog interview-details-dialog"
+      class="action-dialog interview-details-dialog [width:min(100%,_460px)] [padding:24px] [border:1px_solid_#e8ebf1] [border-radius:16px] [background:#fff] [box-shadow:0_24px_80px_rgba(18,_25,_43,_0.24)] [display:flex] [width:min(100%,_900px)] [max-height:min(88vh,_900px)] [flex-direction:column] [padding:0] [overflow:hidden] [border-color:#e0e6f0] [border-radius:20px] [box-shadow:0_32px_100px_rgba(18,_25,_43,_0.3)] [@media(max-width:600px)]:[max-height:90vh]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="interview-details-title"
       (click)="$event.stopPropagation()">
-      <header class="details-header">
+      <header class="details-header [display:flex] [flex:0_0_auto] [align-items:flex-start] [justify-content:space-between] [gap:16px] [padding:24px_28px_20px] [border-bottom:1px_solid_#e6eaf2] [background:radial-gradient(ellipse_at_100%_0,_rgba(91,_112,_213,_0.1),_transparent_42%),_linear-gradient(135deg,_#fbfcff,_#f4f6fc)] [@media(max-width:600px)]:[padding:18px_17px_15px]">
         <div>
-          <span class="action-dialog-kicker">RÉPONSES DE L’INTERVIEW</span>
-          <h2 id="interview-details-title">{{ interview.interviewKey ?? 'Interview' }}</h2>
-          <p class="details-explanation">Le nom de la ligne du tableau remplace « %rostertitle% » dans les questions lorsqu’il est disponible.</p>
+          <span class="action-dialog-kicker [color:#778198] [font-size:10px] [font-weight:700] [letter-spacing:0.12em] [.details-header_&]:[display:inline-flex] [.details-header_&]:[padding:5px_8px] [.details-header_&]:[border:1px_solid_#e0e6f4] [.details-header_&]:[border-radius:6px] [.details-header_&]:[background:rgba(255,_255,_255,_0.8)] [.details-header_&]:[color:#647397] [.details-header_&]:[font-size:9px]">RÉPONSES DE L’INTERVIEW</span>
+          <h2 id="interview-details-title" class="[.action-dialog_&]:[margin-top:8px] [.action-dialog_&]:[color:#1d263b] [.action-dialog_&]:[font-size:20px] [.action-dialog_&]:[letter-spacing:-0.02em] [.details-header_&]:[margin:6px_0_0] [.details-header_&]:[font-size:23px] [.details-header_&]:[letter-spacing:-0.035em]">{{ interview.interviewKey ?? 'Interview' }}</h2>
+          <p class="details-explanation [margin:7px_0_0] [color:#737d92] [font-size:12px] [line-height:1.45] [.action-dialog_form_&]:[margin:8px_0_18px] [.action-dialog_form_&]:[color:#68728b] [.action-dialog_form_&]:[font-size:13px]">Le nom de la ligne du tableau remplace « %rostertitle% » dans les questions lorsqu’il est disponible.</p>
         </div>
-        <button type="button" class="details-close" aria-label="Fermer" (click)="closeInterviewDetails()">×</button>
+        <button type="button" class="details-close [display:inline-grid] [width:34px] [height:34px] [flex:0_0_auto] [place-items:center] [border:1px_solid_var(--line)] [border-radius:9px] [background:#fff] [color:#68728b] [font-size:23px] [line-height:1] [&:hover]:[background:#f7f8fb] [&:hover]:[color:var(--text)]" aria-label="Fermer" (click)="closeInterviewDetails()">×</button>
       </header>
 
       @if (interviewDetailsLoading()) {
         <app-loading-state label="Chargement des réponses…" />
       } @else if (interviewDetailsError(); as message) {
-        <section class="alert" role="alert">{{ message }}</section>
+        <section class="alert [display:flex] [flex-wrap:wrap] [gap:12px] [align-items:center] [justify-content:space-between] [margin-bottom:16px] [padding:14px_18px] [border:1px_solid_#f2c46d] [border-radius:12px] [background:var(--ochre-soft)] [color:var(--ochre-text)] [_.interview-details-dialog_&]:[margin:16px_24px]" role="alert">{{ message }}</section>
       } @else if (interviewAnswers().length) {
-        <div class="answer-list">
+        <div class="answer-list [display:flex] [flex-direction:column] [gap:12px] [padding:20px_28px] [overflow-y:auto] [background:#f7f8fb] [@media(max-width:600px)]:[gap:9px] [@media(max-width:600px)]:[padding:13px_12px]">
           @for (answer of interviewAnswers(); track $index) {
-            <article class="answer-card">
-              <div class="answer-pair">
+            <article class="answer-card [padding:17px_18px] [border:1px_solid_#e6eaf1] [border-radius:14px] [background:#fff] [box-shadow:0_2px_6px_rgba(28,_39,_67,_0.035)] [transition:border-color_150ms_ease,_box-shadow_150ms_ease,_transform_150ms_ease] [&:hover]:[transform:translateY(-1px)] [&:hover]:[border-color:#d7deee] [&:hover]:[box-shadow:0_7px_20px_rgba(28,_39,_67,_0.07)] [@media(max-width:600px)]:[padding:13px]">
+              <div class="answer-pair [display:grid] [grid-template-columns:minmax(0,_1fr)_minmax(190px,_0.62fr)] [gap:22px] [align-items:start] [@media(max-width:600px)]:[grid-template-columns:1fr] [@media(max-width:600px)]:[gap:12px]">
                 <div>
-                  <span class="answer-variable">{{ answer.variableName || 'Question' }}</span>
+                  <span class="answer-variable [display:inline-flex] [padding:3px_6px] [border-radius:5px] [background:#f1f3f8] [color:#7a849a] [font-family:var(--mono)] [font-size:10px]">{{ answer.variableName || 'Question' }}</span>
                   @if (rosterLabel(answer); as roster) {
-                    <span class="answer-roster">{{ roster }}</span>
+                    <span class="answer-roster [display:inline-flex] [margin:5px_0_0_5px] [padding:4px_8px] [border:1px_solid_#d9e7fb] [border-radius:7px] [background:#f2f7ff] [color:#42638e] [font-size:11px] [font-weight:600] [vertical-align:middle] [@media(max-width:600px)]:[display:table] [@media(max-width:600px)]:[margin:6px_0_0]">{{ roster }}</span>
                   }
-                  <h3 [innerHTML]="answerQuestionText(answer)"></h3>
+                  <h3 [innerHTML]="answerQuestionText(answer)" class="[.answer-pair_&]:[margin:9px_0_0] [.answer-pair_&]:[color:#27324a] [.answer-pair_&]:[font-size:14px] [.answer-pair_&]:[font-weight:600] [.answer-pair_&]:[line-height:1.55]"></h3>
                 </div>
-                <div class="answer-value">
-                  <span>Réponse</span>
-                  <p>{{ displayValue(answer.answer) }}</p>
+                <div class="answer-value [padding:10px_12px_12px] [border:1px_solid_#e7ebf3] [border-radius:11px] [background:#f7f8fc]">
+                  <span class="[.answer-value_&]:[color:#8992a4] [.answer-value_&]:[font-size:10px] [.answer-value_&]:[font-weight:700] [.answer-value_&]:[letter-spacing:0.04em] [.answer-value_&]:[text-transform:uppercase]">Réponse</span>
+                  <p class="[.action-dialog_form_&]:[margin:8px_0_18px] [.action-dialog_form_&]:[color:#68728b] [.action-dialog_form_&]:[font-size:13px] [.answer-value_&]:[margin:0] [.answer-value_&]:[padding-top:3px] [.answer-value_&]:[color:#25304a] [.answer-value_&]:[font-size:14px] [.answer-value_&]:[font-weight:500] [.answer-value_&]:[line-height:1.55] [.answer-value_&]:[overflow-wrap:anywhere]">{{ displayValue(answer.answer) }}</p>
                 </div>
               </div>
               @if (answer.additionalFields; as fields) {
                 @if (objectEntries(fields).length) {
-                  <dl class="answer-metadata">
+                  <dl class="answer-metadata [display:grid] [grid-template-columns:repeat(auto-fit,_minmax(190px,_1fr))] [gap:8px] [margin:14px_0_0] [padding-top:12px] [border-top:1px_solid_#f0f2f6]">
                     @for (field of objectEntries(fields); track field.key) {
-                      <div>
-                        <dt>{{ fieldLabel(field.key) }}</dt>
-                        <dd>{{ displayValue(field.value) }}</dd>
+                      <div class="[.answer-metadata_&]:[min-width:0]">
+                        <dt class="[.answer-metadata_&]:[color:#8a92a2] [.answer-metadata_&]:[font-size:10px] [.answer-metadata_&]:[font-weight:600]">{{ fieldLabel(field.key) }}</dt>
+                        <dd class="[.answer-metadata_&]:[margin:2px_0_0] [.answer-metadata_&]:[color:#596276] [.answer-metadata_&]:[font-size:11px] [.answer-metadata_&]:[overflow-wrap:anywhere]">{{ displayValue(field.value) }}</dd>
                       </div>
                     }
                   </dl>
@@ -325,10 +325,10 @@
           }
         </div>
       } @else {
-        <p class="empty">Aucune réponse n’a été renvoyée pour cette interview.</p>
+        <p class="empty [margin:0] [padding:28px_24px] [color:var(--text-2)] [text-align:center] [.interview-details-dialog_&]:[margin:16px_24px] [.action-dialog_form_&]:[margin:8px_0_18px] [.action-dialog_form_&]:[color:#68728b] [.action-dialog_form_&]:[font-size:13px]">Aucune réponse n’a été renvoyée pour cette interview.</p>
       }
-      <footer class="details-footer">
-        <button type="button" class="btn" (click)="closeInterviewDetails()">Fermer</button>
+      <footer class="details-footer [display:flex] [flex:0_0_auto] [justify-content:flex-end] [padding:14px_24px] [border-top:1px_solid_var(--line-2)] [background:#fbfcfe] [@media(max-width:600px)]:[padding:12px_16px]">
+        <button type="button" class="btn [display:inline-flex] [align-items:center] [justify-content:center] [gap:8px] [min-height:40px] [padding:0_14px] [border:1px_solid_var(--control)] [border-radius:10px] [background:var(--surface)] [color:var(--text)] [font-size:var(--fs-body)] [font-weight:500] [white-space:nowrap] [transition:border-color_140ms_ease,_background_140ms_ease,_color_140ms_ease,_box-shadow_140ms_ease,_transform_140ms_ease] [&:hover:not(:disabled)]:[border-color:#b8c1cf] [&:hover:not(:disabled)]:[background:#f8f9fc] [&:hover:not(:disabled)]:[box-shadow:0_2px_5px_rgba(27,_39,_73,_0.06)] [&:active:not(:disabled)]:[transform:translateY(1px)] [&:disabled]:[cursor:default] [&:disabled]:[opacity:0.55] [&.primary]:[border-color:var(--primary)] [&.primary]:[background:var(--primary)] [&.primary]:[color:#fff] [&.primary:hover:not(:disabled)]:[border-color:var(--primary-hover)] [&.primary:hover:not(:disabled)]:[background:var(--primary-hover)] [&.small]:[min-height:34px] [&.small]:[padding:0_12px] [&.small]:[font-size:var(--fs-small)] [text-decoration:none] [.details-footer_&]:[min-height:36px]" (click)="closeInterviewDetails()">Fermer</button>
       </footer>
     </section>
   </div>

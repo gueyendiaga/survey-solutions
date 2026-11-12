@@ -1,7 +1,7 @@
 @if (!posed) {
-  <span class="quality-status">Non posée</span>
+  <span class="quality-status [display:inline-flex] [align-items:center] [gap:6px] [padding:4px_10px] [border-radius:999px] [background:#f1f4f8] [color:#475569] [font-size:var(--fs-caption)] [font-weight:600] [white-space:nowrap] [&::before]:[width:6px] [&::before]:[height:6px] [&::before]:[border-radius:50%] [&::before]:[background:currentColor] [&::before]:[content:''] [&.complete]:[background:var(--green-soft)] [&.complete]:[color:var(--green)] [&.review-needed]:[background:var(--ochre-soft)] [&.review-needed]:[color:var(--ochre-text)]">Non posée</span>
 } @else if (item.missingCount) {
-  <span class="quality-status review-needed">À examiner</span>
+  <span class="quality-status review-needed [display:inline-flex] [align-items:center] [gap:6px] [padding:4px_10px] [border-radius:999px] [background:#f1f4f8] [color:#475569] [font-size:var(--fs-caption)] [font-weight:600] [white-space:nowrap] [&::before]:[width:6px] [&::before]:[height:6px] [&::before]:[border-radius:50%] [&::before]:[background:currentColor] [&::before]:[content:''] [&.complete]:[background:var(--green-soft)] [&.complete]:[color:var(--green)] [&.review-needed]:[background:var(--ochre-soft)] [&.review-needed]:[color:var(--ochre-text)]">À examiner</span>
 } @else {
-  <span class="quality-status complete">Complet</span>
+  <span class="quality-status complete [display:inline-flex] [align-items:center] [gap:6px] [padding:4px_10px] [border-radius:999px] [background:#f1f4f8] [color:#475569] [font-size:var(--fs-caption)] [font-weight:600] [white-space:nowrap] [&::before]:[width:6px] [&::before]:[height:6px] [&::before]:[border-radius:50%] [&::before]:[background:currentColor] [&::before]:[content:''] [&.complete]:[background:var(--green-soft)] [&.complete]:[color:var(--green)] [&.review-needed]:[background:var(--ochre-soft)] [&.review-needed]:[color:var(--ochre-text)]">Complet</span>
 }

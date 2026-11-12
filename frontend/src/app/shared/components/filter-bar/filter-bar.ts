@@ -1,4 +1,14 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  HostListener,
+  Input,
+  OnChanges,
+  Output,
+  SimpleChanges,
+  ViewChild
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SearchSelectComponent, SearchSelectOption } from '../search-select/search-select';
 import {
@@ -30,6 +40,9 @@ export class FilterBarComponent implements OnChanges {
   @Input() statusLabel: (status: string) => string = (status) => status;
   @Output() readonly filtersChange = new EventEmitter<AnalysisFilters>();
   @Output() readonly variableSelected = new EventEmitter<string | null>();
+
+  @ViewChild('filterTrigger') private filterTrigger?: ElementRef<HTMLButtonElement>;
+  @ViewChild('filterDialog') private filterDialog?: ElementRef<HTMLElement>;
 
   protected draft: AnalysisFilters = { ...NO_FILTERS };
   protected open = false;
@@ -84,6 +97,22 @@ export class FilterBarComponent implements OnChanges {
     return Object.values(this.filters).some((value) => value !== null);
   }
 
+  protected get activeCount(): number {
+    return this.activeSummaries.length;
+  }
+
+  protected get activeSummaries(): string[] {
+    const summaries: string[] = [];
+    if (this.filters.from || this.filters.to) summaries.push(this.periodLabel());
+    if (this.filters.supervisor) summaries.push(`Équipe : ${this.filters.supervisor}`);
+    if (this.filters.interviewer) summaries.push(`Enquêteur : ${this.filters.interviewer}`);
+    if (this.filters.status) summaries.push(this.statusSummary());
+    if (this.filters.variable) {
+      summaries.push(`Zone : ${this.filters.variable}${this.filters.value ? ` = ${this.filters.value}` : ''}`);
+    }
+    return summaries;
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['filters']) {
       this.draft = { ...this.filters };
@@ -91,10 +120,55 @@ export class FilterBarComponent implements OnChanges {
   }
 
   protected toggle(): void {
-    this.open = !this.open;
     if (this.open) {
-      this.draft = { ...this.filters };
+      this.close();
+      return;
     }
+
+    this.draft = { ...this.filters };
+    this.open = true;
+    requestAnimationFrame(() => this.filterDialog?.nativeElement.focus());
+  }
+
+  protected close(): void {
+    this.open = false;
+    requestAnimationFrame(() => this.filterTrigger?.nativeElement.focus());
+  }
+
+  protected onBackdropClick(event: MouseEvent): void {
+    if (event.target === event.currentTarget) this.close();
+  }
+
+  protected trapFocus(event: KeyboardEvent): void {
+    if (event.key !== 'Tab' || !this.filterDialog) return;
+
+    const dialog = this.filterDialog.nativeElement;
+    const focusable = [...dialog.querySelectorAll<HTMLElement>(
+      'button:not(:disabled), input:not(:disabled), [tabindex]:not([tabindex="-1"])'
+    )];
+    if (!focusable.length) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const activeElement = document.activeElement;
+    if (event.shiftKey && (activeElement === first || activeElement === dialog)) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (activeElement === last || activeElement === dialog)) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  protected clearDraft(): void {
+    const hadVariable = !!this.draft.variable;
+    this.draft = { ...NO_FILTERS };
+    if (hadVariable) this.variableSelected.emit(null);
+  }
+
+  @HostListener('document:keydown.escape')
+  protected onEscape(): void {
+    if (this.open) this.close();
   }
 
   protected periodLabel(): string {
@@ -130,12 +204,12 @@ export class FilterBarComponent implements OnChanges {
       from: this.draft.from || null,
       to: this.draft.to || null
     });
+    requestAnimationFrame(() => this.filterTrigger?.nativeElement.focus());
   }
 
   protected reset(): void {
-    this.open = false;
-    this.draft = { ...NO_FILTERS };
-    this.variableSelected.emit(null);
+    this.close();
+    this.clearDraft();
     this.filtersChange.emit({ ...NO_FILTERS });
   }
 }

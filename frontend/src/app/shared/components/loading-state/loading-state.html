@@ -1,9 +1,9 @@
-<section class="card loading" aria-live="polite">
-  <span class="spinner"><img src="logo.png" alt="" aria-hidden="true"></span>
+<section class="card loading [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px] [display:flex] [flex-direction:column] [gap:12px] [align-items:center] [padding:48px_24px] [color:var(--text-2)] [text-align:center]" aria-live="polite">
+  <span class="spinner [width:26px] [height:26px] [border:3px_solid_var(--primary-soft)] [border-top-color:var(--primary)] [border-radius:50%] [animation:spin_0.85s_linear_infinite] [.loading_&]:[position:relative] [.loading_&]:[display:grid] [.loading_&]:[width:76px] [.loading_&]:[height:76px] [.loading_&]:[flex:0_0_auto] [.loading_&]:[place-items:center] [.loading_&]:[border:0] [.loading_&]:[border-radius:50%] [.loading_&]:[background:radial-gradient(circle,_#fff_52%,_#f5f7fc_100%)] [.loading_&]:[box-shadow:0_0_0_8px_rgba(30,_51,_152,_0.045)] [.loading_&]:[animation:none] [.loading_&::before]:[position:absolute] [.loading_&::before]:[inset:-5px] [.loading_&::before]:[border:3px_solid_#e8ebf4] [.loading_&::before]:[border-top-color:var(--primary)] [.loading_&::before]:[border-right-color:var(--primary-2)] [.loading_&::before]:[border-radius:inherit] [.loading_&::before]:[animation:spin_1.15s_cubic-bezier(0.55,_0.1,_0.45,_0.9)_infinite] [.loading_&::before]:[content:''] [.loading_&::after]:[position:absolute] [.loading_&::after]:[inset:5px] [.loading_&::after]:[border:1px_solid_rgba(30,_51,_152,_0.08)] [.loading_&::after]:[border-radius:inherit] [.loading_&::after]:[content:''] [@media(prefers-reduced-motion:reduce)]:[.loading_&::before]:[animation:none] [.loading_:not(.spinner)]:[max-width:460px] [.loading_:not(.spinner)]:[font-size:var(--fs-small)] [.loading_:not(.spinner)]:[line-height:1.6]"><img src="logo.png" alt="" aria-hidden="true" class="[.loading_.spinner_&]:[z-index:1] [.loading_.spinner_&]:[display:block] [.loading_.spinner_&]:[width:48px] [.loading_.spinner_&]:[height:48px] [.loading_.spinner_&]:[object-fit:contain] [.loading_.spinner_&]:[filter:drop-shadow(0_2px_3px_rgba(17,_38,_91,_0.12))]"></span>
   @if (importing) {
-    <strong>Import des données en cours…</strong>
-    <span>Les indicateurs s’afficheront automatiquement à la fin de la synchronisation.</span>
+    <strong class="[.loading_&]:[color:var(--text)]">Import des données en cours…</strong>
+    <span class="[.loading_:not(.spinner)]:[max-width:460px] [.loading_:not(.spinner)]:[font-size:var(--fs-small)] [.loading_:not(.spinner)]:[line-height:1.6]">Les indicateurs s’afficheront automatiquement à la fin de la synchronisation.</span>
   } @else {
-    <strong>{{ label }}</strong>
+    <strong class="[.loading_&]:[color:var(--text)]">{{ label }}</strong>
   }
 </section>

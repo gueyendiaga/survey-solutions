@@ -1,36 +1,36 @@
 @if (store.completenessError()) {
-  <section class="alert" role="alert">
-    <p>{{ store.completenessError() }}</p>
-    <button type="button" class="btn" (click)="store.reloadCompleteness()">Réessayer</button>
+  <section class="alert [display:flex] [flex-wrap:wrap] [gap:12px] [align-items:center] [justify-content:space-between] [margin-bottom:16px] [padding:14px_18px] [border:1px_solid_#f2c46d] [border-radius:12px] [background:var(--ochre-soft)] [color:var(--ochre-text)]" role="alert">
+    <p class="[.alert_&]:[margin:2px_0_0]">{{ store.completenessError() }}</p>
+    <button type="button" class="btn [display:inline-flex] [align-items:center] [justify-content:center] [gap:8px] [min-height:40px] [padding:0_14px] [border:1px_solid_var(--control)] [border-radius:10px] [background:var(--surface)] [color:var(--text)] [font-size:var(--fs-body)] [font-weight:500] [white-space:nowrap] [transition:border-color_140ms_ease,_background_140ms_ease,_color_140ms_ease,_box-shadow_140ms_ease,_transform_140ms_ease] [&:hover:not(:disabled)]:[border-color:#b8c1cf] [&:hover:not(:disabled)]:[background:#f8f9fc] [&:hover:not(:disabled)]:[box-shadow:0_2px_5px_rgba(27,_39,_73,_0.06)] [&:active:not(:disabled)]:[transform:translateY(1px)] [&:disabled]:[cursor:default] [&:disabled]:[opacity:0.55] [&.primary]:[border-color:var(--primary)] [&.primary]:[background:var(--primary)] [&.primary]:[color:#fff] [&.primary:hover:not(:disabled)]:[border-color:var(--primary-hover)] [&.primary:hover:not(:disabled)]:[background:var(--primary-hover)] [&.small]:[min-height:34px] [&.small]:[padding:0_12px] [&.small]:[font-size:var(--fs-small)] [text-decoration:none]" (click)="store.reloadCompleteness()">Réessayer</button>
   </section>
 } @else if (store.completeness(); as overview) {
-  <section class="kpis" aria-label="Synthèse de la qualité">
-    <article class="card kpi">
-      <div class="kpi-top"><span class="kpi-label">Variables posées</span><span class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg></span></div>
-      <strong class="kpi-value">{{ store.qualitySummary().posed }}</strong>
-      <span class="kpi-note">sur {{ store.qualitySummary().variables }} variable(s) du questionnaire</span>
+  <section class="kpis [display:grid] [grid-template-columns:repeat(auto-fit,_minmax(220px,_1fr))] [gap:16px] [margin-bottom:16px]" aria-label="Synthèse de la qualité">
+    <article class="card kpi [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px] [.kpis_&]:[margin-bottom:0] [min-width:0] [min-height:142px] [display:flex] [flex-direction:column] [gap:6px] [padding:18px_20px]">
+      <div class="kpi-top [display:flex] [align-items:flex-start] [justify-content:space-between]"><span class="kpi-label [color:var(--text-2)] [font-size:var(--fs-small)] [font-weight:500]">Variables posées</span><span class="tile [display:inline-flex] [width:36px] [height:36px] [align-items:center] [justify-content:center] [border-radius:10px] [background:#eceffa] [color:var(--primary)] [&.warn]:[background:var(--ochre-soft)] [&.warn]:[color:var(--ochre-text)]"><svg viewBox="0 0 24 24" aria-hidden="true" class="[_.tile_&]:[width:18px] [_.tile_&]:[height:18px] [_.tile_&]:[flex-shrink:0] [_.tile_&]:[fill:none] [_.tile_&]:[stroke:currentColor] [_.tile_&]:[stroke-width:1.8] [_.tile_&]:[stroke-linecap:round] [_.tile_&]:[stroke-linejoin:round]"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg></span></div>
+      <strong class="kpi-value [color:var(--text-strong)] [font-size:var(--fs-figure)] [font-weight:700] [line-height:1.1] [letter-spacing:-0.02em] [font-variant-numeric:tabular-nums]">{{ store.qualitySummary().posed }}</strong>
+      <span class="kpi-note [display:inline-flex] [flex-wrap:wrap] [align-items:center] [gap:8px] [margin-top:4px] [color:var(--text-2)] [font-size:var(--fs-small)]">sur {{ store.qualitySummary().variables }} variable(s) du questionnaire</span>
     </article>
-    <article class="card kpi">
-      <div class="kpi-top"><span class="kpi-label">Taux de réponse moyen</span><span class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4" /></svg></span></div>
-      <strong class="kpi-value">{{ store.qualitySummary().average === null ? '—' : (store.qualitySummary().average | number: '1.0-1' : 'fr-FR') + ' %' }}</strong>
-      <div class="track"><div class="fill" [style.width.%]="store.qualitySummary().average ?? 0"></div></div>
+    <article class="card kpi [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px] [.kpis_&]:[margin-bottom:0] [min-width:0] [min-height:142px] [display:flex] [flex-direction:column] [gap:6px] [padding:18px_20px]">
+      <div class="kpi-top [display:flex] [align-items:flex-start] [justify-content:space-between]"><span class="kpi-label [color:var(--text-2)] [font-size:var(--fs-small)] [font-weight:500]">Taux de réponse moyen</span><span class="tile [display:inline-flex] [width:36px] [height:36px] [align-items:center] [justify-content:center] [border-radius:10px] [background:#eceffa] [color:var(--primary)] [&.warn]:[background:var(--ochre-soft)] [&.warn]:[color:var(--ochre-text)]"><svg viewBox="0 0 24 24" aria-hidden="true" class="[_.tile_&]:[width:18px] [_.tile_&]:[height:18px] [_.tile_&]:[flex-shrink:0] [_.tile_&]:[fill:none] [_.tile_&]:[stroke:currentColor] [_.tile_&]:[stroke-width:1.8] [_.tile_&]:[stroke-linecap:round] [_.tile_&]:[stroke-linejoin:round]"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4" /></svg></span></div>
+      <strong class="kpi-value [color:var(--text-strong)] [font-size:var(--fs-figure)] [font-weight:700] [line-height:1.1] [letter-spacing:-0.02em] [font-variant-numeric:tabular-nums]">{{ store.qualitySummary().average === null ? '—' : (store.qualitySummary().average | number: '1.0-1' : 'fr-FR') + ' %' }}</strong>
+      <div class="track [.kpi_&]:[margin-top:8px] [display:block] [flex:1] [height:6px] [overflow:hidden] [border-radius:999px] [background:#eef1f6]"><div class="fill [display:block] [height:100%] [border-radius:999px] [background:var(--primary)] [&.warn]:[background:var(--ochre)]" [style.width.%]="store.qualitySummary().average ?? 0"></div></div>
     </article>
-    <article class="card kpi">
-      <div class="kpi-top"><span class="kpi-label">Variables sous 80 %</span><span class="tile warn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01" /><path d="M10.3 3.9L2.5 17.5A2 2 0 0 0 4.2 20.5h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg></span></div>
-      <strong class="kpi-value">{{ store.qualitySummary().low }}</strong>
-      <span class="kpi-note">À examiner en priorité</span>
+    <article class="card kpi [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px] [.kpis_&]:[margin-bottom:0] [min-width:0] [min-height:142px] [display:flex] [flex-direction:column] [gap:6px] [padding:18px_20px]">
+      <div class="kpi-top [display:flex] [align-items:flex-start] [justify-content:space-between]"><span class="kpi-label [color:var(--text-2)] [font-size:var(--fs-small)] [font-weight:500]">Variables sous 80 %</span><span class="tile warn [display:inline-flex] [width:36px] [height:36px] [align-items:center] [justify-content:center] [border-radius:10px] [background:#eceffa] [color:var(--primary)] [&.warn]:[background:var(--ochre-soft)] [&.warn]:[color:var(--ochre-text)]"><svg viewBox="0 0 24 24" aria-hidden="true" class="[_.tile_&]:[width:18px] [_.tile_&]:[height:18px] [_.tile_&]:[flex-shrink:0] [_.tile_&]:[fill:none] [_.tile_&]:[stroke:currentColor] [_.tile_&]:[stroke-width:1.8] [_.tile_&]:[stroke-linecap:round] [_.tile_&]:[stroke-linejoin:round]"><path d="M12 9v4M12 17h.01" /><path d="M10.3 3.9L2.5 17.5A2 2 0 0 0 4.2 20.5h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg></span></div>
+      <strong class="kpi-value [color:var(--text-strong)] [font-size:var(--fs-figure)] [font-weight:700] [line-height:1.1] [letter-spacing:-0.02em] [font-variant-numeric:tabular-nums]">{{ store.qualitySummary().low }}</strong>
+      <span class="kpi-note [display:inline-flex] [flex-wrap:wrap] [align-items:center] [gap:8px] [margin-top:4px] [color:var(--text-2)] [font-size:var(--fs-small)]">À examiner en priorité</span>
     </article>
-    <article class="card kpi">
-      <div class="kpi-top"><span class="kpi-label">Non-réponses</span><span class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M9 9l6 6M15 9l-6 6" /></svg></span></div>
-      <strong class="kpi-value">{{ store.qualitySummary().missing | number: '1.0-0' : 'fr-FR' }}</strong>
-      <span class="kpi-note">Questions posées restées sans réponse</span>
+    <article class="card kpi [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px] [.kpis_&]:[margin-bottom:0] [min-width:0] [min-height:142px] [display:flex] [flex-direction:column] [gap:6px] [padding:18px_20px]">
+      <div class="kpi-top [display:flex] [align-items:flex-start] [justify-content:space-between]"><span class="kpi-label [color:var(--text-2)] [font-size:var(--fs-small)] [font-weight:500]">Non-réponses</span><span class="tile [display:inline-flex] [width:36px] [height:36px] [align-items:center] [justify-content:center] [border-radius:10px] [background:#eceffa] [color:var(--primary)] [&.warn]:[background:var(--ochre-soft)] [&.warn]:[color:var(--ochre-text)]"><svg viewBox="0 0 24 24" aria-hidden="true" class="[_.tile_&]:[width:18px] [_.tile_&]:[height:18px] [_.tile_&]:[flex-shrink:0] [_.tile_&]:[fill:none] [_.tile_&]:[stroke:currentColor] [_.tile_&]:[stroke-width:1.8] [_.tile_&]:[stroke-linecap:round] [_.tile_&]:[stroke-linejoin:round]"><circle cx="12" cy="12" r="9" /><path d="M9 9l6 6M15 9l-6 6" /></svg></span></div>
+      <strong class="kpi-value [color:var(--text-strong)] [font-size:var(--fs-figure)] [font-weight:700] [line-height:1.1] [letter-spacing:-0.02em] [font-variant-numeric:tabular-nums]">{{ store.qualitySummary().missing | number: '1.0-0' : 'fr-FR' }}</strong>
+      <span class="kpi-note [display:inline-flex] [flex-wrap:wrap] [align-items:center] [gap:8px] [margin-top:4px] [color:var(--text-2)] [font-size:var(--fs-small)]">Questions posées restées sans réponse</span>
     </article>
   </section>
-  <section class="card">
-    <div class="card-head pad">
+  <section class="card [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px]">
+    <div class="card-head pad [display:flex] [flex-wrap:wrap] [gap:12px] [align-items:center] [justify-content:space-between] [padding:20px_22px]">
       <div>
         <h2>Complétude des variables</h2>
-        <p>
+        <p class="[.card-head_&]:[margin:4px_0_0] [.card-head_&]:[color:var(--text-2)] [.card-head_&]:[font-size:var(--fs-small)]">
           {{ overview.interviewCount | number: '1.0-0' : 'fr-FR' }} interview(s) · {{ statusList(overview.includedStatuses) }}
           @if (overview.excludedInterviewCount) {
             · {{ overview.excludedInterviewCount | number: '1.0-0' : 'fr-FR' }} exclue(s) par les filtres
@@ -38,41 +38,41 @@
         </p>
       </div>
     </div>
-    <div class="table-scroll">
-      <table class="data">
+    <div class="table-scroll [overflow-x:auto]">
+      <table class="data [width:100%] [border-collapse:collapse] [font-size:var(--fs-body)] [font-variant-numeric:tabular-nums]">
         <thead>
           <tr>
-            <th class="l">Variable</th>
-            <th class="l">Question</th>
-            <th>Réponses</th>
-            <th>Sans réponse</th>
-            <th>Non applicable</th>
-            <th class="l rate-col">Taux de réponse</th>
-            <th class="l">Statut</th>
+            <th class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Variable</th>
+            <th class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Question</th>
+            <th class="[table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Réponses</th>
+            <th class="[table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Sans réponse</th>
+            <th class="[table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Non applicable</th>
+            <th class="l !text-left rate-col [table.data_&]:[text-align:left] [min-width:150px] [table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Taux de réponse</th>
+            <th class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Statut</th>
           </tr>
         </thead>
         <tbody>
           @for (item of store.qualityRows(); track item.question.variableName) {
             <tr>
-              <td class="l"><button type="button" class="link mono" (click)="openVariable.emit(item.question.variableName)">{{ item.question.variableName }}</button></td>
-              <td class="l wrap">{{ item.question.label || item.question.questionText }}</td>
-              <td>{{ item.answeredCount | number: '1.0-0' : 'fr-FR' }}</td>
-              <td>{{ item.missingCount | number: '1.0-0' : 'fr-FR' }}</td>
-              <td>{{ item.notApplicableCount | number: '1.0-0' : 'fr-FR' }}</td>
-              <td class="l">
+              <td class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]"><button type="button" class="link mono [padding:0] [border:0] [background:none] [color:var(--primary)] [text-align:left] [&:hover]:[text-decoration:underline] [font-family:var(--mono)] [font-size:var(--fs-small)]" (click)="openVariable.emit(item.question.variableName)">{{ item.question.variableName }}</button></td>
+              <td class="l !text-left wrap [table.data_&]:[text-align:left] [table.data_&]:[min-width:220px] [table.data_&]:[white-space:normal] [table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]">{{ item.question.label || item.question.questionText }}</td>
+              <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]">{{ item.answeredCount | number: '1.0-0' : 'fr-FR' }}</td>
+              <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]">{{ item.missingCount | number: '1.0-0' : 'fr-FR' }}</td>
+              <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]">{{ item.notApplicableCount | number: '1.0-0' : 'fr-FR' }}</td>
+              <td class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]">
                 @if (item.answeredCount + item.missingCount > 0) {
-                  <span class="bar-cell"><span class="track"><span class="fill" [class.warn]="item.responseRate < 80" [style.width.%]="item.responseRate"></span></span>{{ item.responseRate | number: '1.0-1' : 'fr-FR' }} %</span>
+                  <span class="bar-cell [display:flex] [min-width:140px] [align-items:center] [gap:10px]"><span class="track [display:block] [flex:1] [height:6px] [overflow:hidden] [border-radius:999px] [background:#eef1f6]"><span class="fill [display:block] [height:100%] [border-radius:999px] [background:var(--primary)] [&.warn]:[background:var(--ochre)]" [class.warn]="item.responseRate < 80" [style.width.%]="item.responseRate"></span></span>{{ item.responseRate | number: '1.0-1' : 'fr-FR' }} %</span>
                 } @else {
                   —
                 }
               </td>
-              <td class="l"><app-completeness-status [item]="item" /></td>
+              <td class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]"><app-completeness-status [item]="item" /></td>
             </tr>
           }
         </tbody>
       </table>
     </div>
-    <p class="footnote pad-x">Taux de réponse = réponses / (réponses + sans réponse). Les questions désactivées par un filtre sont « non applicables » et n’entrent pas dans le calcul. Pour un roster, chaque ligne compte comme une réponse.</p>
+    <p class="footnote pad-x [margin:12px_0_0] [color:var(--text-2)] [font-size:var(--fs-caption)] [line-height:1.5] [padding:0_22px_18px]">Taux de réponse = réponses / (réponses + sans réponse). Les questions désactivées par un filtre sont « non applicables » et n’entrent pas dans le calcul. Pour un roster, chaque ligne compte comme une réponse.</p>
   </section>
 } @else {
   <app-loading-state label="Calcul de la complétude…" [importing]="!!store.syncStatus()?.inProgress" />

@@ -1,27 +1,27 @@
-<main class="page questionnaires-page">
-  <div class="page-head">
+<main class="page questionnaires-page [width:100%] [max-width:1240px] [margin:0_auto] [padding:28px_32px_56px] [@media(max-width:900px)]:[padding-right:16px] [@media(max-width:900px)]:[padding-left:16px] [max-width:1440px] [padding:38px_42px_52px] [@media(max-width:1120px)]:[padding-right:28px] [@media(max-width:1120px)]:[padding-left:28px] [@media(max-width:900px)]:[padding:30px_22px_40px] [@media(max-width:600px)]:[padding:26px_16px_34px]">
+  <div class="page-head [display:flex] [flex-wrap:wrap] [gap:16px] [align-items:flex-end] [justify-content:space-between] [margin-bottom:22px] [align-items:flex-end] [margin-bottom:28px]">
     <div class="page-intro">
-      <span class="eyebrow"><span class="eyebrow-mark"></span>VOTRE ESPACE DE TRAVAIL</span>
-      <h1>Questionnaires</h1>
-      <p class="lead">Retrouvez les questionnaires et versions accessibles depuis Survey Solutions HQ.</p>
+      <span class="eyebrow [display:inline-flex] [align-items:center] [gap:8px] [margin-bottom:10px] [color:#68728b] [font-size:10px] [font-weight:700] [letter-spacing:0.13em]"><span class="eyebrow-mark [width:7px] [height:7px] [border-radius:2px] [background:#6176df] [box-shadow:0_0_0_3px_rgba(97,_118,_223,_0.13)]"></span>VOTRE ESPACE DE TRAVAIL</span>
+      <h1 class="[.questionnaires-page_&]:[color:#192238] [.questionnaires-page_&]:[font-size:clamp(26px,_2.4vw,_32px)] [.questionnaires-page_&]:[letter-spacing:-0.045em]">Questionnaires</h1>
+      <p class="lead [margin:4px_0_0] [color:var(--text-2)] [font-size:var(--fs-body)] [.questionnaires-page_&]:[max-width:560px] [.questionnaires-page_&]:[margin-top:7px] [.questionnaires-page_&]:[color:#747d90] [.questionnaires-page_&]:[font-size:13px]">Retrouvez les questionnaires et versions accessibles depuis Survey Solutions HQ.</p>
     </div>
-    <button class="btn refresh-button" type="button" (click)="catalog.refresh()" [disabled]="catalog.loading()">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5" /><path d="M5.6 9a7 7 0 0 1 11.6-2L20 12M4 12l2.8 5a7 7 0 0 0 11.6-2" /></svg>
+    <button class="btn refresh-button [display:inline-flex] [align-items:center] [justify-content:center] [gap:8px] [min-height:40px] [padding:0_14px] [border:1px_solid_var(--control)] [border-radius:10px] [background:var(--surface)] [color:var(--text)] [font-size:var(--fs-body)] [font-weight:500] [white-space:nowrap] [transition:border-color_140ms_ease,_background_140ms_ease,_color_140ms_ease,_box-shadow_140ms_ease,_transform_140ms_ease] [&:hover:not(:disabled)]:[border-color:#b8c1cf] [&:hover:not(:disabled)]:[background:#f8f9fc] [&:hover:not(:disabled)]:[box-shadow:0_2px_5px_rgba(27,_39,_73,_0.06)] [&:active:not(:disabled)]:[transform:translateY(1px)] [&:disabled]:[cursor:default] [&:disabled]:[opacity:0.55] [&.primary]:[border-color:var(--primary)] [&.primary]:[background:var(--primary)] [&.primary]:[color:#fff] [&.primary:hover:not(:disabled)]:[border-color:var(--primary-hover)] [&.primary:hover:not(:disabled)]:[background:var(--primary-hover)] [&.small]:[min-height:34px] [&.small]:[padding:0_12px] [&.small]:[font-size:var(--fs-small)] [text-decoration:none] [min-height:42px] [padding:0_14px] [border-color:#dfe3eb] [border-radius:10px] [color:#38435d] [font-size:12px] [font-weight:600]" type="button" (click)="catalog.refresh()" [disabled]="catalog.loading()">
+      <svg viewBox="0 0 24 24" aria-hidden="true" class="[.btn_&]:[width:18px] [.btn_&]:[height:18px] [.btn_&]:[flex-shrink:0] [.btn_&]:[fill:none] [.btn_&]:[stroke:currentColor] [.btn_&]:[stroke-width:1.8] [.btn_&]:[stroke-linecap:round] [.btn_&]:[stroke-linejoin:round] [.refresh-button_&]:[width:16px] [.refresh-button_&]:[height:16px] [.refresh-button_&]:[fill:none] [.refresh-button_&]:[stroke:currentColor] [.refresh-button_&]:[stroke-width:1.8] [.refresh-button_&]:[stroke-linecap:round] [.refresh-button_&]:[stroke-linejoin:round]"><path d="M20 7v5h-5M4 17v-5h5" /><path d="M5.6 9a7 7 0 0 1 11.6-2L20 12M4 12l2.8 5a7 7 0 0 0 11.6-2" /></svg>
       Actualiser
     </button>
   </div>
 
   @if (catalog.error(); as message) {
-    <section class="alert" role="alert">
-      <div><strong>Les données ne sont pas disponibles</strong><p>{{ message }}</p></div>
-      <button type="button" class="btn" (click)="catalog.refresh()">Réessayer</button>
+    <section class="alert [display:flex] [flex-wrap:wrap] [gap:12px] [align-items:center] [justify-content:space-between] [margin-bottom:16px] [padding:14px_18px] [border:1px_solid_#f2c46d] [border-radius:12px] [background:var(--ochre-soft)] [color:var(--ochre-text)]" role="alert">
+      <div><strong>Les données ne sont pas disponibles</strong><p class="[.alert_&]:[margin:2px_0_0]">{{ message }}</p></div>
+      <button type="button" class="btn [display:inline-flex] [align-items:center] [justify-content:center] [gap:8px] [min-height:40px] [padding:0_14px] [border:1px_solid_var(--control)] [border-radius:10px] [background:var(--surface)] [color:var(--text)] [font-size:var(--fs-body)] [font-weight:500] [white-space:nowrap] [transition:border-color_140ms_ease,_background_140ms_ease,_color_140ms_ease,_box-shadow_140ms_ease,_transform_140ms_ease] [&:hover:not(:disabled)]:[border-color:#b8c1cf] [&:hover:not(:disabled)]:[background:#f8f9fc] [&:hover:not(:disabled)]:[box-shadow:0_2px_5px_rgba(27,_39,_73,_0.06)] [&:active:not(:disabled)]:[transform:translateY(1px)] [&:disabled]:[cursor:default] [&:disabled]:[opacity:0.55] [&.primary]:[border-color:var(--primary)] [&.primary]:[background:var(--primary)] [&.primary]:[color:#fff] [&.primary:hover:not(:disabled)]:[border-color:var(--primary-hover)] [&.primary:hover:not(:disabled)]:[background:var(--primary-hover)] [&.small]:[min-height:34px] [&.small]:[padding:0_12px] [&.small]:[font-size:var(--fs-small)] [text-decoration:none]" (click)="catalog.refresh()">Réessayer</button>
     </section>
   }
 
   @if (catalog.loading() && !catalog.questionnaires().length) {
     <app-loading-state label="Chargement des questionnaires…" />
   } @else {
-    <section class="card">
+    <section class="card [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px] [.questionnaires-page_&]:[overflow:hidden] [.questionnaires-page_&]:[border-color:#e8ebf1] [.questionnaires-page_&]:[border-radius:14px]">
       <app-questionnaire-catalog [questionnaires]="catalog.questionnaires()" />
     </section>
   }
