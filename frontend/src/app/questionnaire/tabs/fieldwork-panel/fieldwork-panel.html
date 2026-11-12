@@ -1,102 +1,102 @@
-<section class="kpis" aria-label="Chiffres clés">
-  <article class="card kpi">
-    <div class="kpi-top">
-      <span class="kpi-label">Taux de réalisation</span>
-      <span class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4" /></svg></span>
+<section class="kpis [display:grid] [grid-template-columns:repeat(auto-fit,_minmax(220px,_1fr))] [gap:16px] [margin-bottom:16px]" aria-label="Chiffres clés">
+  <article class="card kpi [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px] [.kpis_&]:[margin-bottom:0] [min-width:0] [min-height:142px] [display:flex] [flex-direction:column] [gap:6px] [padding:18px_20px]">
+    <div class="kpi-top [display:flex] [align-items:flex-start] [justify-content:space-between]">
+      <span class="kpi-label [color:var(--text-2)] [font-size:var(--fs-small)] [font-weight:500]">Taux de réalisation</span>
+      <span class="tile [display:inline-flex] [width:36px] [height:36px] [align-items:center] [justify-content:center] [border-radius:10px] [background:#eceffa] [color:var(--primary)] [&.warn]:[background:var(--ochre-soft)] [&.warn]:[color:var(--ochre-text)] [&.ok]:[background:var(--green-soft)] [&.ok]:[color:var(--green)]"><svg viewBox="0 0 24 24" aria-hidden="true" class="[_.tile_&]:[width:18px] [_.tile_&]:[height:18px] [_.tile_&]:[flex-shrink:0] [_.tile_&]:[fill:none] [_.tile_&]:[stroke:currentColor] [_.tile_&]:[stroke-width:1.8] [_.tile_&]:[stroke-linecap:round] [_.tile_&]:[stroke-linejoin:round]"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4" /></svg></span>
     </div>
-    <strong class="kpi-value">{{ overview.completionRate === null ? '—' : (overview.completionRate | number: '1.0-1' : 'fr-FR') + ' %' }}</strong>
-    <div class="track"><div class="fill" [style.width.%]="cap(overview.completionRate)"></div></div>
-    <span class="kpi-note">{{ overview.completed | number: '1.0-0' : 'fr-FR' }} sur {{ overview.target | number: '1.0-0' : 'fr-FR' }} interviews prévues{{ overview.unlimitedAssignments ? ' (+ ' + overview.unlimitedAssignments + ' sans quota)' : '' }}</span>
+    <strong class="kpi-value [color:var(--text-strong)] [font-size:var(--fs-figure)] [font-weight:700] [line-height:1.1] [letter-spacing:-0.02em] [font-variant-numeric:tabular-nums]">{{ overview.completionRate === null ? '—' : (overview.completionRate | number: '1.0-1' : 'fr-FR') + ' %' }}</strong>
+    <div class="track [.kpi_&]:[margin-top:8px] [display:block] [flex:1] [height:6px] [overflow:hidden] [border-radius:999px] [background:#eef1f6]"><div class="fill [display:block] [height:100%] [border-radius:999px] [background:var(--primary)] [&.warn]:[background:var(--ochre)]" [style.width.%]="cap(overview.completionRate)"></div></div>
+    <span class="kpi-note [display:inline-flex] [flex-wrap:wrap] [align-items:center] [gap:8px] [margin-top:4px] [color:var(--text-2)] [font-size:var(--fs-small)]">{{ overview.completed | number: '1.0-0' : 'fr-FR' }} sur {{ overview.target | number: '1.0-0' : 'fr-FR' }} interviews prévues{{ overview.unlimitedAssignments ? ' (+ ' + overview.unlimitedAssignments + ' sans quota)' : '' }}</span>
   </article>
-  <article class="card kpi">
-    <div class="kpi-top">
-      <span class="kpi-label">Interviews réalisées</span>
-      <span class="tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3 8-8" /><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9" /></svg></span>
+  <article class="card kpi [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px] [.kpis_&]:[margin-bottom:0] [min-width:0] [min-height:142px] [display:flex] [flex-direction:column] [gap:6px] [padding:18px_20px]">
+    <div class="kpi-top [display:flex] [align-items:flex-start] [justify-content:space-between]">
+      <span class="kpi-label [color:var(--text-2)] [font-size:var(--fs-small)] [font-weight:500]">Interviews réalisées</span>
+      <span class="tile [display:inline-flex] [width:36px] [height:36px] [align-items:center] [justify-content:center] [border-radius:10px] [background:#eceffa] [color:var(--primary)] [&.warn]:[background:var(--ochre-soft)] [&.warn]:[color:var(--ochre-text)] [&.ok]:[background:var(--green-soft)] [&.ok]:[color:var(--green)]"><svg viewBox="0 0 24 24" aria-hidden="true" class="[_.tile_&]:[width:18px] [_.tile_&]:[height:18px] [_.tile_&]:[flex-shrink:0] [_.tile_&]:[fill:none] [_.tile_&]:[stroke:currentColor] [_.tile_&]:[stroke-width:1.8] [_.tile_&]:[stroke-linecap:round] [_.tile_&]:[stroke-linejoin:round]"><path d="M9 11l3 3 8-8" /><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9" /></svg></span>
     </div>
-    <strong class="kpi-value">{{ overview.completed | number: '1.0-0' : 'fr-FR' }}</strong>
-    <span class="kpi-note">
+    <strong class="kpi-value [color:var(--text-strong)] [font-size:var(--fs-figure)] [font-weight:700] [line-height:1.1] [letter-spacing:-0.02em] [font-variant-numeric:tabular-nums]">{{ overview.completed | number: '1.0-0' : 'fr-FR' }}</strong>
+    <span class="kpi-note [display:inline-flex] [flex-wrap:wrap] [align-items:center] [gap:8px] [margin-top:4px] [color:var(--text-2)] [font-size:var(--fs-small)]">
       @if (lastDay(); as day) {
-        <span class="pill ok">+{{ day.completed }}</span> le {{ day.date | date: 'd MMMM' : 'UTC' : 'fr-FR' }}
+        <span class="pill ok [display:inline-flex] [align-items:center] [gap:6px] [padding:4px_10px] [border-radius:999px] [font-size:var(--fs-caption)] [font-weight:600] [white-space:nowrap] [&.ok]:[background:var(--green-soft)] [&.ok]:[color:var(--green)] [&.warn]:[background:var(--ochre-soft)] [&.warn]:[color:var(--ochre-text)] [&.info]:[background:#eceffa] [&.info]:[color:var(--primary-hover)]">+{{ day.completed }}</span> le {{ day.date | date: 'd MMMM' : 'UTC' : 'fr-FR' }}
       } @else {
         Aucune interview terminée
       }
     </span>
   </article>
-  <article class="card kpi">
-    <div class="kpi-top">
-      <span class="kpi-label">Approuvées</span>
-      <span class="tile ok"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" /><path d="M9 12l2 2 4-4" /></svg></span>
+  <article class="card kpi [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px] [.kpis_&]:[margin-bottom:0] [min-width:0] [min-height:142px] [display:flex] [flex-direction:column] [gap:6px] [padding:18px_20px]">
+    <div class="kpi-top [display:flex] [align-items:flex-start] [justify-content:space-between]">
+      <span class="kpi-label [color:var(--text-2)] [font-size:var(--fs-small)] [font-weight:500]">Approuvées</span>
+      <span class="tile ok [display:inline-flex] [width:36px] [height:36px] [align-items:center] [justify-content:center] [border-radius:10px] [background:#eceffa] [color:var(--primary)] [&.warn]:[background:var(--ochre-soft)] [&.warn]:[color:var(--ochre-text)] [&.ok]:[background:var(--green-soft)] [&.ok]:[color:var(--green)]"><svg viewBox="0 0 24 24" aria-hidden="true" class="[_.tile_&]:[width:18px] [_.tile_&]:[height:18px] [_.tile_&]:[flex-shrink:0] [_.tile_&]:[fill:none] [_.tile_&]:[stroke:currentColor] [_.tile_&]:[stroke-width:1.8] [_.tile_&]:[stroke-linecap:round] [_.tile_&]:[stroke-linejoin:round]"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" /><path d="M9 12l2 2 4-4" /></svg></span>
     </div>
-    <strong class="kpi-value">{{ overview.approved | number: '1.0-0' : 'fr-FR' }}</strong>
-    <span class="kpi-note">{{ approvedShare() }} des interviews réalisées</span>
+    <strong class="kpi-value [color:var(--text-strong)] [font-size:var(--fs-figure)] [font-weight:700] [line-height:1.1] [letter-spacing:-0.02em] [font-variant-numeric:tabular-nums]">{{ overview.approved | number: '1.0-0' : 'fr-FR' }}</strong>
+    <span class="kpi-note [display:inline-flex] [flex-wrap:wrap] [align-items:center] [gap:8px] [margin-top:4px] [color:var(--text-2)] [font-size:var(--fs-small)]">{{ approvedShare() }} des interviews réalisées</span>
   </article>
-  <article class="card kpi">
-    <div class="kpi-top">
-      <span class="kpi-label">À traiter</span>
-      <span class="tile warn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01" /><path d="M10.3 3.9L2.5 17.5A2 2 0 0 0 4.2 20.5h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg></span>
+  <article class="card kpi [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px] [.kpis_&]:[margin-bottom:0] [min-width:0] [min-height:142px] [display:flex] [flex-direction:column] [gap:6px] [padding:18px_20px]">
+    <div class="kpi-top [display:flex] [align-items:flex-start] [justify-content:space-between]">
+      <span class="kpi-label [color:var(--text-2)] [font-size:var(--fs-small)] [font-weight:500]">À traiter</span>
+      <span class="tile warn [display:inline-flex] [width:36px] [height:36px] [align-items:center] [justify-content:center] [border-radius:10px] [background:#eceffa] [color:var(--primary)] [&.warn]:[background:var(--ochre-soft)] [&.warn]:[color:var(--ochre-text)] [&.ok]:[background:var(--green-soft)] [&.ok]:[color:var(--green)]"><svg viewBox="0 0 24 24" aria-hidden="true" class="[_.tile_&]:[width:18px] [_.tile_&]:[height:18px] [_.tile_&]:[flex-shrink:0] [_.tile_&]:[fill:none] [_.tile_&]:[stroke:currentColor] [_.tile_&]:[stroke-width:1.8] [_.tile_&]:[stroke-linecap:round] [_.tile_&]:[stroke-linejoin:round]"><path d="M12 9v4M12 17h.01" /><path d="M10.3 3.9L2.5 17.5A2 2 0 0 0 4.2 20.5h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg></span>
     </div>
-    <strong class="kpi-value">{{ overview.rejected + overview.inProgress | number: '1.0-0' : 'fr-FR' }}</strong>
-    <span class="kpi-note">{{ overview.rejected }} rejetée(s) · {{ overview.inProgress }} en cours · {{ errors() }} en erreur</span>
+    <strong class="kpi-value [color:var(--text-strong)] [font-size:var(--fs-figure)] [font-weight:700] [line-height:1.1] [letter-spacing:-0.02em] [font-variant-numeric:tabular-nums]">{{ overview.rejected + overview.inProgress | number: '1.0-0' : 'fr-FR' }}</strong>
+    <span class="kpi-note [display:inline-flex] [flex-wrap:wrap] [align-items:center] [gap:8px] [margin-top:4px] [color:var(--text-2)] [font-size:var(--fs-small)]">{{ overview.rejected }} rejetée(s) · {{ overview.inProgress }} en cours · {{ errors() }} en erreur</span>
   </article>
 </section>
 
 @if (overview.filtersApplied) {
-  <p class="footnote fieldwork-note">Filtres actifs : les interviews sont filtrées ; les objectifs ne dépendent que de l’équipe ou de l’enquêteur choisi.</p>
+  <p class="footnote fieldwork-note [margin:12px_0_0] [color:var(--text-2)] [font-size:var(--fs-caption)] [line-height:1.5] [margin:-4px_0_16px]">Filtres actifs : les interviews sont filtrées ; les objectifs ne dépendent que de l’équipe ou de l’enquêteur choisi.</p>
 }
 
-<div class="grid-2-1">
-  <section class="card pad">
-    <div class="card-head">
+<div class="grid-2-1 [display:grid] [grid-template-columns:minmax(0,_2fr)_minmax(300px,_1fr)] [gap:16px] [@media(max-width:1100px)]:[grid-template-columns:minmax(0,_1fr)]">
+  <section class="card pad [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px] [padding:20px_22px]">
+    <div class="card-head [display:flex] [flex-wrap:wrap] [gap:12px] [align-items:center] [justify-content:space-between] [.card.pad_&]:[margin-bottom:14px]">
       <div>
         <h2>Progression de la collecte</h2>
-        <p>Interviews terminées par jour et cumul, rapportés à l’objectif</p>
+        <p class="[.card-head_&]:[margin:4px_0_0] [.card-head_&]:[color:var(--text-2)] [.card-head_&]:[font-size:var(--fs-small)]">Interviews terminées par jour et cumul, rapportés à l’objectif</p>
       </div>
-      <div class="segmented" role="group" aria-label="Période">
-        <button type="button" [attr.aria-pressed]="period() === '7'" (click)="period.set('7')">7 jours</button>
-        <button type="button" [attr.aria-pressed]="period() === '30'" (click)="period.set('30')">30 jours</button>
-        <button type="button" [attr.aria-pressed]="period() === 'all'" (click)="period.set('all')">Tout</button>
+      <div class="segmented [display:inline-flex] [align-items:center] [gap:2px] [padding:3px] [border-radius:10px] [background:#f1f4f8]" role="group" aria-label="Période">
+        <button type="button" [attr.aria-pressed]="period() === '7'" (click)="period.set('7')" class="[.segmented_&]:[min-height:32px] [.segmented_&]:[padding:0_12px] [.segmented_&]:[border:0] [.segmented_&]:[border-radius:8px] [.segmented_&]:[background:transparent] [.segmented_&]:[color:var(--text-2)] [.segmented_&]:[font-size:var(--fs-small)] [.segmented_&]:[font-weight:500] [.segmented_[aria-pressed='true']]:[background:#fff] [.segmented_[aria-pressed='true']]:[color:var(--text)] [.segmented_[aria-pressed='true']]:[font-weight:600] [.segmented_[aria-pressed='true']]:[box-shadow:0_1px_2px_rgba(16,_24,_40,_0.1)]">7 jours</button>
+        <button type="button" [attr.aria-pressed]="period() === '30'" (click)="period.set('30')" class="[.segmented_&]:[min-height:32px] [.segmented_&]:[padding:0_12px] [.segmented_&]:[border:0] [.segmented_&]:[border-radius:8px] [.segmented_&]:[background:transparent] [.segmented_&]:[color:var(--text-2)] [.segmented_&]:[font-size:var(--fs-small)] [.segmented_&]:[font-weight:500] [.segmented_[aria-pressed='true']]:[background:#fff] [.segmented_[aria-pressed='true']]:[color:var(--text)] [.segmented_[aria-pressed='true']]:[font-weight:600] [.segmented_[aria-pressed='true']]:[box-shadow:0_1px_2px_rgba(16,_24,_40,_0.1)]">30 jours</button>
+        <button type="button" [attr.aria-pressed]="period() === 'all'" (click)="period.set('all')" class="[.segmented_&]:[min-height:32px] [.segmented_&]:[padding:0_12px] [.segmented_&]:[border:0] [.segmented_&]:[border-radius:8px] [.segmented_&]:[background:transparent] [.segmented_&]:[color:var(--text-2)] [.segmented_&]:[font-size:var(--fs-small)] [.segmented_&]:[font-weight:500] [.segmented_[aria-pressed='true']]:[background:#fff] [.segmented_[aria-pressed='true']]:[color:var(--text)] [.segmented_[aria-pressed='true']]:[font-weight:600] [.segmented_[aria-pressed='true']]:[box-shadow:0_1px_2px_rgba(16,_24,_40,_0.1)]">Tout</button>
       </div>
     </div>
-    <div class="legend">
-      <span><i class="sw primary"></i>Terminées dans la journée</span>
-      <span><i class="sw soft"></i>Cumul</span>
+    <div class="legend [display:flex] [flex-wrap:wrap] [gap:18px] [color:var(--text-2)] [font-size:var(--fs-caption)]">
+      <span class="[.legend_&]:[display:flex] [.legend_&]:[align-items:center] [.legend_&]:[gap:8px]"><i class="sw primary [display:inline-block] [width:10px] [height:10px] [border-radius:3px] [&.primary]:[background:var(--primary)] [&.soft]:[background:var(--chart-soft)] [&.dash]:[width:14px] [&.dash]:[height:0] [&.dash]:[border-top:2px_dashed_var(--ochre)] [&.dash]:[border-radius:0] [&.empty-sw]:[border:1px_solid_var(--control)] [&.empty-sw]:[background:#eef1f6]"></i>Terminées dans la journée</span>
+      <span class="[.legend_&]:[display:flex] [.legend_&]:[align-items:center] [.legend_&]:[gap:8px]"><i class="sw soft [display:inline-block] [width:10px] [height:10px] [border-radius:3px] [&.primary]:[background:var(--primary)] [&.soft]:[background:var(--chart-soft)] [&.dash]:[width:14px] [&.dash]:[height:0] [&.dash]:[border-top:2px_dashed_var(--ochre)] [&.dash]:[border-radius:0] [&.empty-sw]:[border:1px_solid_var(--control)] [&.empty-sw]:[background:#eef1f6]"></i>Cumul</span>
       @if (overview.target > 0) {
-        <span><i class="sw dash"></i>Objectif</span>
+        <span class="[.legend_&]:[display:flex] [.legend_&]:[align-items:center] [.legend_&]:[gap:8px]"><i class="sw dash [display:inline-block] [width:10px] [height:10px] [border-radius:3px] [&.primary]:[background:var(--primary)] [&.soft]:[background:var(--chart-soft)] [&.dash]:[width:14px] [&.dash]:[height:0] [&.dash]:[border-top:2px_dashed_var(--ochre)] [&.dash]:[border-radius:0] [&.empty-sw]:[border:1px_solid_var(--control)] [&.empty-sw]:[background:#eef1f6]"></i>Objectif</span>
       }
     </div>
     @if (overview.daily.length) {
       <app-dashboard-chart [options]="progressOptions()" [height]="270" downloadFilename="progression-collecte" />
     } @else {
-      <p class="empty">Aucune interview terminée sur la période.</p>
+      <p class="empty [margin:0] [padding:28px_24px] [color:var(--text-2)] [text-align:center]">Aucune interview terminée sur la période.</p>
     }
   </section>
 
-  <section class="card pad">
+  <section class="card pad [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px] [padding:20px_22px]">
     <h2>Avancement</h2>
-    <div class="donut-row">
+    <div class="donut-row [display:flex] [align-items:center] [gap:18px] [margin-top:14px]">
       <svg width="112" height="112" viewBox="0 0 112 112" role="img" [attr.aria-label]="rate(overview.completionRate) + ' de l’objectif atteint'">
         <circle cx="56" cy="56" r="44" fill="none" stroke="#eef1f6" stroke-width="12" />
         <circle cx="56" cy="56" r="44" fill="none" stroke="var(--primary)" stroke-width="12" stroke-linecap="round"
           [attr.stroke-dasharray]="donutDash()" transform="rotate(-90 56 56)" />
-        <text x="56" y="56" text-anchor="middle" class="donut-value">{{ rate(overview.completionRate) }}</text>
-        <text x="56" y="74" text-anchor="middle" class="donut-label">objectif</text>
+        <text x="56" y="56" text-anchor="middle" class="donut-value [fill:var(--text)] [font-size:20px] [font-weight:700]">{{ rate(overview.completionRate) }}</text>
+        <text x="56" y="74" text-anchor="middle" class="donut-label [fill:var(--text-2)] [font-size:12px]">objectif</text>
       </svg>
-      <div class="donut-legend">
-        <div><i class="sw primary"></i>Réalisées <strong>{{ overview.completed | number: '1.0-0' : 'fr-FR' }}</strong></div>
-        <div><i class="sw empty-sw"></i>Restantes <strong>{{ remaining() | number: '1.0-0' : 'fr-FR' }}</strong></div>
+      <div class="donut-legend [display:flex] [flex:1] [flex-direction:column] [gap:10px] [font-size:var(--fs-small)]">
+        <div class="[_.donut-legend_&]:[display:flex] [_.donut-legend_&]:[align-items:center] [_.donut-legend_&]:[gap:8px]"><i class="sw primary [display:inline-block] [width:10px] [height:10px] [border-radius:3px] [&.primary]:[background:var(--primary)] [&.soft]:[background:var(--chart-soft)] [&.dash]:[width:14px] [&.dash]:[height:0] [&.dash]:[border-top:2px_dashed_var(--ochre)] [&.dash]:[border-radius:0] [&.empty-sw]:[border:1px_solid_var(--control)] [&.empty-sw]:[background:#eef1f6]"></i>Réalisées <strong class="[.donut-legend_&]:[margin-left:auto]">{{ overview.completed | number: '1.0-0' : 'fr-FR' }}</strong></div>
+        <div class="[_.donut-legend_&]:[display:flex] [_.donut-legend_&]:[align-items:center] [_.donut-legend_&]:[gap:8px]"><i class="sw empty-sw [display:inline-block] [width:10px] [height:10px] [border-radius:3px] [&.primary]:[background:var(--primary)] [&.soft]:[background:var(--chart-soft)] [&.dash]:[width:14px] [&.dash]:[height:0] [&.dash]:[border-top:2px_dashed_var(--ochre)] [&.dash]:[border-radius:0] [&.empty-sw]:[border:1px_solid_var(--control)] [&.empty-sw]:[background:#eef1f6]"></i>Restantes <strong class="[.donut-legend_&]:[margin-left:auto]">{{ remaining() | number: '1.0-0' : 'fr-FR' }}</strong></div>
         @if (daysNeeded(); as days) {
-          <span class="kpi-note">≈ {{ days }} jour(s) au rythme actuel</span>
+          <span class="kpi-note [display:inline-flex] [flex-wrap:wrap] [align-items:center] [gap:8px] [margin-top:4px] [color:var(--text-2)] [font-size:var(--fs-small)]">≈ {{ days }} jour(s) au rythme actuel</span>
         }
       </div>
     </div>
     <h3>Points d’attention</h3>
-    <ul class="attention">
+    <ul class="attention [display:flex] [flex-direction:column] [gap:10px] [margin:10px_0_0] [padding:0] [list-style:none]">
       @for (point of attention(); track point.text) {
-        <li [class.ok]="point.tone === 'ok'">
+        <li [class.ok]="point.tone === 'ok'" class="[.attention_&]:[background:var(--green-faint)] [.attention_&]:[display:flex] [.attention_&]:[gap:10px] [.attention_&]:[align-items:flex-start] [.attention_&]:[padding:10px_12px] [.attention_&]:[border-radius:10px] [.attention_&]:[background:var(--ochre-faint)] [.attention_&]:[font-size:var(--fs-small)] [.attention_&]:[line-height:1.45]">
           @if (point.tone === 'ok') {
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M8.5 12l2.5 2.5 4.5-5" /></svg>
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="[.attention_&]:[width:18px] [.attention_&]:[height:18px] [.attention_&]:[flex-shrink:0] [.attention_&]:[fill:none] [.attention_&]:[stroke:currentColor] [.attention_&]:[stroke-width:1.8] [.attention_&]:[stroke-linecap:round] [.attention_&]:[stroke-linejoin:round] [.attention_li_&]:[color:#b4691a] [.attention_li.ok_&]:[color:var(--green)]"><circle cx="12" cy="12" r="9" /><path d="M8.5 12l2.5 2.5 4.5-5" /></svg>
           } @else {
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16h.01" /></svg>
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="[.attention_&]:[width:18px] [.attention_&]:[height:18px] [.attention_&]:[flex-shrink:0] [.attention_&]:[fill:none] [.attention_&]:[stroke:currentColor] [.attention_&]:[stroke-width:1.8] [.attention_&]:[stroke-linecap:round] [.attention_&]:[stroke-linejoin:round] [.attention_li_&]:[color:#b4691a] [.attention_li.ok_&]:[color:var(--green)]"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16h.01" /></svg>
           }
           <span>{{ point.text }}</span>
         </li>
@@ -105,78 +105,78 @@
   </section>
 </div>
 
-<section class="card">
-  <div class="card-head pad">
+<section class="card [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px]">
+  <div class="card-head pad [display:flex] [flex-wrap:wrap] [gap:12px] [align-items:center] [justify-content:space-between] [padding:20px_22px]">
     <div>
       <h2>Équipes et enquêteurs</h2>
-      <p>Réalisation par rapport aux affectations, qualité et rythme</p>
+      <p class="[.card-head_&]:[margin:4px_0_0] [.card-head_&]:[color:var(--text-2)] [.card-head_&]:[font-size:var(--fs-small)]">Réalisation par rapport aux affectations, qualité et rythme</p>
     </div>
-    <span class="count">{{ overview.teams.length }} équipe(s) · {{ interviewerCount() }} enquêteur(s)</span>
+    <span class="count [color:var(--text-2)] [font-size:var(--fs-small)]">{{ overview.teams.length }} équipe(s) · {{ interviewerCount() }} enquêteur(s)</span>
   </div>
   @if (overview.teams.length) {
-    <div class="table-scroll">
-      <table class="data fieldwork-table">
+    <div class="table-scroll [overflow-x:auto]">
+      <table class="data fieldwork-table [width:100%] [border-collapse:collapse] [font-size:var(--fs-body)] [font-variant-numeric:tabular-nums]">
         <thead>
           <tr>
-            <th class="l">Équipe / enquêteur</th>
-            <th>Objectif</th>
-            <th>Réalisées</th>
-            <th class="l rate-col">Réalisation</th>
-            <th>Approuvées</th>
-            <th>À traiter</th>
-            <th>Durée méd.</th>
-            <th>Par jour</th>
-            <th class="l">Statut</th>
+            <th class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Équipe / enquêteur</th>
+            <th class="[table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Objectif</th>
+            <th class="[table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Réalisées</th>
+            <th class="l !text-left rate-col [table.data_&]:[text-align:left] [min-width:150px] [table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Réalisation</th>
+            <th class="[table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Approuvées</th>
+            <th class="[table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">À traiter</th>
+            <th class="[table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Durée méd.</th>
+            <th class="[table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Par jour</th>
+            <th class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[position:sticky] [table.data_&]:[top:0] [table.data_&]:[padding:12px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line)] [table.data_&]:[background:#f7f9fc] [table.data_&]:[color:var(--text-2)] [table.data_&]:[font-size:var(--fs-caption)] [table.data_&]:[font-weight:600] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_:first-child]:[padding-left:22px] [table.data_:last-child]:[padding-right:22px]">Statut</th>
           </tr>
         </thead>
         <tbody>
           @for (team of overview.teams; track team.supervisor) {
             <tr class="team-row">
-              <td class="l">
-                <button type="button" class="person team-toggle" [attr.aria-expanded]="isOpen(team)" (click)="toggle(team)">
-                  <svg class="chev" viewBox="0 0 24 24" aria-hidden="true" [class.open]="isOpen(team)"><path d="M9 6l6 6-6 6" /></svg>
-                  <span class="avatar strong">{{ initials(team.supervisor) }}</span>
-                  <span class="who">Équipe {{ team.supervisor }}<small>Superviseur · {{ team.interviewers.length }} enquêteur(s)</small></span>
+              <td class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.team-row_&]:[background:#fbfcfe] [.team-row_&]:[font-weight:600]">
+                <button type="button" class="person team-toggle [display:inline-flex] [align-items:center] [gap:10px] [text-align:left] [&.indent]:[padding-left:26px] [padding:0] [border:0] [background:none] [font-weight:600]" [attr.aria-expanded]="isOpen(team)" (click)="toggle(team)">
+                  <svg class="chev [width:18px] [height:18px] [flex-shrink:0] [fill:none] [stroke:currentColor] [stroke-width:1.8] [stroke-linecap:round] [stroke-linejoin:round] [width:16px] [height:16px] [color:var(--text-2)] [transition:transform_0.15s] [&.open]:[transform:rotate(90deg)]" viewBox="0 0 24 24" aria-hidden="true" [class.open]="isOpen(team)"><path d="M9 6l6 6-6 6" /></svg>
+                  <span class="avatar strong [display:inline-flex] [width:30px] [height:30px] [flex-shrink:0] [align-items:center] [justify-content:center] [border-radius:50%] [background:#eceffa] [color:var(--primary-hover)] [font-size:var(--fs-caption)] [font-weight:600] [&.strong]:[background:var(--primary)] [&.strong]:[color:#fff] [&.warn]:[background:var(--ochre-soft)] [&.warn]:[color:var(--ochre-text)] [&.empty-avatar]:[border:1px_dashed_#c3cbd8] [&.empty-avatar]:[background:#f1f4f8] [&.empty-avatar]:[color:var(--text-2)]">{{ initials(team.supervisor) }}</span>
+                  <span class="who [display:flex] [flex-direction:column] [line-height:1.35]">Équipe {{ team.supervisor }}<small class="[.who_&]:[color:var(--text-2)] [.who_&]:[font-size:var(--fs-caption)] [.who_&]:[font-weight:400]">Superviseur · {{ team.interviewers.length }} enquêteur(s)</small></span>
                 </button>
               </td>
-              <td>{{ team.target | number: '1.0-0' : 'fr-FR' }}</td>
-              <td>{{ team.completed | number: '1.0-0' : 'fr-FR' }}</td>
-              <td class="l"><span class="bar-cell"><span class="track"><span class="fill" [style.width.%]="cap(team.completionRate)"></span></span>{{ rate(team.completionRate) }}</span></td>
-              <td>{{ team.approved | number: '1.0-0' : 'fr-FR' }}</td>
-              <td>{{ team.rejected + team.inProgress | number: '1.0-0' : 'fr-FR' }}</td>
-              <td></td><td></td>
-              <td class="l"><span class="pill" [class]="'pill ' + teamStatus(team).tone"><i class="dot"></i>{{ teamStatus(team).label }}</span></td>
+              <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.team-row_&]:[background:#fbfcfe] [.team-row_&]:[font-weight:600]">{{ team.target | number: '1.0-0' : 'fr-FR' }}</td>
+              <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.team-row_&]:[background:#fbfcfe] [.team-row_&]:[font-weight:600]">{{ team.completed | number: '1.0-0' : 'fr-FR' }}</td>
+              <td class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.team-row_&]:[background:#fbfcfe] [.team-row_&]:[font-weight:600]"><span class="bar-cell [display:flex] [min-width:140px] [align-items:center] [gap:10px]"><span class="track [display:block] [flex:1] [height:6px] [overflow:hidden] [border-radius:999px] [background:#eef1f6]"><span class="fill [display:block] [height:100%] [border-radius:999px] [background:var(--primary)] [&.warn]:[background:var(--ochre)]" [style.width.%]="cap(team.completionRate)"></span></span>{{ rate(team.completionRate) }}</span></td>
+              <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.team-row_&]:[background:#fbfcfe] [.team-row_&]:[font-weight:600]">{{ team.approved | number: '1.0-0' : 'fr-FR' }}</td>
+              <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.team-row_&]:[background:#fbfcfe] [.team-row_&]:[font-weight:600]">{{ team.rejected + team.inProgress | number: '1.0-0' : 'fr-FR' }}</td>
+              <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.team-row_&]:[background:#fbfcfe] [.team-row_&]:[font-weight:600]"></td><td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.team-row_&]:[background:#fbfcfe] [.team-row_&]:[font-weight:600]"></td>
+              <td class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.team-row_&]:[background:#fbfcfe] [.team-row_&]:[font-weight:600]"><span class="pill [display:inline-flex] [align-items:center] [gap:6px] [padding:4px_10px] [border-radius:999px] [font-size:var(--fs-caption)] [font-weight:600] [white-space:nowrap] [&.ok]:[background:var(--green-soft)] [&.ok]:[color:var(--green)] [&.warn]:[background:var(--ochre-soft)] [&.warn]:[color:var(--ochre-text)] [&.info]:[background:#eceffa] [&.info]:[color:var(--primary-hover)]" [class]="'pill ' + teamStatus(team).tone"><i class="dot [width:6px] [height:6px] [border-radius:50%] [background:currentColor]"></i>{{ teamStatus(team).label }}</span></td>
             </tr>
             @if (isOpen(team)) {
               @for (row of team.interviewers; track row.interviewer) {
                 <tr class="interviewer-row" [class.not-started]="notStarted(row)">
-                  <td class="l">
-                    <span class="person indent">
-                      <span class="avatar" [class.warn]="notStarted(row)">{{ initials(row.interviewer) }}</span>
-                      <span class="who">{{ row.interviewer }}<small>{{ row.lastCompletion ? 'Dernière interview le ' + (row.lastCompletion | date: 'd MMM' : 'UTC' : 'fr-FR') : 'Aucune interview' }}</small></span>
+                  <td class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.interviewer-row.not-started_&]:[color:#5b6472]">
+                    <span class="person indent [display:inline-flex] [align-items:center] [gap:10px] [text-align:left] [&.indent]:[padding-left:26px]">
+                      <span class="avatar [display:inline-flex] [width:30px] [height:30px] [flex-shrink:0] [align-items:center] [justify-content:center] [border-radius:50%] [background:#eceffa] [color:var(--primary-hover)] [font-size:var(--fs-caption)] [font-weight:600] [&.strong]:[background:var(--primary)] [&.strong]:[color:#fff] [&.warn]:[background:var(--ochre-soft)] [&.warn]:[color:var(--ochre-text)] [&.empty-avatar]:[border:1px_dashed_#c3cbd8] [&.empty-avatar]:[background:#f1f4f8] [&.empty-avatar]:[color:var(--text-2)]" [class.warn]="notStarted(row)">{{ initials(row.interviewer) }}</span>
+                      <span class="who [display:flex] [flex-direction:column] [line-height:1.35]">{{ row.interviewer }}<small class="[.who_&]:[color:var(--text-2)] [.who_&]:[font-size:var(--fs-caption)] [.who_&]:[font-weight:400]">{{ row.lastCompletion ? 'Dernière interview le ' + (row.lastCompletion | date: 'd MMM' : 'UTC' : 'fr-FR') : 'Aucune interview' }}</small></span>
                     </span>
                   </td>
-                  <td>{{ row.target | number: '1.0-0' : 'fr-FR' }}</td>
-                  <td>{{ row.completed | number: '1.0-0' : 'fr-FR' }}</td>
-                  <td class="l"><span class="bar-cell"><span class="track"><span class="fill" [class.warn]="row.completionRate !== null && row.completionRate < 50" [style.width.%]="cap(row.completionRate)"></span></span>{{ rate(row.completionRate) }}</span></td>
-                  <td>{{ row.approved | number: '1.0-0' : 'fr-FR' }}</td>
-                  <td>{{ row.rejected + row.inProgress | number: '1.0-0' : 'fr-FR' }}</td>
-                  <td>{{ row.medianDurationMinutes === null ? '—' : (row.medianDurationMinutes | number: '1.0-1' : 'fr-FR') + ' min' }}</td>
-                  <td>{{ row.completedPerActiveDay === null ? '—' : (row.completedPerActiveDay | number: '1.0-1' : 'fr-FR') }}</td>
-                  <td class="l"><span [class]="'pill ' + interviewerStatus(row).tone"><i class="dot"></i>{{ interviewerStatus(row).label }}</span></td>
+                  <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.interviewer-row.not-started_&]:[color:#5b6472]">{{ row.target | number: '1.0-0' : 'fr-FR' }}</td>
+                  <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.interviewer-row.not-started_&]:[color:#5b6472]">{{ row.completed | number: '1.0-0' : 'fr-FR' }}</td>
+                  <td class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.interviewer-row.not-started_&]:[color:#5b6472]"><span class="bar-cell [display:flex] [min-width:140px] [align-items:center] [gap:10px]"><span class="track [display:block] [flex:1] [height:6px] [overflow:hidden] [border-radius:999px] [background:#eef1f6]"><span class="fill [display:block] [height:100%] [border-radius:999px] [background:var(--primary)] [&.warn]:[background:var(--ochre)]" [class.warn]="row.completionRate !== null && row.completionRate < 50" [style.width.%]="cap(row.completionRate)"></span></span>{{ rate(row.completionRate) }}</span></td>
+                  <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.interviewer-row.not-started_&]:[color:#5b6472]">{{ row.approved | number: '1.0-0' : 'fr-FR' }}</td>
+                  <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.interviewer-row.not-started_&]:[color:#5b6472]">{{ row.rejected + row.inProgress | number: '1.0-0' : 'fr-FR' }}</td>
+                  <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.interviewer-row.not-started_&]:[color:#5b6472]">{{ row.medianDurationMinutes === null ? '—' : (row.medianDurationMinutes | number: '1.0-1' : 'fr-FR') + ' min' }}</td>
+                  <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.interviewer-row.not-started_&]:[color:#5b6472]">{{ row.completedPerActiveDay === null ? '—' : (row.completedPerActiveDay | number: '1.0-1' : 'fr-FR') }}</td>
+                  <td class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.interviewer-row.not-started_&]:[color:#5b6472]"><span [class]="'pill ' + interviewerStatus(row).tone"><i class="dot [width:6px] [height:6px] [border-radius:50%] [background:currentColor]"></i>{{ interviewerStatus(row).label }}</span></td>
                 </tr>
               }
               @if (unassigned(team) > 0) {
                 <tr class="interviewer-row not-started">
-                  <td class="l">
-                    <span class="person indent">
-                      <span class="avatar empty-avatar">—</span>
-                      <span class="who">Non confiée<small>Chez le superviseur</small></span>
+                  <td class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.interviewer-row.not-started_&]:[color:#5b6472]">
+                    <span class="person indent [display:inline-flex] [align-items:center] [gap:10px] [text-align:left] [&.indent]:[padding-left:26px]">
+                      <span class="avatar empty-avatar [display:inline-flex] [width:30px] [height:30px] [flex-shrink:0] [align-items:center] [justify-content:center] [border-radius:50%] [background:#eceffa] [color:var(--primary-hover)] [font-size:var(--fs-caption)] [font-weight:600] [&.strong]:[background:var(--primary)] [&.strong]:[color:#fff] [&.warn]:[background:var(--ochre-soft)] [&.warn]:[color:var(--ochre-text)] [&.empty-avatar]:[border:1px_dashed_#c3cbd8] [&.empty-avatar]:[background:#f1f4f8] [&.empty-avatar]:[color:var(--text-2)]">—</span>
+                      <span class="who [display:flex] [flex-direction:column] [line-height:1.35]">Non confiée<small class="[.who_&]:[color:var(--text-2)] [.who_&]:[font-size:var(--fs-caption)] [.who_&]:[font-weight:400]">Chez le superviseur</small></span>
                     </span>
                   </td>
-                  <td>{{ unassigned(team) | number: '1.0-0' : 'fr-FR' }}</td>
-                  <td>—</td><td class="l">—</td><td>—</td><td>—</td><td>—</td><td>—</td>
-                  <td class="l"><span class="pill warn"><i class="dot"></i>À attribuer</span></td>
+                  <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.interviewer-row.not-started_&]:[color:#5b6472]">{{ unassigned(team) | number: '1.0-0' : 'fr-FR' }}</td>
+                  <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.interviewer-row.not-started_&]:[color:#5b6472]">—</td><td class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.interviewer-row.not-started_&]:[color:#5b6472]">—</td><td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.interviewer-row.not-started_&]:[color:#5b6472]">—</td><td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.interviewer-row.not-started_&]:[color:#5b6472]">—</td><td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.interviewer-row.not-started_&]:[color:#5b6472]">—</td><td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.interviewer-row.not-started_&]:[color:#5b6472]">—</td>
+                  <td class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px] [.interviewer-row.not-started_&]:[color:#5b6472]"><span class="pill warn [display:inline-flex] [align-items:center] [gap:6px] [padding:4px_10px] [border-radius:999px] [font-size:var(--fs-caption)] [font-weight:600] [white-space:nowrap] [&.ok]:[background:var(--green-soft)] [&.ok]:[color:var(--green)] [&.warn]:[background:var(--ochre-soft)] [&.warn]:[color:var(--ochre-text)] [&.info]:[background:#eceffa] [&.info]:[color:var(--primary-hover)]"><i class="dot [width:6px] [height:6px] [border-radius:50%] [background:currentColor]"></i>À attribuer</span></td>
                 </tr>
               }
             }
@@ -184,8 +184,8 @@
         </tbody>
       </table>
     </div>
-    <p class="footnote pad-x">Réalisées : interviews terminées au moins une fois, quel que soit leur statut actuel. « Par jour » rapporte les réalisées aux jours où l’enquêteur en a terminé au moins une.</p>
+    <p class="footnote pad-x [margin:12px_0_0] [color:var(--text-2)] [font-size:var(--fs-caption)] [line-height:1.5] [padding:0_22px_18px]">Réalisées : interviews terminées au moins une fois, quel que soit leur statut actuel. « Par jour » rapporte les réalisées aux jours où l’enquêteur en a terminé au moins une.</p>
   } @else {
-    <p class="empty">Aucune affectation ni interview pour ces filtres.</p>
+    <p class="empty [margin:0] [padding:28px_24px] [color:var(--text-2)] [text-align:center]">Aucune affectation ni interview pour ces filtres.</p>
   }
 </section>

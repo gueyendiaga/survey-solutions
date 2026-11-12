@@ -1,67 +1,124 @@
-<div class="qh-top">
-  <div class="qh-identity">
-    <div class="qh-titles">
-      <nav class="crumbs" aria-label="Fil d’Ariane">
-        <a href="#questionnaires" (click)="onChange($event)">Questionnaires</a>
-        <span aria-hidden="true">›</span>
-        <span>Version {{ questionnaire.version }}</span>
-      </nav>
-      <h1 class="qh-title">{{ questionnaire.title }}</h1>
-      <div class="qh-meta">
-        @if (syncStatus?.inProgress) {
-          <span class="pill info sync-line"><span class="spinner small"></span>Synchronisation en cours…</span>
-        } @else if (syncStatus?.lastSuccessAt) {
-          <span class="pill ok sync-line"><i class="dot"></i>Données à jour · {{ syncStatus!.lastSuccessAt | date: 'd MMM, HH:mm' : '' : 'fr-FR' }} · {{ syncStatus!.interviewCount ?? 0 | number: '1.0-0' : 'fr-FR' }} interview(s)</span>
-        } @else {
-          <span class="pill warn sync-line"><i class="dot"></i>Aucune donnée importée</span>
-        }
-        @if (questionnaire.variable) {
-          <span class="qh-code">{{ questionnaire.variable }}</span>
-        }
-        <button type="button" class="link" (click)="onChange($event)">Changer de questionnaire</button>
-      </div>
+<div class="mx-auto flex max-w-[1440px] flex-wrap items-start justify-between gap-x-8 gap-y-5 px-6 pb-5 pt-4 sm:px-8 lg:px-10">
+  <div class="min-w-0 flex-1">
+    <nav class="mb-2 flex items-center gap-2 text-xs font-medium text-slate-400" aria-label="Fil d’Ariane">
+      <a href="#questionnaires" class="transition hover:text-indigo-800 hover:underline" (click)="onChange($event)">Questionnaires</a>
+      <svg class="h-3.5 w-3.5 fill-none stroke-current stroke-2" viewBox="0 0 16 16" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="m6 3 5 5-5 5" />
+      </svg>
+      <span>Version {{ questionnaire.version }}</span>
+    </nav>
+
+    <h1 class="qh-title max-w-4xl truncate text-2xl font-semibold leading-tight tracking-[-0.04em] text-slate-900 sm:text-[30px]">
+      {{ questionnaire.title }}
+    </h1>
+
+    <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-slate-500 sm:text-[13px]">
+      @if (syncStatus?.inProgress) {
+        <span class="sync-line inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1.5 font-medium text-indigo-800">
+          <span class="spinner small h-3 w-3 border-2 border-indigo-100 border-t-indigo-700"></span>
+          Synchronisation en cours…
+        </span>
+      } @else if (syncStatus?.lastSuccessAt) {
+        <span class="sync-line inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 font-medium text-emerald-800">
+          <span class="h-1.5 w-1.5 rounded-full bg-emerald-600"></span>
+          Données à jour
+          <span class="text-emerald-700/70">·</span>
+          {{ syncStatus!.lastSuccessAt | date: 'd MMM, HH:mm' : '' : 'fr-FR' }}
+          <span class="text-emerald-700/70">·</span>
+          {{ syncStatus!.interviewCount ?? 0 | number: '1.0-0' : 'fr-FR' }} interview(s)
+        </span>
+      } @else {
+        <span class="sync-line inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5 font-medium text-amber-800">
+          <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+          Aucune donnée importée
+        </span>
+      }
+
+      @if (questionnaire.variable) {
+        <span class="rounded-md bg-slate-100 px-2 py-1 font-mono text-xs text-slate-600">{{ questionnaire.variable }}</span>
+      }
+
+      <button
+        type="button"
+        class="font-medium text-indigo-800 transition hover:text-indigo-950 hover:underline"
+        (click)="onChange($event)">
+        Changer de questionnaire
+      </button>
     </div>
   </div>
 
-  <div class="qh-actions">
-    <button type="button" class="btn icon" aria-label="Synchroniser maintenant" title="Synchroniser maintenant" (click)="sync.emit()" [disabled]="syncRequesting || syncStatus?.inProgress">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.6-4.5L4 8" /><path d="M4 4v4h4" /><path d="M4 13a8 8 0 0 0 14.6 4.5L20 16" /><path d="M20 20v-4h-4" /></svg>
+  <div class="flex shrink-0 items-center gap-2 self-start">
+    <button
+      type="button"
+      class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-800 disabled:cursor-not-allowed disabled:opacity-50"
+      aria-label="Synchroniser maintenant"
+      title="Synchroniser maintenant"
+      (click)="sync.emit()"
+      [disabled]="syncRequesting || syncStatus?.inProgress">
+      <svg class="h-5 w-5 fill-none stroke-current stroke-[1.8]" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M20 11a8 8 0 0 0-14.6-4.5L4 8M4 4v4h4M4 13a8 8 0 0 0 14.6 4.5L20 16m0 4v-4h-4" />
+      </svg>
     </button>
-    <div class="menu">
-      <button type="button" class="btn icon" aria-label="Exporter les réponses" title="Exporter les réponses" aria-haspopup="menu" [attr.aria-expanded]="menuOpen" (click)="menuOpen = !menuOpen" [disabled]="exporting">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5" /><path d="M5 21h14" /></svg>
+
+    <div class="menu relative">
+      <button
+        type="button"
+        class="export-toggle flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-800 disabled:cursor-not-allowed disabled:opacity-50"
+        aria-label="Exporter les réponses"
+        title="Exporter les réponses"
+        aria-haspopup="menu"
+        [attr.aria-expanded]="menuOpen"
+        (click)="menuOpen = !menuOpen"
+        [disabled]="exporting">
+        <svg class="h-5 w-5 fill-none stroke-current stroke-[1.8]" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m-5-5 5 5 5-5M5 21h14" />
+        </svg>
       </button>
       @if (menuOpen) {
-        <div class="menu-list" role="menu">
-          <button type="button" role="menuitem" class="export-button" (click)="exportAs('csv')">Exporter CSV</button>
-          <button type="button" role="menuitem" class="export-button" (click)="exportAs('xlsx')">Exporter Excel</button>
+        <div class="menu-list absolute right-0 top-[calc(100%+8px)] z-30 flex min-w-48 flex-col rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl" role="menu">
+          <button type="button" role="menuitem" class="export-button rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50" (click)="exportAs('csv')">Exporter CSV</button>
+          <button type="button" role="menuitem" class="export-button rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50" (click)="exportAs('xlsx')">Exporter Excel</button>
         </div>
       }
     </div>
-    <button type="button" class="btn primary report-button" (click)="report.emit()" [disabled]="reportGenerating" title="Rapport PDF avec les filtres appliqués">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></svg>
-      {{ reportGenerating ? 'Génération…' : 'Rapport PDF' }}
+
+    <button
+      type="button"
+      class="report-button inline-flex h-10 items-center gap-2 rounded-xl bg-indigo-800 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-900 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+      (click)="report.emit()"
+      [disabled]="reportGenerating"
+      title="Rapport PDF avec les filtres appliqués">
+      <svg class="h-[18px] w-[18px] fill-none stroke-current stroke-[1.8]" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Zm0 0v5h5" />
+      </svg>
+      <span class="hidden sm:inline">{{ reportGenerating ? 'Génération…' : 'Rapport PDF' }}</span>
+      <span class="sm:hidden">{{ reportGenerating ? '…' : 'PDF' }}</span>
     </button>
   </div>
 </div>
 
-<div class="qh-tabs" role="tablist" aria-label="Sections du questionnaire" (keydown)="onKeydown($event)">
+<div class="mx-auto flex max-w-[1440px] gap-1 overflow-x-auto px-6 sm:px-8 lg:px-10" role="tablist" aria-label="Sections du questionnaire" (keydown)="onKeydown($event)">
   @for (tab of tabs; track tab.id; let index = $index) {
     <button
       #tabButton
       type="button"
       role="tab"
-      class="qh-tab"
+      class="qh-tab relative inline-flex min-h-11 shrink-0 items-center gap-2 rounded-t-lg border-b-2 border-transparent px-3 text-sm font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-indigo-600 sm:px-4 [&.active]:!border-indigo-800 [&.active]:!bg-indigo-50 [&.active]:!text-indigo-900"
+      [class.active]="tab.id === active"
       [id]="'tab-' + tab.id"
       [attr.aria-selected]="tab.id === active"
       [attr.aria-controls]="'panel-' + tab.id"
       [attr.tabindex]="index === focusIndex ? 0 : -1"
-      [class.active]="tab.id === active"
       (click)="select(tab.id)"
       (focus)="focusIndex = index">
       {{ tab.label }}
       @if (badge(tab.id); as count) {
-        <span class="qh-badge" [class.warn]="tab.id === 'quality'" [attr.aria-label]="badgeLabel(tab.id, count)">{{ count }}</span>
+        <span
+          class="qh-badge inline-flex min-w-5 items-center justify-center rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold leading-none text-slate-600 [&.warn]:!bg-amber-100 [&.warn]:!text-amber-800"
+          [class.warn]="tab.id === 'quality'"
+          [attr.aria-label]="badgeLabel(tab.id, count)">
+          {{ count }}
+        </span>
       }
     </button>
   }

@@ -4,24 +4,4 @@
   width: 100%;
 }
 
-.chart-canvas {
-  width: 100%;
-}
-
 /* Libellé complet d'une modalité, au survol de son libellé raccourci (même style que l'infobulle ECharts). */
-.axis-label-tip {
-  position: absolute;
-  z-index: 5;
-  max-width: 320px;
-  padding: 6px 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
-  box-shadow: 0 6px 20px rgba(16, 24, 40, 0.12);
-  color: var(--text);
-  font-size: var(--fs-small);
-  line-height: 1.4;
-  pointer-events: none;
-  transform: translate(-50%, calc(-100% - 12px));
-  white-space: normal;
-}

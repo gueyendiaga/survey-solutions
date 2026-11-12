@@ -13,10 +13,10 @@
     (exportData)="store.downloadExport($event)"
     (report)="store.downloadReport()" />
 
-  <main class="page">
-    <div class="tab-panel" role="tabpanel" [id]="'panel-' + store.tab()" [attr.aria-labelledby]="'tab-' + store.tab()" tabindex="-1">
-      <div class="panel-toolbar">
-        <p class="lead">{{ store.lead() }}</p>
+  <main class="page [width:100%] [max-width:1240px] [margin:0_auto] [padding:28px_32px_56px] [@media(max-width:900px)]:[padding-right:16px] [@media(max-width:900px)]:[padding-left:16px]">
+    <div class="tab-panel [&:focus]:[outline:none]" role="tabpanel" [id]="'panel-' + store.tab()" [attr.aria-labelledby]="'tab-' + store.tab()" tabindex="-1">
+      <div class="panel-toolbar [display:flex] [flex-wrap:wrap] [gap:12px] [align-items:center] [justify-content:space-between] [margin-bottom:20px]">
+        <p class="lead [margin:4px_0_0] [color:var(--text-2)] [font-size:var(--fs-body)] [.panel-toolbar_&]:[margin:0]">{{ store.lead() }}</p>
         <app-filter-bar
           [filters]="store.filters()"
           [options]="store.filterOptions()"
@@ -28,21 +28,21 @@
       </div>
 
       @if (!store.syncStatus()?.inProgress && store.syncStatus()?.lastStatus === 'FAILED') {
-        <section class="alert" role="alert">
-          <div><strong>La dernière synchronisation a échoué</strong><p>{{ store.syncStatus()?.lastError }}</p></div>
-          <button type="button" class="btn" (click)="store.startSync()">Réessayer</button>
+        <section class="alert [display:flex] [flex-wrap:wrap] [gap:12px] [align-items:center] [justify-content:space-between] [margin-bottom:16px] [padding:14px_18px] [border:1px_solid_#f2c46d] [border-radius:12px] [background:var(--ochre-soft)] [color:var(--ochre-text)]" role="alert">
+          <div><strong>La dernière synchronisation a échoué</strong><p class="[.alert_&]:[margin:2px_0_0]">{{ store.syncStatus()?.lastError }}</p></div>
+          <button type="button" class="btn [display:inline-flex] [align-items:center] [justify-content:center] [gap:8px] [min-height:40px] [padding:0_14px] [border:1px_solid_var(--control)] [border-radius:10px] [background:var(--surface)] [color:var(--text)] [font-size:var(--fs-body)] [font-weight:500] [white-space:nowrap] [transition:border-color_140ms_ease,_background_140ms_ease,_color_140ms_ease,_box-shadow_140ms_ease,_transform_140ms_ease] [&:hover:not(:disabled)]:[border-color:#b8c1cf] [&:hover:not(:disabled)]:[background:#f8f9fc] [&:hover:not(:disabled)]:[box-shadow:0_2px_5px_rgba(27,_39,_73,_0.06)] [&:active:not(:disabled)]:[transform:translateY(1px)] [&:disabled]:[cursor:default] [&:disabled]:[opacity:0.55] [&.primary]:[border-color:var(--primary)] [&.primary]:[background:var(--primary)] [&.primary]:[color:#fff] [&.primary:hover:not(:disabled)]:[border-color:var(--primary-hover)] [&.primary:hover:not(:disabled)]:[background:var(--primary-hover)] [&.small]:[min-height:34px] [&.small]:[padding:0_12px] [&.small]:[font-size:var(--fs-small)] [text-decoration:none]" (click)="store.startSync()">Réessayer</button>
         </section>
       }
       @if (store.downloadError(); as message) {
-        <section class="alert" role="alert"><p>{{ message }}</p></section>
+        <section class="alert [display:flex] [flex-wrap:wrap] [gap:12px] [align-items:center] [justify-content:space-between] [margin-bottom:16px] [padding:14px_18px] [border:1px_solid_#f2c46d] [border-radius:12px] [background:var(--ochre-soft)] [color:var(--ochre-text)]" role="alert"><p class="[.alert_&]:[margin:2px_0_0]">{{ message }}</p></section>
       }
 
       @switch (store.tab()) {
         @case ('fieldwork') {
           @if (store.fieldworkError(); as message) {
-            <section class="alert" role="alert">
-              <p>{{ message }}</p>
-              <button type="button" class="btn" (click)="store.reloadFieldwork()">Réessayer</button>
+            <section class="alert [display:flex] [flex-wrap:wrap] [gap:12px] [align-items:center] [justify-content:space-between] [margin-bottom:16px] [padding:14px_18px] [border:1px_solid_#f2c46d] [border-radius:12px] [background:var(--ochre-soft)] [color:var(--ochre-text)]" role="alert">
+              <p class="[.alert_&]:[margin:2px_0_0]">{{ message }}</p>
+              <button type="button" class="btn [display:inline-flex] [align-items:center] [justify-content:center] [gap:8px] [min-height:40px] [padding:0_14px] [border:1px_solid_var(--control)] [border-radius:10px] [background:var(--surface)] [color:var(--text)] [font-size:var(--fs-body)] [font-weight:500] [white-space:nowrap] [transition:border-color_140ms_ease,_background_140ms_ease,_color_140ms_ease,_box-shadow_140ms_ease,_transform_140ms_ease] [&:hover:not(:disabled)]:[border-color:#b8c1cf] [&:hover:not(:disabled)]:[background:#f8f9fc] [&:hover:not(:disabled)]:[box-shadow:0_2px_5px_rgba(27,_39,_73,_0.06)] [&:active:not(:disabled)]:[transform:translateY(1px)] [&:disabled]:[cursor:default] [&:disabled]:[opacity:0.55] [&.primary]:[border-color:var(--primary)] [&.primary]:[background:var(--primary)] [&.primary]:[color:#fff] [&.primary:hover:not(:disabled)]:[border-color:var(--primary-hover)] [&.primary:hover:not(:disabled)]:[background:var(--primary-hover)] [&.small]:[min-height:34px] [&.small]:[padding:0_12px] [&.small]:[font-size:var(--fs-small)] [text-decoration:none]" (click)="store.reloadFieldwork()">Réessayer</button>
             </section>
           } @else if (store.fieldwork(); as overview) {
             <app-fieldwork-panel [overview]="overview" />
@@ -63,17 +63,17 @@
     </div>
   </main>
 } @else if (notFound()) {
-  <main class="page">
-    <section class="card empty-state-page">
+  <main class="page [width:100%] [max-width:1240px] [margin:0_auto] [padding:28px_32px_56px] [@media(max-width:900px)]:[padding-right:16px] [@media(max-width:900px)]:[padding-left:16px]">
+    <section class="card empty-state-page [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px] [display:flex] [flex-direction:column] [align-items:flex-start] [gap:8px] [padding:32px]">
       <h1>Questionnaire introuvable</h1>
-      <p class="lead">Cette version n’existe pas dans HQ ou n’est pas accessible avec le compte API configuré.</p>
-      <a class="btn primary" routerLink="/questionnaires">Voir les questionnaires</a>
+      <p class="lead [margin:4px_0_0] [color:var(--text-2)] [font-size:var(--fs-body)]">Cette version n’existe pas dans HQ ou n’est pas accessible avec le compte API configuré.</p>
+      <a class="btn primary [display:inline-flex] [align-items:center] [justify-content:center] [gap:8px] [min-height:40px] [padding:0_14px] [border:1px_solid_var(--control)] [border-radius:10px] [background:var(--surface)] [color:var(--text)] [font-size:var(--fs-body)] [font-weight:500] [white-space:nowrap] [transition:border-color_140ms_ease,_background_140ms_ease,_color_140ms_ease,_box-shadow_140ms_ease,_transform_140ms_ease] [&:hover:not(:disabled)]:[border-color:#b8c1cf] [&:hover:not(:disabled)]:[background:#f8f9fc] [&:hover:not(:disabled)]:[box-shadow:0_2px_5px_rgba(27,_39,_73,_0.06)] [&:active:not(:disabled)]:[transform:translateY(1px)] [&:disabled]:[cursor:default] [&:disabled]:[opacity:0.55] [&.primary]:[border-color:var(--primary)] [&.primary]:[background:var(--primary)] [&.primary]:[color:#fff] [&.primary:hover:not(:disabled)]:[border-color:var(--primary-hover)] [&.primary:hover:not(:disabled)]:[background:var(--primary-hover)] [&.small]:[min-height:34px] [&.small]:[padding:0_12px] [&.small]:[font-size:var(--fs-small)] [text-decoration:none] [.empty-state-page_&]:[margin-top:12px] [.empty-state-page_&]:[text-decoration:none]" routerLink="/questionnaires">Voir les questionnaires</a>
     </section>
   </main>
 } @else {
-  <main class="page">
+  <main class="page [width:100%] [max-width:1240px] [margin:0_auto] [padding:28px_32px_56px] [@media(max-width:900px)]:[padding-right:16px] [@media(max-width:900px)]:[padding-left:16px]">
     @if (catalog.error(); as message) {
-      <section class="alert" role="alert"><p>{{ message }}</p></section>
+      <section class="alert [display:flex] [flex-wrap:wrap] [gap:12px] [align-items:center] [justify-content:space-between] [margin-bottom:16px] [padding:14px_18px] [border:1px_solid_#f2c46d] [border-radius:12px] [background:var(--ochre-soft)] [color:var(--ochre-text)]" role="alert"><p class="[.alert_&]:[margin:2px_0_0]">{{ message }}</p></section>
     } @else {
       <app-loading-state label="Ouverture du questionnaire…" />
     }

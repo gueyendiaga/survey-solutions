@@ -1,4 +1,4 @@
-<div #chart class="chart-canvas w-full" [style.height.px]="height"></div>
+<div #chart class="chart-canvas w-full [width:100%]" [style.height.px]="height"></div>
 @if (labelTip(); as tip) {
-  <div class="axis-label-tip" role="tooltip" [style.left.px]="tip.x" [style.top.px]="tip.y">{{ tip.text }}</div>
+  <div class="axis-label-tip [position:absolute] [z-index:5] [max-width:320px] [padding:6px_10px] [border:1px_solid_var(--line)] [border-radius:8px] [background:var(--surface)] [box-shadow:0_6px_20px_rgba(16,_24,_40,_0.12)] [color:var(--text)] [font-size:var(--fs-small)] [line-height:1.4] [pointer-events:none] [transform:translate(-50%,_calc(-100%_-_12px))] [white-space:normal]" role="tooltip" [style.left.px]="tip.x" [style.top.px]="tip.y">{{ tip.text }}</div>
 }

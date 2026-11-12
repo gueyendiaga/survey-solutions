@@ -1,6 +1,6 @@
-<div class="select-control" (keydown)="closeOnEscape($event)">
+<div class="select-control [position:relative]" (keydown)="closeOnEscape($event)">
   <button
-    class="select-trigger"
+    class="select-trigger [display:flex] [width:100%] [min-height:40px] [align-items:center] [justify-content:space-between] [gap:12px] [padding:0_12px] [border:1px_solid_var(--control)] [border-radius:10px] [background:var(--surface)] [color:inherit] [text-align:left] [cursor:pointer] [transition:border-color_140ms_ease,_background_140ms_ease,_box-shadow_140ms_ease] [&:focus-visible]:[outline:3px_solid_rgba(30,_51,_152,_0.16)] [&:focus-visible]:[outline-offset:1px] [&:focus-visible]:[border-color:var(--primary-2)] [&:focus-visible]:[box-shadow:0_1px_3px_rgba(27,_39,_73,_0.04)] [&:hover:not(:disabled)]:[border-color:#bdc6d7] [&:hover:not(:disabled)]:[background:#fcfcfe] [&:disabled]:[cursor:default] [&:disabled]:[opacity:0.6] [@media(prefers-reduced-motion:reduce)]:[animation:none] [@media(prefers-reduced-motion:reduce)]:[transition:none]"
     type="button"
     role="combobox"
     aria-haspopup="listbox"
@@ -9,26 +9,26 @@
     [attr.aria-controls]="open ? 'search-select-options' : null"
     [disabled]="disabled"
     (click)="toggle()">
-    <span class="selected-label">{{ selectedLabel }}</span>
-    <svg viewBox="0 0 12 12" aria-hidden="true"><path d="m2 4 4 4 4-4" /></svg>
+    <span class="selected-label [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{{ selectedLabel }}</span>
+    <svg viewBox="0 0 12 12" aria-hidden="true" class="[.select-trigger_&]:[width:12px] [.select-trigger_&]:[height:12px] [.select-trigger_&]:[flex:0_0_auto] [.select-trigger_&]:[fill:none] [.select-trigger_&]:[stroke:#747d90] [.select-trigger_&]:[stroke-width:1.5] [.select-trigger_&]:[stroke-linecap:round] [.select-trigger_&]:[stroke-linejoin:round]"><path d="m2 4 4 4 4-4" /></svg>
   </button>
   @if (open) {
-    <div class="select-menu">
-      <label class="search-box">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
-        <span class="sr-only">Rechercher parmi les options</span>
+    <div class="select-menu [position:absolute] [z-index:20] [top:calc(100%_+_5px)] [right:0] [left:0] [min-width:220px] [overflow:hidden] [border:1px_solid_#dfe3eb] [border-radius:12px] [background:#fff] [box-shadow:0_14px_36px_rgba(20,_27,_50,_0.16)] [animation:select-enter_120ms_ease-out] [@media(prefers-reduced-motion:reduce)]:[animation:none] [@media(prefers-reduced-motion:reduce)]:[transition:none]">
+      <label class="search-box [display:flex] [min-height:40px] [align-items:center] [gap:8px] [padding:0_10px] [border-bottom:1px_solid_#edf0f4] [color:#798194]">
+        <svg viewBox="0 0 24 24" aria-hidden="true" class="[.search-box_&]:[width:16px] [.search-box_&]:[height:16px] [.search-box_&]:[flex:0_0_auto] [.search-box_&]:[fill:none] [.search-box_&]:[stroke:currentColor] [.search-box_&]:[stroke-width:1.7] [.search-box_&]:[stroke-linecap:round] [.search-box_&]:[stroke-linejoin:round]"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+        <span class="sr-only [position:absolute] [width:1px] [height:1px] [overflow:hidden] [clip:rect(0,_0,_0,_0)] [white-space:nowrap] [clip-path:inset(50%)]">Rechercher parmi les options</span>
         <input
           type="search"
           [attr.aria-label]="'Rechercher dans ' + ariaLabel"
           placeholder="Rechercher…"
           [ngModel]="query"
           (ngModelChange)="query = $event"
-          [ngModelOptions]="{ standalone: true }" />
+          [ngModelOptions]="{ standalone: true }"  class="[.search-box_&]:[width:100%] [.search-box_&]:[min-width:0] [.search-box_&]:[border:0] [.search-box_&]:[outline:0] [.search-box_&]:[background:transparent] [.search-box_&]:[color:#293249] [.search-box_&]:[font:inherit] [.search-box_&]:[font-size:12px] [.search-box_:focus-visible]:[outline:0]"/>
       </label>
-      <div class="option-list" role="listbox" id="search-select-options" [attr.aria-label]="ariaLabel">
+      <div class="option-list [max-height:240px] [overflow-y:auto] [padding:4px]" role="listbox" id="search-select-options" [attr.aria-label]="ariaLabel">
         @for (option of filteredOptions; track $index) {
           <button
-            class="option"
+            class="option [display:block] [width:100%] [min-height:36px] [padding:8px_10px] [border:0] [border-radius:6px] [background:transparent] [color:#293249] [font:inherit] [font-size:12px] [text-align:left] [cursor:pointer] [&:hover]:[background:#f0f2fa] [&:hover]:[color:var(--primary)] [&.selected]:[background:#f0f2fa] [&.selected]:[color:var(--primary)]"
             type="button"
             role="option"
             [attr.aria-selected]="option.value === value"
@@ -37,7 +37,7 @@
             {{ option.label }}
           </button>
         } @empty {
-          <p class="no-results">Aucun résultat</p>
+          <p class="no-results [margin:0] [padding:12px_10px] [color:#747d90] [font-size:12px]">Aucun résultat</p>
         }
       </div>
     </div>
