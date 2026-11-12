@@ -1,9 +1,9 @@
 import { Component, effect, inject, input, signal, untracked } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { CatalogService } from '../../core/services/catalog.service';
-import { FilterBarComponent } from '../../shared/components/filter-bar/filter-bar';
-import { statusLabel } from '../../shared/utils/labels';
-import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state';
+import { CatalogService } from '../../../core/services/catalog.service';
+import { FilterBarComponent } from '../../../shared/components/filter-bar/filter-bar';
+import { statusLabel } from '../../../shared/utils/labels';
+import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state';
 import { FieldworkPanelComponent } from '../tabs/fieldwork-panel/fieldwork-panel';
 import { QualityTabComponent } from '../tabs/quality-tab/quality-tab';
 import { QuestionnaireHeaderComponent } from '../questionnaire-header/questionnaire-header';
@@ -18,7 +18,7 @@ import { VariablesTabComponent } from '../tabs/variables-tab/variables-tab';
  * URL compris) et synchronise l'onglet affiché avec l'URL.
  */
 @Component({
-  selector: 'app-questionnaire-page',
+  selector: 'app-questionnaire-detail-page',
   standalone: true,
   imports: [
     RouterLink,
@@ -31,10 +31,10 @@ import { VariablesTabComponent } from '../tabs/variables-tab/variables-tab';
     ReportsTabComponent
   ],
   providers: [QuestionnaireStore],
-  templateUrl: './questionnaire-page.html',
-  styleUrl: './questionnaire-page.css'
+  templateUrl: './questionnaire-detail-page.html',
+  styleUrl: './questionnaire-detail-page.css'
 })
-export class QuestionnairePageComponent {
+export class QuestionnaireDetailPageComponent {
   /** Paramètres de route, liés par withComponentInputBinding(). */
   readonly questionnaireId = input.required<string>();
   readonly version = input.required<string>();

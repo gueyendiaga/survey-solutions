@@ -7,14 +7,14 @@ import {
   InterviewAnswer,
   QuestionAnalytics,
   QuestionSummary
-} from '../../../core/models/dashboard.models';
-import { DashboardApiService } from '../../../core/services/dashboard-api.service';
-import { answerOptions } from '../../../shared/utils/chart-options';
-import { CompletenessStatusComponent } from '../../../shared/components/completeness-status/completeness-status';
-import { DashboardChartComponent } from '../../../shared/components/dashboard-chart/dashboard-chart';
-import { isSensitiveQuestion, statusList, typeLabel } from '../../../shared/utils/labels';
-import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state';
-import { apiErrorMessage, blobErrorDetail, saveFile } from '../../../shared/utils/http-utils';
+} from '../../../../core/models/dashboard.models';
+import { DashboardApiService } from '../../../../core/services/dashboard-api.service';
+import { answerOptions } from '../../../../shared/utils/chart-options';
+import { CompletenessStatusComponent } from '../../../../shared/components/completeness-status/completeness-status';
+import { DashboardChartComponent } from '../../../../shared/components/dashboard-chart/dashboard-chart';
+import { isSensitiveQuestion, statusList, typeLabel } from '../../../../shared/utils/labels';
+import { LoadingStateComponent } from '../../../../shared/components/loading-state/loading-state';
+import { apiErrorMessage, blobErrorDetail, saveFile } from '../../../../shared/utils/http-utils';
 import { QuestionnaireStore } from '../../questionnaire.store';
 
 interface InterviewReviewRow {

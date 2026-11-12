@@ -55,6 +55,7 @@ class ReportHtmlRendererTest {
         String html = ReportHtmlRenderer.render(sample());
 
         assertThat(html).contains("Enquête ménages 2026", "Agence test", "Chiffres clés",
+                "data:image/png;base64,", "alt=\"Logo de l’ANSD\"",
                 "Avancement par équipe et par enquêteur", "Qualité des données", "Indicateurs par variable",
                 "Encadré — Sources, définitions et méthode", "Figure 1", "Tableau 1", "enq2", "Dakar",
                 "Moyenne", "Ne sait pas", "2 autre(s) variable(s)", "nom, gps");

@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import { FieldworkOverview } from '../../../core/models/dashboard.models';
-import { fieldworkResponse } from '../../../testing/fixtures';
+import { FieldworkOverview } from '../../../../core/models/dashboard.models';
+import { fieldworkResponse } from '../../../../testing/fixtures';
 import { FieldworkPanelComponent } from './fieldwork-panel';
 
 describe('FieldworkPanelComponent', () => {

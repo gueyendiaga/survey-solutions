@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Questionnaire } from '../../core/models/dashboard.models';
+import { Questionnaire } from '../../../core/models/dashboard.models';
 import { QuestionnaireHeaderComponent } from './questionnaire-header';
 
 describe('QuestionnaireHeaderComponent', () => {

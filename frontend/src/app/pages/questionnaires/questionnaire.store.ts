@@ -1,5 +1,5 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
-import { DashboardApiService } from '../core/services/dashboard-api.service';
+import { DashboardApiService } from '../../core/services/dashboard-api.service';
 import {
   AnalysisFilters,
   ArchivedReport,
@@ -13,10 +13,10 @@ import {
   Questionnaire,
   QuestionSummary,
   SyncStatus
-} from '../core/models/dashboard.models';
-import { AnswerChartType } from '../shared/utils/chart-options';
-import { apiErrorMessage, blobErrorDetail, isSyncPending, saveFile } from '../shared/utils/http-utils';
-import { VARIABLE_KIND_LABELS, VariableKind, variableKind } from '../shared/utils/labels';
+} from '../../core/models/dashboard.models';
+import { AnswerChartType } from '../../shared/utils/chart-options';
+import { apiErrorMessage, blobErrorDetail, isSyncPending, saveFile } from '../../shared/utils/http-utils';
+import { VARIABLE_KIND_LABELS, VariableKind, variableKind } from '../../shared/utils/labels';
 import { QuestionnaireTab, TabBadges } from './questionnaire-tabs';
 
 const SYNC_POLL_INTERVAL_MS = 3000;

@@ -1,5 +1,7 @@
 package com.surveysolutions.analytics.report;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -7,6 +9,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -76,7 +79,8 @@ public final class ReportHtmlRenderer {
                 .append("<title>").append(escape(ReportNarrative.headline(data))).append("</title>")
                 .append("<style>").append(CSS).append("</style></head><body>");
 
-        html.append("<div class=\"running-header\"><table class=\"rh\"><tr><td>")
+        html.append("<div class=\"running-header\"><table class=\"rh\"><tr><td class=\"rh-logo-cell\"><img class=\"rh-logo\" src=\"")
+                .append(logoDataUri()).append("\" alt=\"ANSD\"/></td><td>")
                 .append(escape(data.questionnaireTitle())).append("</td><td class=\"r\">Suivi de collecte · ")
                 .append(escape(dataDate(data))).append("</td></tr></table></div>")
                 .append("<div class=\"running-footer\">Document de travail — diffusion restreinte</div>");
@@ -95,13 +99,27 @@ public final class ReportHtmlRenderer {
         return data.fieldwork().syncedAt() == null ? DATE.format(data.generatedAt()) : DATE.format(data.fieldwork().syncedAt());
     }
 
+    private static String logoDataUri() {
+        try (InputStream logo = ReportHtmlRenderer.class.getResourceAsStream("/report/ansd-logo.png")) {
+            if (logo == null) {
+                throw new IllegalStateException("Logo ANSD absent des ressources du rapport.");
+            }
+            return "data:image/png;base64," + Base64.getEncoder().encodeToString(logo.readAllBytes());
+        } catch (IOException exception) {
+            throw new IllegalStateException("Lecture du logo ANSD impossible.", exception);
+        }
+    }
+
     // ---- Page 1 : bandeau, chapeau, chiffres clés, progression ----------------------------
 
     private static void cover(StringBuilder html, ReportData data, Counters counters) {
         FieldworkOverview fieldwork = data.fieldwork();
         html.append("<div class=\"band\">")
-                .append("<table class=\"band-top\"><tr><td>").append(escape(data.organization()))
-                .append("</td><td class=\"r\">Suivi de collecte · ").append(escape(dataDate(data))).append("</td></tr></table>")
+                .append("<table class=\"band-top\"><tr><td class=\"brand-cell\"><table class=\"brand\"><tr><td class=\"brand-logo-cell\"><img class=\"brand-logo\" src=\"")
+                .append(logoDataUri()).append("\" alt=\"Logo de l’ANSD\"/></td><td>")
+                .append(escape(data.organization()))
+                .append("</td></tr></table></td><td class=\"r date-cell\">Suivi de collecte · ")
+                .append(escape(dataDate(data))).append("</td></tr></table>")
                 .append("<div class=\"band-rule\"></div>")
                 .append("<h1>").append(escape(ReportNarrative.headline(data))).append("</h1>")
                 .append("<div class=\"band-sub\">").append(escape(data.questionnaireTitle())).append(" · version ")
@@ -645,11 +663,19 @@ public final class ReportHtmlRenderer {
               font-family: 'Report Condensed'; font-weight: 600; font-size: 7.5pt; letter-spacing: 0.5pt;
               text-transform: uppercase; color: #3f4854; }
             table.rh td { padding: 0 0 4pt; }
+            td.rh-logo-cell { width: 8mm; vertical-align: middle; }
+            img.rh-logo { display: block; width: 6mm; height: auto; }
             .running-footer { position: running(footer); font-size: 8.5pt; color: #3f4854; }
 
             .band { margin: 0 -17mm; padding: 13mm 17mm 8mm; background: INK; color: #ffffff; }
             table.band-top { width: 100%; border-collapse: collapse; font-family: 'Report Condensed'; font-weight: 600;
               font-size: 8pt; letter-spacing: 0.6pt; text-transform: uppercase; color: #c9d6e6; }
+            td.brand-cell { vertical-align: middle; }
+            table.brand { border-collapse: collapse; }
+            table.brand td { padding: 0; vertical-align: middle; }
+            td.brand-logo-cell { width: 23mm; padding-right: 4mm !important; }
+            img.brand-logo { display: block; width: 19mm; height: auto; padding: 1.2mm; background: #ffffff; }
+            td.date-cell { vertical-align: middle; white-space: nowrap; }
             .band-rule { width: 13mm; height: 3pt; margin-top: 11mm; background: OCHRE; }
             h1 { margin: 4mm 0 0; font-family: 'Report Serif'; font-weight: 700; font-size: 25pt; line-height: 1.12; }
             .band-sub { margin-top: 3.5mm; font-family: 'Report Serif'; font-style: italic; font-size: 11.5pt; color: #dbe5f1; }

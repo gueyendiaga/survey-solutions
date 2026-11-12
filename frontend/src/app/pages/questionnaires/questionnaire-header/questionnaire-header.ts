@@ -1,6 +1,6 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, ElementRef, EventEmitter, HostListener, Input, Output, QueryList, ViewChildren } from '@angular/core';
-import { Questionnaire, SyncStatus } from '../../core/models/dashboard.models';
+import { Questionnaire, SyncStatus } from '../../../core/models/dashboard.models';
 import { QUESTIONNAIRE_TABS, QuestionnaireTab, TabBadges } from '../questionnaire-tabs';
 
 export type { QuestionnaireTab, TabBadges } from '../questionnaire-tabs';

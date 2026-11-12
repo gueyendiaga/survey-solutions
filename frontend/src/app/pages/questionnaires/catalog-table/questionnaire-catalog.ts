@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, Input } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Questionnaire } from '../../core/models/dashboard.models';
+import { Questionnaire } from '../../../core/models/dashboard.models';
 
 /** Tableau des questionnaires HQ ; « Ouvrir » mène à la page du questionnaire. */
 @Component({

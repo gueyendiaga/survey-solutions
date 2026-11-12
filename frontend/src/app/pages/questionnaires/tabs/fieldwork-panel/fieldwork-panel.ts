@@ -1,8 +1,8 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, Input, signal } from '@angular/core';
 import type { EChartsCoreOption } from 'echarts/core';
-import { DashboardChartComponent } from '../../../shared/components/dashboard-chart/dashboard-chart';
-import { DailyProgress, FieldworkOverview, InterviewerProgress, TeamProgress } from '../../../core/models/dashboard.models';
+import { DashboardChartComponent } from '../../../../shared/components/dashboard-chart/dashboard-chart';
+import { DailyProgress, FieldworkOverview, InterviewerProgress, TeamProgress } from '../../../../core/models/dashboard.models';
 
 /** Point d'attention calculé à partir des chiffres du suivi. */
 export interface AttentionPoint {

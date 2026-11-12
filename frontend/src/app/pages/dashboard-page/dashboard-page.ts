@@ -5,7 +5,7 @@ import { CatalogService } from '../../core/services/catalog.service';
 import { statusOptions, trendOptions } from '../../shared/utils/chart-options';
 import { DashboardChartComponent } from '../../shared/components/dashboard-chart/dashboard-chart';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state';
-import { QuestionnaireCatalogComponent } from '../questionnaire-catalog/questionnaire-catalog';
+import { QuestionnaireCatalogComponent } from '../questionnaires/catalog-table/questionnaire-catalog';
 import { SearchSelectComponent, SearchSelectOption } from '../../shared/components/search-select/search-select';
 
 /** Tableau de bord : activité de tous les questionnaires importés dans HQ. */

@@ -1,8 +1,8 @@
 import { DecimalPipe } from '@angular/common';
 import { Component, EventEmitter, Output, inject } from '@angular/core';
-import { CompletenessStatusComponent } from '../../../shared/components/completeness-status/completeness-status';
-import { statusList } from '../../../shared/utils/labels';
-import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state';
+import { CompletenessStatusComponent } from '../../../../shared/components/completeness-status/completeness-status';
+import { statusList } from '../../../../shared/utils/labels';
+import { LoadingStateComponent } from '../../../../shared/components/loading-state/loading-state';
 import { QuestionnaireStore } from '../../questionnaire.store';
 
 /** Onglet Qualité des données : complétude de chaque variable, de la plus faible à la meilleure. */
