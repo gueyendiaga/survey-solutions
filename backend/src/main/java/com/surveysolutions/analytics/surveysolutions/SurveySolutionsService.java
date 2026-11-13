@@ -175,13 +175,29 @@ public class SurveySolutionsService {
     public Map<String, String> getTeams() {
         Map<String, String> teams = new java.util.LinkedHashMap<>();
         for (User supervisor : getUsers("/api/v1/supervisors")) {
-            for (User interviewer : getUsers("/api/v1/supervisors/" + supervisor.userId() + "/interviewers")) {
+            for (User interviewer : getUsers(supervisorInterviewersPath(supervisor))) {
                 if (interviewer.userName() != null) {
                     teams.put(interviewer.userName(), supervisor.userName());
                 }
             }
         }
         return Map.copyOf(teams);
+    }
+
+    public List<User> getReviewInterviewers() {
+        Map<String, User> interviewers = new java.util.LinkedHashMap<>();
+        for (User supervisor : getUsers("/api/v1/supervisors")) {
+            for (User interviewer : getUsers(supervisorInterviewersPath(supervisor))) {
+                if (interviewer.userId() != null && interviewer.userName() != null) {
+                    interviewers.putIfAbsent(interviewer.userId(), interviewer);
+                }
+            }
+        }
+        return List.copyOf(interviewers.values());
+    }
+
+    private String supervisorInterviewersPath(User supervisor) {
+        return "/api/v1/supervisors/" + supervisor.userId() + "/interviewers";
     }
 
     private List<User> getUsers(String path) {
@@ -440,6 +456,52 @@ public class SurveySolutionsService {
             throw new IllegalStateException("HQ a renvoyé les réponses d'interview dans un format invalide.");
         }
         return details;
+    }
+
+    public InterviewHistory getInterviewHistory(UUID interviewId) {
+        InterviewHistory history = currentClient().get()
+                .uri("/api/v1/interviews/{id}/history", interviewId)
+                .retrieve()
+                .body(InterviewHistory.class);
+        if (history == null || history.records() == null) {
+            throw new IllegalStateException("HQ a renvoyé un historique d’interview invalide.");
+        }
+        return history;
+    }
+
+    public InterviewStatistics getInterviewStatistics(UUID interviewId) {
+        InterviewStatistics statistics = currentClient().get()
+                .uri("/api/v1/interviews/{id}/stats", interviewId)
+                .retrieve()
+                .body(InterviewStatistics.class);
+        if (statistics == null) {
+            throw new IllegalStateException("HQ a renvoyé des statistiques d’interview invalides.");
+        }
+        return statistics;
+    }
+
+    public void addInterviewComment(
+            UUID interviewId,
+            String variable,
+            List<Integer> rosterVector,
+            String comment) {
+        if (variable == null || variable.isBlank() || comment == null || comment.isBlank()) {
+            throw new IllegalArgumentException("La variable et le commentaire sont obligatoires.");
+        }
+        if (comment.length() > 2_000) {
+            throw new IllegalArgumentException("Le commentaire ne peut pas dépasser 2000 caractères.");
+        }
+        currentClient().post()
+                .uri(uri -> {
+                    var builder = uri.path("/api/v1/interviews/{id}/comment-by-variable/{variable}")
+                            .queryParam("comment", comment.trim());
+                    if (rosterVector != null && !rosterVector.isEmpty()) {
+                        builder.queryParam("rosterVector", rosterVector.toArray());
+                    }
+                    return builder.build(interviewId, variable);
+                })
+                .retrieve()
+                .toBodilessEntity();
     }
 
     public InterviewTranscript getInterviewTranscript(UUID interviewId) {

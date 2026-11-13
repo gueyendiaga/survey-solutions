@@ -8,8 +8,12 @@ import {
   FieldworkOverview,
   FilterOptions,
   HeadquartersInterviewAction,
+  InterviewHistory,
+  InterviewReviewPage,
+  InterviewStatistics,
   InterviewActionResult,
   InterviewAnswers,
+  ReviewResponsible,
   QuestionOption,
   Dashboard,
   QuestionAnalytics,
@@ -175,6 +179,54 @@ export class DashboardApiService {
     return this.http.get<InterviewAnswers>(`${this.baseUrl}/interviews/${encodeURIComponent(interviewId)}`);
   }
 
+  interviewReview(
+    questionnaireId: string,
+    version: number,
+    filters: { status: string | null; pendingOnly: boolean; search: string; page: number; pageSize: number }
+  ): Observable<InterviewReviewPage> {
+    let params = new HttpParams()
+      .set('pendingOnly', filters.pendingOnly)
+      .set('page', filters.page)
+      .set('pageSize', filters.pageSize);
+    if (filters.status) {
+      params = params.set('status', filters.status);
+    }
+    if (filters.search.trim()) {
+      params = params.set('search', filters.search.trim());
+    }
+    return this.http
+      .get<unknown>(`${this.baseUrl}/questionnaires/${questionnaireId}/${version}/interview-review`, { params })
+      .pipe(map((response) => normalizeKeys(response) as InterviewReviewPage));
+  }
+
+  interviewHistory(interviewId: string): Observable<InterviewHistory> {
+    return this.http
+      .get<unknown>(`${this.baseUrl}/interviews/${encodeURIComponent(interviewId)}/history`)
+      .pipe(map((response) => normalizeKeys(response) as InterviewHistory));
+  }
+
+  interviewStatistics(interviewId: string): Observable<InterviewStatistics> {
+    return this.http
+      .get<unknown>(`${this.baseUrl}/interviews/${encodeURIComponent(interviewId)}/stats`)
+      .pipe(map((response) => normalizeKeys(response) as InterviewStatistics));
+  }
+
+  commentOnInterviewQuestion(
+    interviewId: string,
+    comment: { variableName: string; rosterVector: number[]; comment: string }
+  ): Observable<void> {
+    return this.http.post<void>(
+      `${this.baseUrl}/interviews/${encodeURIComponent(interviewId)}/comments`,
+      comment
+    );
+  }
+
+  reviewResponsibles(): Observable<ReviewResponsible[]> {
+    return this.http
+      .get<unknown>(`${this.baseUrl}/review-responsibles`)
+      .pipe(map((response) => normalizeKeys(response) as ReviewResponsible[]));
+  }
+
   syncStatus(questionnaireId: string, version: number): Observable<SyncStatus> {
     return this.http
       .get<unknown>(`${this.baseUrl}/questionnaires/${questionnaireId}/${version}/sync`)
@@ -186,12 +238,13 @@ export class DashboardApiService {
     version: number,
     interviewId: string,
     action: HeadquartersInterviewAction,
-    comment: string
+    comment: string,
+    responsibleId: string | null = null
   ): Observable<InterviewActionResult> {
     return this.http
       .patch<unknown>(
         `${this.baseUrl}/questionnaires/${questionnaireId}/${version}/interviews/${interviewId}/${action}`,
-        { comment: comment.trim() || null }
+        { comment: comment.trim() || null, responsibleId }
       )
       .pipe(map((response) => normalizeKeys(response) as InterviewActionResult));
   }

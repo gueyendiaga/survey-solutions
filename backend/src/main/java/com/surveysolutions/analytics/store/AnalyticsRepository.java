@@ -48,6 +48,19 @@ public class AnalyticsRepository {
             String state,
             String value) {}
 
+    public record InterviewReviewItem(
+            UUID interviewId,
+            String interviewKey,
+            String status,
+            String interviewerName,
+            Boolean hasErrors,
+            Integer errorsCount,
+            Integer unansweredCount,
+            Long durationSeconds,
+            Instant createdAt,
+            Instant completedAt,
+            Instant lastActionAt) {}
+
     public record VariableCompleteness(
             String variable,
             String level,
@@ -304,6 +317,83 @@ public class AnalyticsRepository {
                 "SELECT count(*) FROM interview WHERE questionnaire_id = ? AND version = ? AND status <> 'Deleted'",
                 Integer.class, questionnaireId, version);
         return count == null ? 0 : count;
+    }
+
+    public int countInterviewReviewItems(
+            UUID questionnaireId,
+            long version,
+            String status,
+            boolean pendingOnly,
+            String search) {
+        StringBuilder query = new StringBuilder("""
+                SELECT count(*) FROM interview i
+                WHERE i.questionnaire_id = ? AND i.version = ? AND i.status <> 'Deleted'
+                """);
+        List<Object> args = new ArrayList<>(List.of(questionnaireId, version));
+        appendReviewFilters(query, args, status, pendingOnly, search);
+        Integer count = jdbc.queryForObject(query.toString(), Integer.class, args.toArray());
+        return count == null ? 0 : count;
+    }
+
+    public List<InterviewReviewItem> interviewReviewItems(
+            UUID questionnaireId,
+            long version,
+            String status,
+            boolean pendingOnly,
+            String search,
+            int limit,
+            int offset) {
+        StringBuilder query = new StringBuilder("""
+                SELECT i.interview_id, i.interview_key, i.status, i.interviewer_name,
+                       i.has_errors, i.errors_count, i.unanswered_count, i.duration_seconds,
+                       i.created_at, i.completed_at, i.last_action_at
+                FROM interview i
+                WHERE i.questionnaire_id = ? AND i.version = ? AND i.status <> 'Deleted'
+                """);
+        List<Object> args = new ArrayList<>(List.of(questionnaireId, version));
+        appendReviewFilters(query, args, status, pendingOnly, search);
+        query.append("""
+                 ORDER BY i.last_action_at DESC NULLS LAST, i.interview_key
+                 LIMIT ? OFFSET ?
+                """);
+        args.add(limit);
+        args.add(offset);
+        return jdbc.query(query.toString(), (rs, rowNum) -> new InterviewReviewItem(
+                rs.getObject("interview_id", UUID.class),
+                rs.getString("interview_key"),
+                rs.getString("status"),
+                rs.getString("interviewer_name"),
+                (Boolean) rs.getObject("has_errors"),
+                (Integer) rs.getObject("errors_count"),
+                (Integer) rs.getObject("unanswered_count"),
+                (Long) rs.getObject("duration_seconds"),
+                rs.getTimestamp("created_at") == null ? null : rs.getTimestamp("created_at").toInstant(),
+                rs.getTimestamp("completed_at") == null ? null : rs.getTimestamp("completed_at").toInstant(),
+                rs.getTimestamp("last_action_at") == null ? null : rs.getTimestamp("last_action_at").toInstant()),
+                args.toArray());
+    }
+
+    private void appendReviewFilters(
+            StringBuilder query,
+            List<Object> args,
+            String status,
+            boolean pendingOnly,
+            String search) {
+        if (status != null && !status.isBlank()) {
+            query.append(" AND i.status = ?");
+            args.add(status);
+        } else if (pendingOnly) {
+            query.append("""
+                     AND i.status IN ('Completed', 'ApprovedBySupervisor',
+                                       'RejectedBySupervisor', 'RejectedByHeadquarters')
+                    """);
+        }
+        if (search != null && !search.isBlank()) {
+            query.append(" AND (i.interview_key ILIKE ? OR i.interviewer_name ILIKE ?)");
+            String pattern = "%" + search.trim().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
+            args.add(pattern);
+            args.add(pattern);
+        }
     }
 
     /** Observations d'une variable, ordonnées par interview puis ligne de roster. */

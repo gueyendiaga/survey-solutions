@@ -30,6 +30,7 @@ import com.surveysolutions.analytics.fieldwork.FieldworkService;
 import com.surveysolutions.analytics.report.ReportArchive;
 import com.surveysolutions.analytics.report.ReportService;
 import com.surveysolutions.analytics.store.AnalyticsRepository;
+import com.surveysolutions.analytics.store.AnalyticsRepository.InterviewReviewItem;
 import com.surveysolutions.analytics.store.InterviewFilter;
 import com.surveysolutions.analytics.store.SyncService;
 import com.surveysolutions.analytics.surveysolutions.SurveySolutionsService;
@@ -45,6 +46,7 @@ public class AnalyticsController {
     private final ReportService reports;
     private final ReportArchive reportArchive;
     private final InterviewActionService interviewActions;
+    private final AnalyticsRepository repository;
 
     public AnalyticsController(
             DashboardService dashboard,
@@ -55,7 +57,8 @@ public class AnalyticsController {
             FieldworkService fieldwork,
             ReportService reports,
             ReportArchive reportArchive,
-            InterviewActionService interviewActions) {
+            InterviewActionService interviewActions,
+            AnalyticsRepository repository) {
         this.dashboard = dashboard;
         this.surveySolutions = surveySolutions;
         this.questionAnalytics = questionAnalytics;
@@ -65,6 +68,7 @@ public class AnalyticsController {
         this.reports = reports;
         this.reportArchive = reportArchive;
         this.interviewActions = interviewActions;
+        this.repository = repository;
     }
 
     @GetMapping("/api/health")
@@ -181,6 +185,69 @@ public class AnalyticsController {
             String variableName,
             Object answer,
             Map<String, JsonNode> additionalFields) {}
+
+    @GetMapping("/api/interviews/{interviewId}/history")
+    public InterviewHistory interviewHistory(@PathVariable UUID interviewId) {
+        return surveySolutions.getInterviewHistory(interviewId);
+    }
+
+    @GetMapping("/api/interviews/{interviewId}/stats")
+    public InterviewStatistics interviewStatistics(@PathVariable UUID interviewId) {
+        return surveySolutions.getInterviewStatistics(interviewId);
+    }
+
+    @PostMapping("/api/interviews/{interviewId}/comments")
+    public ResponseEntity<Void> commentOnInterviewQuestion(
+            @PathVariable UUID interviewId,
+            @RequestBody InterviewCommentRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Un commentaire avec une variable est requis.");
+        }
+        surveySolutions.addInterviewComment(
+                interviewId, request.variableName(), request.rosterVector(), request.comment());
+        return ResponseEntity.noContent().build();
+    }
+
+    public record InterviewCommentRequest(
+            String variableName,
+            List<Integer> rosterVector,
+            String comment) {}
+
+    @GetMapping("/api/questionnaires/{questionnaireId}/{version}/interview-review")
+    public DashboardDtos.InterviewReviewPage interviewReview(
+            @PathVariable UUID questionnaireId,
+            @PathVariable long version,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "true") boolean pendingOnly,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int pageSize) {
+        if (version < 1 || page < 1 || pageSize < 1 || pageSize > 100) {
+            throw new IllegalArgumentException("Les paramètres de pagination ou la version sont invalides.");
+        }
+        if (status != null && !List.of(
+                "Restored", "Created", "SupervisorAssigned", "InterviewerAssigned", "RejectedBySupervisor",
+                "ReadyForInterview", "SentToCapi", "Restarted", "Completed", "ApprovedBySupervisor",
+                "RejectedByHeadquarters", "ApprovedByHeadquarters").contains(status)) {
+            throw new IllegalArgumentException("Le statut d’interview demandé n’est pas reconnu.");
+        }
+        long offset = (long) (page - 1) * pageSize;
+        if (offset > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("La page demandée dépasse la limite de pagination.");
+        }
+        int total = repository.countInterviewReviewItems(
+                questionnaireId, version, status, pendingOnly, search);
+        List<InterviewReviewItem> interviews = repository.interviewReviewItems(
+                questionnaireId, version, status, pendingOnly, search, pageSize, (int) offset);
+        return new DashboardDtos.InterviewReviewPage(interviews, total, page, pageSize);
+    }
+
+    @GetMapping("/api/review-responsibles")
+    public List<DashboardDtos.ReviewResponsible> reviewResponsibles() {
+        return surveySolutions.getReviewInterviewers().stream()
+                .map(user -> new DashboardDtos.ReviewResponsible(user.userId(), user.userName()))
+                .toList();
+    }
 
     private ResponseEntity<byte[]> pdf(ReportService.ReportFile file) {
         return ResponseEntity.ok()

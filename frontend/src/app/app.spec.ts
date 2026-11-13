@@ -130,7 +130,7 @@ describe('Application routée', () => {
     await openQuestionnaire();
     const tabs = page().querySelectorAll<HTMLButtonElement>('[role="tab"]');
 
-    tabs[3].click();
+    tabs[4].click();
     await harness.fixture.whenStable();
     harness.detectChanges();
     expect(url()).toBe(`${QUESTIONNAIRE_URL}/rapports`);

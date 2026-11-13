@@ -1,27 +1,51 @@
-<main class="page questionnaires-page [width:100%] [max-width:1240px] [margin:0_auto] [padding:28px_32px_56px] [@media(max-width:900px)]:[padding-right:16px] [@media(max-width:900px)]:[padding-left:16px] [max-width:1440px] [padding:38px_42px_52px] [@media(max-width:1120px)]:[padding-right:28px] [@media(max-width:1120px)]:[padding-left:28px] [@media(max-width:900px)]:[padding:30px_22px_40px] [@media(max-width:600px)]:[padding:26px_16px_34px]">
-  <div class="page-head [display:flex] [flex-wrap:wrap] [gap:16px] [align-items:flex-end] [justify-content:space-between] [margin-bottom:22px] [align-items:flex-end] [margin-bottom:28px]">
-    <div class="page-intro">
-      <span class="eyebrow [display:inline-flex] [align-items:center] [gap:8px] [margin-bottom:10px] [color:#68728b] [font-size:10px] [font-weight:700] [letter-spacing:0.13em]"><span class="eyebrow-mark [width:7px] [height:7px] [border-radius:2px] [background:#6176df] [box-shadow:0_0_0_3px_rgba(97,_118,_223,_0.13)]"></span>VOTRE ESPACE DE TRAVAIL</span>
-      <h1 class="[.questionnaires-page_&]:[color:#192238] [.questionnaires-page_&]:[font-size:clamp(26px,_2.4vw,_32px)] [.questionnaires-page_&]:[letter-spacing:-0.045em]">Questionnaires</h1>
-      <p class="lead [margin:4px_0_0] [color:var(--text-2)] [font-size:var(--fs-body)] [.questionnaires-page_&]:[max-width:560px] [.questionnaires-page_&]:[margin-top:7px] [.questionnaires-page_&]:[color:#747d90] [.questionnaires-page_&]:[font-size:13px]">Retrouvez les questionnaires et versions accessibles depuis Survey Solutions HQ.</p>
+<main class="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 sm:py-9 lg:px-10">
+  <header class="mb-7 flex flex-wrap items-end justify-between gap-5">
+    <div class="min-w-0">
+      <p class="mb-2 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+        <span class="grid h-5 w-5 place-items-center rounded-md bg-indigo-100 text-indigo-800">
+          <svg class="h-3 w-3 fill-none stroke-current stroke-[2]" viewBox="0 0 16 16" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3.5h10M3 8h10M3 12.5h10" /></svg>
+        </span>
+        Votre espace de travail
+      </p>
+      <h1 class="text-3xl font-semibold tracking-[-0.04em] text-slate-900 sm:text-[34px]">Questionnaires</h1>
+      <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Retrouvez les questionnaires et versions accessibles depuis Survey Solutions HQ.</p>
     </div>
-    <button class="btn refresh-button [display:inline-flex] [align-items:center] [justify-content:center] [gap:8px] [min-height:40px] [padding:0_14px] [border:1px_solid_var(--control)] [border-radius:10px] [background:var(--surface)] [color:var(--text)] [font-size:var(--fs-body)] [font-weight:500] [white-space:nowrap] [transition:border-color_140ms_ease,_background_140ms_ease,_color_140ms_ease,_box-shadow_140ms_ease,_transform_140ms_ease] [&:hover:not(:disabled)]:[border-color:#b8c1cf] [&:hover:not(:disabled)]:[background:#f8f9fc] [&:hover:not(:disabled)]:[box-shadow:0_2px_5px_rgba(27,_39,_73,_0.06)] [&:active:not(:disabled)]:[transform:translateY(1px)] [&:disabled]:[cursor:default] [&:disabled]:[opacity:0.55] [&.primary]:[border-color:var(--primary)] [&.primary]:[background:var(--primary)] [&.primary]:[color:#fff] [&.primary:hover:not(:disabled)]:[border-color:var(--primary-hover)] [&.primary:hover:not(:disabled)]:[background:var(--primary-hover)] [&.small]:[min-height:34px] [&.small]:[padding:0_12px] [&.small]:[font-size:var(--fs-small)] [text-decoration:none] [min-height:42px] [padding:0_14px] [border-color:#dfe3eb] [border-radius:10px] [color:#38435d] [font-size:12px] [font-weight:600]" type="button" (click)="catalog.refresh()" [disabled]="catalog.loading()">
-      <svg viewBox="0 0 24 24" aria-hidden="true" class="[.btn_&]:[width:18px] [.btn_&]:[height:18px] [.btn_&]:[flex-shrink:0] [.btn_&]:[fill:none] [.btn_&]:[stroke:currentColor] [.btn_&]:[stroke-width:1.8] [.btn_&]:[stroke-linecap:round] [.btn_&]:[stroke-linejoin:round] [.refresh-button_&]:[width:16px] [.refresh-button_&]:[height:16px] [.refresh-button_&]:[fill:none] [.refresh-button_&]:[stroke:currentColor] [.refresh-button_&]:[stroke-width:1.8] [.refresh-button_&]:[stroke-linecap:round] [.refresh-button_&]:[stroke-linejoin:round]"><path d="M20 7v5h-5M4 17v-5h5" /><path d="M5.6 9a7 7 0 0 1 11.6-2L20 12M4 12l2.8 5a7 7 0 0 0 11.6-2" /></svg>
-      Actualiser
-    </button>
-  </div>
+    <div class="flex items-center gap-3">
+      @if (catalog.questionnaires().length) {
+        <span class="hidden items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 shadow-sm sm:inline-flex">
+          <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+          {{ catalog.questionnaires().length }} version(s) disponible(s)
+        </span>
+      }
+      <button
+        type="button"
+        class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-800 disabled:cursor-not-allowed disabled:opacity-50"
+        (click)="catalog.refresh()"
+        [disabled]="catalog.loading()">
+        <svg class="h-4 w-4 fill-none stroke-current stroke-[1.8]" [class.animate-spin]="catalog.loading()" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M20 11a8 8 0 0 0-14.6-4.5L4 8M4 4v4h4M4 13a8 8 0 0 0 14.6 4.5L20 16m0 4v-4h-4" /></svg>
+        Actualiser
+      </button>
+    </div>
+  </header>
 
   @if (catalog.error(); as message) {
-    <section class="alert [display:flex] [flex-wrap:wrap] [gap:12px] [align-items:center] [justify-content:space-between] [margin-bottom:16px] [padding:14px_18px] [border:1px_solid_#f2c46d] [border-radius:12px] [background:var(--ochre-soft)] [color:var(--ochre-text)]" role="alert">
-      <div><strong>Les données ne sont pas disponibles</strong><p class="[.alert_&]:[margin:2px_0_0]">{{ message }}</p></div>
-      <button type="button" class="btn [display:inline-flex] [align-items:center] [justify-content:center] [gap:8px] [min-height:40px] [padding:0_14px] [border:1px_solid_var(--control)] [border-radius:10px] [background:var(--surface)] [color:var(--text)] [font-size:var(--fs-body)] [font-weight:500] [white-space:nowrap] [transition:border-color_140ms_ease,_background_140ms_ease,_color_140ms_ease,_box-shadow_140ms_ease,_transform_140ms_ease] [&:hover:not(:disabled)]:[border-color:#b8c1cf] [&:hover:not(:disabled)]:[background:#f8f9fc] [&:hover:not(:disabled)]:[box-shadow:0_2px_5px_rgba(27,_39,_73,_0.06)] [&:active:not(:disabled)]:[transform:translateY(1px)] [&:disabled]:[cursor:default] [&:disabled]:[opacity:0.55] [&.primary]:[border-color:var(--primary)] [&.primary]:[background:var(--primary)] [&.primary]:[color:#fff] [&.primary:hover:not(:disabled)]:[border-color:var(--primary-hover)] [&.primary:hover:not(:disabled)]:[background:var(--primary-hover)] [&.small]:[min-height:34px] [&.small]:[padding:0_12px] [&.small]:[font-size:var(--fs-small)] [text-decoration:none]" (click)="catalog.refresh()">Réessayer</button>
+    <section class="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-amber-900" role="alert">
+      <div><strong class="text-sm font-semibold">Les données ne sont pas disponibles</strong><p class="mt-1 text-sm text-amber-800">{{ message }}</p></div>
+      <button type="button" class="rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-900 transition hover:bg-amber-100" (click)="catalog.refresh()">Réessayer</button>
     </section>
   }
 
   @if (catalog.loading() && !catalog.questionnaires().length) {
     <app-loading-state label="Chargement des questionnaires…" />
   } @else {
-    <section class="card [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px] [.questionnaires-page_&]:[overflow:hidden] [.questionnaires-page_&]:[border-color:#e8ebf1] [.questionnaires-page_&]:[border-radius:14px]">
+    <section class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_8px_24px_rgba(27,39,73,0.045)]">
+      <header class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-800">Questionnaires disponibles</h2>
+          <p class="mt-1 text-xs text-slate-500">Sélectionnez une version pour consulter la collecte, la qualité et les rapports.</p>
+        </div>
+        <span class="rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs font-semibold tabular-nums text-slate-600 ring-1 ring-inset ring-slate-200">{{ catalog.questionnaires().length }} version(s)</span>
+      </header>
       <app-questionnaire-catalog [questionnaires]="catalog.questionnaires()" />
     </section>
   }

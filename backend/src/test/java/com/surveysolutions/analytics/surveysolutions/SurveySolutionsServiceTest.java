@@ -110,6 +110,55 @@ class SurveySolutionsServiceTest {
     }
 
     @Test
+    void loadsInterviewHistoryAndStatisticsFromHeadquarters() {
+        UUID interviewId = UUID.fromString("b60cb2fe-10c0-47c9-9d0d-ca2e69dd2ce1");
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://hq.test/primary");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo("http://hq.test/primary/api/v1/interviews/" + interviewId + "/history"))
+                .andRespond(withSuccess("""
+                        {"InterviewId":"%s","QuestionnaireId":"588daf2d-0c72-4b89-bec9-254459a68983",
+                         "QuestionnaireVersion":1,"Records":[{"Index":3,"Action":"CommentSet",
+                         "OriginatorName":"Reviewer","OriginatorRole":"Headquarters",
+                         "Parameters":{"Comment":"Vérifier cette réponse"},
+                         "Timestamp":"2026-11-12T10:00:00Z","Offset":"00:10:00"}]}
+                        """.formatted(interviewId), MediaType.APPLICATION_JSON));
+        server.expect(requestTo("http://hq.test/primary/api/v1/interviews/" + interviewId + "/stats"))
+                .andRespond(withSuccess("""
+                        {"Answered":12,"NotAnswered":2,"Flagged":1,"Invalid":1,"WithComments":2,
+                         "InterviewId":"%s","InterviewKey":"01-02-03-04","Status":"Completed",
+                         "ResponsibleName":"Interviewer","NumberOfInterviewers":1,
+                         "InterviewDuration":"00:18:00","UpdatedAtUtc":"2026-11-12T10:00:00Z"}
+                        """.formatted(interviewId), MediaType.APPLICATION_JSON));
+        SurveySolutionsService service = new SurveySolutionsService(builder.build());
+
+        var history = service.getInterviewHistory(interviewId);
+        var stats = service.getInterviewStatistics(interviewId);
+
+        assertThat(history.records()).hasSize(1);
+        assertThat(history.records().get(0).action()).isEqualTo("CommentSet");
+        assertThat(history.records().get(0).parameters()).containsEntry("Comment", "Vérifier cette réponse");
+        assertThat(stats.answered()).isEqualTo(12);
+        assertThat(stats.withComments()).isEqualTo(2);
+        assertThat(stats.responsibleName()).isEqualTo("Interviewer");
+        server.verify();
+    }
+
+    @Test
+    void postsAQuestionCommentWithItsRosterVector() {
+        UUID interviewId = UUID.fromString("b60cb2fe-10c0-47c9-9d0d-ca2e69dd2ce1");
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://hq.test/primary");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo("http://hq.test/primary/api/v1/interviews/" + interviewId
+                        + "/comment-by-variable/income?comment=Please%20check&rosterVector=1&rosterVector=4"))
+                .andRespond(withSuccess());
+
+        new SurveySolutionsService(builder.build())
+                .addInterviewComment(interviewId, "income", java.util.List.of(1, 4), "Please check");
+
+        server.verify();
+    }
+
+    @Test
     void mapsTheDocumentedQuestionnaireEnvelopeAndFollowsPageNumbers() {
         RestClient.Builder builder = RestClient.builder().baseUrl("http://hq.test");
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();

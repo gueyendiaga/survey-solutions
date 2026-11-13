@@ -68,6 +68,73 @@ export interface InterviewAnswers {
   answers: InterviewAnswer[];
 }
 
+export interface InterviewReviewItem {
+  interviewId: string;
+  interviewKey: string;
+  status: string;
+  interviewerName: string | null;
+  hasErrors: boolean | null;
+  errorsCount: number | null;
+  unansweredCount: number | null;
+  durationSeconds: number | null;
+  createdAt: string | null;
+  completedAt: string | null;
+  lastActionAt: string | null;
+}
+
+export interface InterviewReviewPage {
+  interviews: InterviewReviewItem[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface InterviewHistoryRecord {
+  index: number;
+  action: string;
+  originatorName: string | null;
+  originatorRole: string | null;
+  parameters: Record<string, string | null> | null;
+  timestamp: string | null;
+  offset: string | null;
+}
+
+export interface InterviewHistory {
+  interviewId: string;
+  questionnaireId: string;
+  questionnaireVersion: number;
+  records: InterviewHistoryRecord[];
+}
+
+export interface InterviewStatistics {
+  answered: number | null;
+  notAnswered: number | null;
+  flagged: number | null;
+  notFlagged: number | null;
+  valid: number | null;
+  invalid: number | null;
+  withComments: number | null;
+  forInterviewer: number | null;
+  forSupervisor: number | null;
+  interviewId: string;
+  interviewKey: string | null;
+  status: string | null;
+  responsibleId: string | null;
+  responsibleName: string | null;
+  numberOfInterviewers: number | null;
+  numberRejectionsBySupervisor: number | null;
+  numberRejectionsByHq: number | null;
+  interviewDuration: string | null;
+  assignmentId: number | null;
+  updatedAtUtc: string | null;
+  webInterviewUrl: string | null;
+}
+
+export interface ReviewResponsible {
+  userId: string;
+  userName: string;
+}
+
 export type HeadquartersInterviewAction = 'hqapprove' | 'hqreject' | 'hqunapprove';
 
 export interface InterviewActionResult {

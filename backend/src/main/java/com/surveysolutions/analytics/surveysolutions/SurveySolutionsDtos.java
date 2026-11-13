@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +61,44 @@ public final class SurveySolutionsDtos {
 
     public record InterviewDetails(
             @JsonProperty("Answers") List<InterviewAnswer> answers) {}
+
+    public record InterviewHistory(
+            @JsonProperty("InterviewId") String interviewId,
+            @JsonProperty("QuestionnaireId") String questionnaireId,
+            @JsonProperty("QuestionnaireVersion") long questionnaireVersion,
+            @JsonProperty("Records") List<InterviewHistoryRecord> records) {}
+
+    public record InterviewHistoryRecord(
+            @JsonProperty("Index") Long index,
+            @JsonProperty("Action") String action,
+            @JsonProperty("OriginatorName") String originatorName,
+            @JsonProperty("OriginatorRole") String originatorRole,
+            @JsonProperty("Parameters") Map<String, String> parameters,
+            @JsonProperty("Timestamp") Instant timestamp,
+            @JsonProperty("Offset") String offset) {}
+
+    public record InterviewStatistics(
+            @JsonProperty("Answered") Integer answered,
+            @JsonProperty("NotAnswered") Integer notAnswered,
+            @JsonProperty("Flagged") Integer flagged,
+            @JsonProperty("NotFlagged") Integer notFlagged,
+            @JsonProperty("Valid") Integer valid,
+            @JsonProperty("Invalid") Integer invalid,
+            @JsonProperty("WithComments") Integer withComments,
+            @JsonProperty("ForInterviewer") Integer forInterviewer,
+            @JsonProperty("ForSupervisor") Integer forSupervisor,
+            @JsonProperty("InterviewId") String interviewId,
+            @JsonProperty("InterviewKey") String interviewKey,
+            @JsonProperty("Status") String status,
+            @JsonProperty("ResponsibleId") String responsibleId,
+            @JsonProperty("ResponsibleName") String responsibleName,
+            @JsonProperty("NumberOfInterviewers") Integer numberOfInterviewers,
+            @JsonProperty("NumberRejectionsBySupervisor") Integer numberRejectionsBySupervisor,
+            @JsonProperty("NumberRejectionsByHq") Integer numberRejectionsByHq,
+            @JsonProperty("InterviewDuration") String interviewDuration,
+            @JsonProperty("AssignmentId") Integer assignmentId,
+            @JsonProperty("UpdatedAtUtc") Instant updatedAtUtc,
+            @JsonProperty("WebInterviewUrl") String webInterviewUrl) {}
 
     public static final class InterviewAnswer {
         private final String variableName;

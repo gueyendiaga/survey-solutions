@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import com.surveysolutions.analytics.surveysolutions.SurveySolutionsDtos.Questionnaire;
+import com.surveysolutions.analytics.store.AnalyticsRepository.InterviewReviewItem;
 
 public final class DashboardDtos {
     private DashboardDtos() {}
@@ -44,4 +45,12 @@ public final class DashboardDtos {
     public record StatusCount(String status, long count) {}
 
     public record TrendPoint(LocalDate date, long count) {}
+
+    public record InterviewReviewPage(
+            List<InterviewReviewItem> interviews,
+            int totalCount,
+            int page,
+            int pageSize) {}
+
+    public record ReviewResponsible(String userId, String userName) {}
 }

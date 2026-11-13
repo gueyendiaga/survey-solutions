@@ -67,6 +67,7 @@ export class QuestionnaireStore {
 
   /** Badges des onglets : nombre de variables, variables à examiner, rapports archivés. */
   readonly tabBadges = computed<TabBadges>(() => ({
+    review: null,
     variables: this.questions().length || null,
     quality: (this.completeness()?.variables ?? []).filter((item) => item.missingCount > 0).length || null,
     reports: this.archivedReports().length || null
@@ -123,6 +124,8 @@ export class QuestionnaireStore {
         return count === undefined ? 'Indicateurs par question'
           : `Indicateurs par question · ${count.toLocaleString('fr-FR')} interview(s) analysée(s)`;
       }
+      case 'review':
+        return 'File de revue centralisée · réponses, historique et décisions HQ';
       case 'quality':
         return 'Complétude, non-réponses et questions non applicables par variable';
       default:

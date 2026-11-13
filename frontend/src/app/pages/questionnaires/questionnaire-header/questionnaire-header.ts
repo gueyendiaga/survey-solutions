@@ -30,7 +30,7 @@ export class QuestionnaireHeaderComponent {
   @Input() syncRequesting = false;
   @Input() exporting = false;
   @Input() reportGenerating = false;
-  @Input() badges: TabBadges = { variables: null, quality: null, reports: null };
+  @Input() badges: TabBadges = { review: null, variables: null, quality: null, reports: null };
 
   @Output() readonly tabChange = new EventEmitter<QuestionnaireTab>();
   @Output() readonly changeQuestionnaire = new EventEmitter<Event>();
@@ -99,7 +99,8 @@ export class QuestionnaireHeaderComponent {
   }
 
   protected badgeLabel(tab: QuestionnaireTab, count: number): string {
-    return tab === 'variables' ? `${count} variables`
+    return tab === 'review' ? `${count} interviews à traiter`
+      : tab === 'variables' ? `${count} variables`
       : tab === 'quality' ? `${count} variable(s) à examiner`
       : `${count} rapport(s) archivé(s)`;
   }

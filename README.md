@@ -120,3 +120,6 @@ Pour le développement local, le backend requiert Maven 3.9+ et Java 17; le lanc
 Tant qu'une version n'a jamais été importée, `question-completeness` et `question-analytics` renvoient 409 avec `syncPending: true` et déclenchent la synchronisation.
 
 Les appels amont paginés sont parcourus jusqu'au total déclaré par HQ. En cas d'erreur API, d'autorisation ou de pagination incomplète, le backend renvoie une erreur explicite plutôt qu'un total partiel présenté comme complet.
+
+
+Maintenant quelles autres fonctionnalités importantes que tu pense que je devrais ajouter à ce projet pour le rendre plus complet et utile pour les utilisateurs finaux ?

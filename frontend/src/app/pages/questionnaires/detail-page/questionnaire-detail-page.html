@@ -17,14 +17,16 @@
     <div class="tab-panel [&:focus]:[outline:none]" role="tabpanel" [id]="'panel-' + store.tab()" [attr.aria-labelledby]="'tab-' + store.tab()" tabindex="-1">
       <div class="panel-toolbar [display:flex] [flex-wrap:wrap] [gap:12px] [align-items:center] [justify-content:space-between] [margin-bottom:20px]">
         <p class="lead [margin:4px_0_0] [color:var(--text-2)] [font-size:var(--fs-body)] [.panel-toolbar_&]:[margin:0]">{{ store.lead() }}</p>
-        <app-filter-bar
-          [filters]="store.filters()"
-          [options]="store.filterOptions()"
-          [questions]="store.questions()"
-          [variableOptions]="store.variableOptions()"
-          [statusLabel]="statusLabel"
-          (filtersChange)="store.applyFilters($event)"
-          (variableSelected)="store.loadVariableOptions($event)" />
+        @if (store.tab() !== 'review') {
+          <app-filter-bar
+            [filters]="store.filters()"
+            [options]="store.filterOptions()"
+            [questions]="store.questions()"
+            [variableOptions]="store.variableOptions()"
+            [statusLabel]="statusLabel"
+            (filtersChange)="store.applyFilters($event)"
+            (variableSelected)="store.loadVariableOptions($event)" />
+        }
       </div>
 
       @if (!store.syncStatus()?.inProgress && store.syncStatus()?.lastStatus === 'FAILED') {
@@ -52,6 +54,9 @@
         }
         @case ('variables') {
           <app-variables-tab />
+        }
+        @case ('review') {
+          <app-interview-review />
         }
         @case ('quality') {
           <app-quality-tab (openVariable)="openVariable($event)" />

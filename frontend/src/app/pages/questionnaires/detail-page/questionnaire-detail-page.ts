@@ -11,6 +11,7 @@ import { DEFAULT_TAB_SLUG, QuestionnaireTab, slugFor, tabFromSlug } from '../que
 import { QuestionnaireStore } from '../questionnaire.store';
 import { ReportsTabComponent } from '../tabs/reports-tab/reports-tab';
 import { VariablesTabComponent } from '../tabs/variables-tab/variables-tab';
+import { InterviewReviewComponent } from '../tabs/interview-review/interview-review';
 
 /**
  * Page d'un questionnaire : /questionnaires/:questionnaireId/:version/:tab.
@@ -28,7 +29,8 @@ import { VariablesTabComponent } from '../tabs/variables-tab/variables-tab';
     FieldworkPanelComponent,
     VariablesTabComponent,
     QualityTabComponent,
-    ReportsTabComponent
+    ReportsTabComponent,
+    InterviewReviewComponent
   ],
   providers: [QuestionnaireStore],
   templateUrl: './questionnaire-detail-page.html',
