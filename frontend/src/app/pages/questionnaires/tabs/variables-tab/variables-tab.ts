@@ -11,6 +11,7 @@ import {
 import { DashboardApiService } from '../../../../core/services/dashboard-api.service';
 import { answerOptions } from '../../../../shared/utils/chart-options';
 import { CompletenessStatusComponent } from '../../../../shared/components/completeness-status/completeness-status';
+import { InfoTooltipComponent } from '../../../../shared/components/info-tooltip/info-tooltip';
 import { DashboardChartComponent } from '../../../../shared/components/dashboard-chart/dashboard-chart';
 import { isSensitiveQuestion, statusList, typeLabel } from '../../../../shared/utils/labels';
 import { LoadingStateComponent } from '../../../../shared/components/loading-state/loading-state';
@@ -32,7 +33,7 @@ interface PendingInterviewAction {
 @Component({
   selector: 'app-variables-tab',
   standalone: true,
-  imports: [DecimalPipe, FormsModule, DashboardChartComponent, LoadingStateComponent, CompletenessStatusComponent],
+  imports: [DecimalPipe, FormsModule, DashboardChartComponent, LoadingStateComponent, CompletenessStatusComponent, InfoTooltipComponent],
   templateUrl: './variables-tab.html',
   styleUrl: './variables-tab.css'
 })
@@ -314,6 +315,24 @@ export class VariablesTabComponent {
   protected chartOptions(analytics: QuestionAnalytics): EChartsCoreOption {
     return answerOptions(analytics, this.store.chartType());
   }
+
+  protected responseRateHelp =
+    'Taux de réponse = réponses ÷ (réponses + sans réponse) × 100. Les unités non applicables sont exclues.';
+
+  protected distributionPercentageHelp(analytics: QuestionAnalytics): string {
+    if (analytics.percentageBase === 'RESPONDENTS') {
+      return this.store.chartType() === 'pie'
+        ? 'Graphique circulaire : sélections de la modalité ÷ nombre total de sélections × 100. Le tableau, lui, rapporte la modalité aux réponses non vides; la somme de ces pourcentages peut dépasser 100 %.'
+        : 'Choix multiples : répondants ayant choisi la modalité ÷ réponses non vides × 100. La somme peut dépasser 100 %, car un répondant peut choisir plusieurs modalités.';
+    }
+    if (analytics.percentageBase === 'NUMERIC_VALUES') {
+      return 'Effectif de valeurs numériques valides dans cet intervalle ÷ nombre total de valeurs numériques valides × 100. Les codes spéciaux et réponses non numériques sont exclus.';
+    }
+    return 'Effectif de cette modalité ÷ nombre total de réponses non vides × 100. Pour une date, une modalité correspond à un jour.';
+  }
+
+  protected specialValuePercentageHelp =
+    'Effectif de cette valeur spéciale ÷ nombre total de réponses non vides à la variable × 100. Ces valeurs sont exclues des statistiques numériques.';
 
   protected hasSpecialValues(analytics: QuestionAnalytics): boolean {
     return (analytics.specialValues ?? []).length > 0;

@@ -293,6 +293,8 @@ public class QuestionAnalyticsService {
             minimum = numericValues.get(0);
             maximum = numericValues.get(numericValues.size() - 1);
             sum = numericValues.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+            // Conventions communes à l'interface et au rapport : moyenne à 2 décimales,
+            // médiane et percentiles calculés sur la liste numérique triée.
             mean = sum.divide(BigDecimal.valueOf(numericValues.size()), 2, RoundingMode.HALF_UP);
             median = median(numericValues);
             percentile05 = percentile(numericValues, 0.05);
@@ -301,6 +303,8 @@ public class QuestionAnalyticsService {
         } else if (!numericQuestion) {
             // Choix multiples : une réponse peut cocher plusieurs modalités. Le pourcentage se
             // rapporte alors aux réponses non vides (répondants), pas au nombre de cases cochées.
+            // Les autres distributions sont rapportées à leur effectif total, afin que leurs
+            // pourcentages forment 100 % à l'arrondi près.
             long totalResponseCount = multipleChoice ? responseCount : distributionCount;
             distribution = counts.entrySet().stream()
                     .sorted(Map.Entry.<String, Long>comparingByValue().reversed()
@@ -407,6 +411,7 @@ public class QuestionAnalyticsService {
                 .divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
     }
 
+    /** Percentile par rang le plus proche : ceil(p × n), avec un minimum de rang égal à 1. */
     private BigDecimal percentile(List<BigDecimal> sortedValues, double percentile) {
         int index = (int) Math.ceil(percentile * sortedValues.size()) - 1;
         return sortedValues.get(Math.max(0, index));

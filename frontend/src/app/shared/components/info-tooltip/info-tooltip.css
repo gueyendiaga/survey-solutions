@@ -1,0 +1,51 @@
+:host {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.info-tooltip {
+  display: inline-flex;
+  align-items: center;
+}
+
+.info-tooltip__trigger {
+  display: inline-grid;
+  width: 17px;
+  height: 17px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #aeb8cc;
+  border-radius: 50%;
+  background: #fff;
+  color: #53627d;
+  font: 600 11px/1 Arial, sans-serif;
+  cursor: help;
+}
+
+.info-tooltip__trigger:hover,
+.info-tooltip__trigger:focus-visible {
+  border-color: var(--primary, #1e3398);
+  color: var(--primary, #1e3398);
+  outline: 2px solid rgba(30, 51, 152, 0.18);
+  outline-offset: 2px;
+}
+
+.info-tooltip__bubble {
+  position: fixed;
+  z-index: 1000;
+  width: max-content;
+  max-width: min(300px, calc(100vw - 24px));
+  padding: 9px 11px;
+  border: 1px solid #dfe3eb;
+  border-radius: 9px;
+  background: #202a42;
+  box-shadow: 0 6px 20px rgba(16, 24, 40, 0.2);
+  color: #fff;
+  font: 400 12px/1.45 Inter, sans-serif;
+  text-align: left;
+  white-space: normal;
+}
+
+.info-tooltip__bubble--above {
+  transform: translateY(-100%);
+}

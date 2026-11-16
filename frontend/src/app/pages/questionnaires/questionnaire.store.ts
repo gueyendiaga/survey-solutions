@@ -108,6 +108,7 @@ export class QuestionnaireStore {
     return {
       variables: rows.length,
       posed: posed.length,
+      // Moyenne arithmétique non pondérée : chaque variable posée pèse autant.
       average: posed.length ? posed.reduce((sum, row) => sum + row.responseRate, 0) / posed.length : null,
       low: posed.filter((row) => row.responseRate < 80).length,
       missing: rows.reduce((sum, row) => sum + row.missingCount, 0)

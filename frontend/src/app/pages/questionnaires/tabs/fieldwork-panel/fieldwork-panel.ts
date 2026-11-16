@@ -3,11 +3,13 @@ import { Component, Input, signal } from '@angular/core';
 import type { EChartsCoreOption } from 'echarts/core';
 import { DashboardChartComponent } from '../../../../shared/components/dashboard-chart/dashboard-chart';
 import { DailyProgress, FieldworkOverview, InterviewerProgress, TeamProgress } from '../../../../core/models/dashboard.models';
+import { InfoTooltipComponent } from '../../../../shared/components/info-tooltip/info-tooltip';
 
 /** Point d'attention calculé à partir des chiffres du suivi. */
 export interface AttentionPoint {
   tone: 'warn' | 'ok';
   text: string;
+  help?: string;
 }
 
 type Period = '7' | '30' | 'all';
@@ -16,12 +18,17 @@ type Period = '7' | '30' | 'all';
 @Component({
   selector: 'app-fieldwork-panel',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, DashboardChartComponent],
+  imports: [DatePipe, DecimalPipe, DashboardChartComponent, InfoTooltipComponent],
   templateUrl: './fieldwork-panel.html',
   styleUrl: './fieldwork-panel.css'
 })
 export class FieldworkPanelComponent {
   @Input({ required: true }) overview!: FieldworkOverview;
+
+  protected readonly completionRateHelp =
+    'Interviews réalisées ÷ objectif des affectations × 100. Sans objectif chiffré, le taux ne peut pas être calculé.';
+  protected readonly approvedShareHelp =
+    'Interviews actuellement approuvées ÷ interviews réalisées × 100. Une interview est approuvée si son statut HQ indique une approbation par le superviseur ou par HQ.';
 
   protected readonly period = signal<Period>('all');
   private readonly collapsed = signal<ReadonlySet<string>>(new Set());
@@ -117,6 +124,7 @@ export class FieldworkPanelComponent {
   }
 
   protected approvedShare(): string {
+    // Part des interviews terminées qui sont actuellement approuvées.
     return this.overview.completed ? this.rate(Math.round(this.overview.approved * 1000 / this.overview.completed) / 10) : '—';
   }
 
@@ -130,6 +138,7 @@ export class FieldworkPanelComponent {
     if (!active || !this.remaining()) {
       return null;
     }
+    // Estimation entière arrondie au jour supérieur à partir des journées avec complétions.
     return Math.ceil(this.remaining() / (this.overview.completed / active));
   }
 
@@ -153,7 +162,11 @@ export class FieldworkPanelComponent {
       points.push({ tone: 'warn', text: `${this.unassigned(team)} affectation(s) restent chez ${team.supervisor}.` }));
     const lagging = rows.filter((row) => row.total > 0 && row.completionRate !== null && row.completionRate < 50);
     if (lagging.length) {
-      points.push({ tone: 'warn', text: `${lagging.length} enquêteur(s) sous 50 % de leur objectif.` });
+      points.push({
+        tone: 'warn',
+        text: `${lagging.length} enquêteur(s) sous 50 % de leur objectif.`,
+        help: 'Un enquêteur est compté ici si ses interviews réalisées ÷ son objectif d’affectation × 100 est strictement inférieur à 50 %.'
+      });
     }
     if (this.overview.rejected > 0) {
       points.push({ tone: 'warn', text: `${this.overview.rejected} interview(s) rejetée(s) à corriger.` });

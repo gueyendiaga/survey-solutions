@@ -223,10 +223,11 @@
               <div class="px-4 py-4 sm:px-5"><strong class="block text-xl font-semibold tabular-nums text-rose-700">{{ stats.flagged ?? '—' }} <span class="text-sm font-medium text-slate-400">/ {{ stats.invalid ?? '—' }}</span></strong><span class="mt-1 block text-[11px] text-slate-500">Signalées / invalides</span></div>
               <div class="px-4 py-4 sm:px-5"><strong class="block text-xl font-semibold tabular-nums text-[var(--primary)]">{{ stats.withComments ?? '—' }}</strong><span class="mt-1 block text-[11px] text-slate-500">Commentaires existants</span></div>
             </div>
-            @if (stats.answered !== null && stats.notAnswered !== null) {
+            @if (stats.answered !== null && stats.notAnswered !== null && stats.answered + stats.notAnswered > 0) {
               <div class="px-4 pb-4 sm:px-5">
-                <div class="mb-1.5 flex justify-between text-[10px] font-medium text-slate-500"><span>Questions renseignées</span><span>{{ progressPercent(stats) }} %</span></div>
+                <div class="mb-1.5 flex justify-between text-[10px] font-medium text-slate-500"><span>Questions renseignées</span><span>{{ progressPercent(stats) }} % <app-info-tooltip [text]="progressPercentHelp" /></span></div>
                 <div class="h-1.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-gradient-to-r from-indigo-600 to-violet-500 transition-all" [style.width.%]="progressPercent(stats)"></div></div>
+                <p class="mt-1.5 text-[10px] text-slate-500">Pourcentage = réponses renseignées ÷ (réponses renseignées + sans réponse) × 100, arrondi à l’entier. Les autres compteurs sont fournis par Headquarters.</p>
               </div>
             }
           </section>

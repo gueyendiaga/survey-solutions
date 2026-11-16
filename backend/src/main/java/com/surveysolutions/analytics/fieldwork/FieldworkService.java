@@ -168,6 +168,7 @@ public class FieldworkService {
 
     /** Pourcentage arrondi à deux décimales ; null sans dénominateur. */
     static Double rate(long numerator, long denominator) {
+        // Le null permet à l'interface de distinguer l'absence d'objectif d'un taux de 0 %.
         return denominator <= 0 ? null : Math.round(numerator * 10_000.0 / denominator) / 100.0;
     }
 

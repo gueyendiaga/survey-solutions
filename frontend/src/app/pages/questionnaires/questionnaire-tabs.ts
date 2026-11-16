@@ -10,7 +10,7 @@ export interface TabDefinition {
 
 export const QUESTIONNAIRE_TABS: TabDefinition[] = [
   { id: 'fieldwork', label: 'Suivi terrain', slug: 'suivi-terrain' },
-  // { id: 'review', label: 'Revue', slug: 'revue' },
+  //{ id: 'review', label: 'Revue', slug: 'revue' },
   { id: 'variables', label: 'Variables', slug: 'variables' },
   { id: 'quality', label: 'Qualité des données', slug: 'qualite' },
   { id: 'reports', label: 'Rapports', slug: 'rapports' }

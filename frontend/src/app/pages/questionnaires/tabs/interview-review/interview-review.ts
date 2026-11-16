@@ -13,6 +13,7 @@ import {
 import { DashboardApiService } from '../../../../core/services/dashboard-api.service';
 import { apiErrorMessage, saveFile } from '../../../../shared/utils/http-utils';
 import { LoadingStateComponent } from '../../../../shared/components/loading-state/loading-state';
+import { InfoTooltipComponent } from '../../../../shared/components/info-tooltip/info-tooltip';
 import { QuestionnaireStore } from '../../questionnaire.store';
 
 const REVIEW_STATUSES = [
@@ -48,7 +49,7 @@ const PAGE_SIZE = 20;
 @Component({
   selector: 'app-interview-review',
   standalone: true,
-  imports: [DatePipe, FormsModule, LoadingStateComponent, SearchSelectComponent],
+  imports: [DatePipe, FormsModule, LoadingStateComponent, SearchSelectComponent, InfoTooltipComponent],
   templateUrl: './interview-review.html'
 })
 export class InterviewReviewComponent implements OnInit, OnDestroy {
@@ -421,8 +422,12 @@ export class InterviewReviewComponent implements OnInit, OnDestroy {
 
   protected progressPercent(stats: InterviewStatistics): number {
     const total = (stats.answered ?? 0) + (stats.notAnswered ?? 0);
+    // L'écran masque la barre si le total fourni par HQ est nul ou absent.
     return total ? Math.round((stats.answered ?? 0) / total * 100) : 0;
   }
+
+  protected readonly progressPercentHelp =
+    'Réponses renseignées ÷ (réponses renseignées + sans réponse) × 100, arrondi à l’entier. Les compteurs sont fournis par Headquarters.';
 
   private loadQueue(): void {
     const questionnaire = this.store.questionnaire();

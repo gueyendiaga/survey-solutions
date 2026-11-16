@@ -34,11 +34,6 @@
             (click)="store.selectQuestion(question)">
             <span class="row-top [display:flex] [justify-content:space-between] [gap:8px] [align-items:center]"><span class="mono strong [font-family:var(--mono)] [font-size:var(--fs-small)] [font-weight:600] [.question-list-item.selected_&]:[color:var(--primary-hover)]">{{ question.variableName }}</span><span class="hint [color:var(--text-2)] [font-size:var(--fs-small)] [.row-top_&]:[font-size:var(--fs-caption)]">{{ typeLabel(question) }}</span></span>
             <span class="row-label [font-size:var(--fs-body)] [line-height:1.4]" [innerHTML]="question.questionText || question.label || question.variableName"></span>
-<!--            @if (store.completenessFor(question); as item) {-->
-<!--              @if (item.answeredCount + item.missingCount > 0) {-->
-<!--                <span class="bar-cell small"><span class="track"><span class="fill" [class.warn]="item.responseRate < 80" [style.width.%]="item.responseRate"></span></span>{{ item.responseRate | number: '1.0-0' : 'fr-FR' }} %</span>-->
-<!--              }-->
-<!--            }-->
           </button>
         } @empty {
           <p class="empty [margin:0] [padding:28px_24px] [color:var(--text-2)] [text-align:center]">Aucune variable ne correspond.</p>
@@ -70,7 +65,10 @@
               <div class="[.kstrip_&]:[display:flex] [.kstrip_&]:[flex-direction:column] [.kstrip_&]:[gap:4px] [.kstrip_&]:[padding:14px_18px] [.kstrip_&]:[border-left:1px_solid_var(--line-2)] [.kstrip_:first-child]:[padding-left:0] [.kstrip_:first-child]:[border-left:0]"><strong class="[.kstrip_&]:[font-size:24px] [.kstrip_&]:[font-weight:700] [.kstrip_&]:[letter-spacing:-0.02em] [.kstrip_&]:[font-variant-numeric:tabular-nums]">{{ analytics.responseCount | number: '1.0-0' : 'fr-FR' }}</strong><span class="[.kstrip_&]:[color:var(--text-2)] [.kstrip_&]:[font-size:var(--fs-small)]">Réponses</span></div>
               <div class="[.kstrip_&]:[display:flex] [.kstrip_&]:[flex-direction:column] [.kstrip_&]:[gap:4px] [.kstrip_&]:[padding:14px_18px] [.kstrip_&]:[border-left:1px_solid_var(--line-2)] [.kstrip_:first-child]:[padding-left:0] [.kstrip_:first-child]:[border-left:0]"><strong class="[.kstrip_&]:[font-size:24px] [.kstrip_&]:[font-weight:700] [.kstrip_&]:[letter-spacing:-0.02em] [.kstrip_&]:[font-variant-numeric:tabular-nums]">{{ analytics.missingCount | number: '1.0-0' : 'fr-FR' }}</strong><span class="[.kstrip_&]:[color:var(--text-2)] [.kstrip_&]:[font-size:var(--fs-small)]">Sans réponse</span></div>
               <div class="[.kstrip_&]:[display:flex] [.kstrip_&]:[flex-direction:column] [.kstrip_&]:[gap:4px] [.kstrip_&]:[padding:14px_18px] [.kstrip_&]:[border-left:1px_solid_var(--line-2)] [.kstrip_:first-child]:[padding-left:0] [.kstrip_:first-child]:[border-left:0]"><strong class="[.kstrip_&]:[font-size:24px] [.kstrip_&]:[font-weight:700] [.kstrip_&]:[letter-spacing:-0.02em] [.kstrip_&]:[font-variant-numeric:tabular-nums]">{{ analytics.notApplicableCount | number: '1.0-0' : 'fr-FR' }}</strong><span class="[.kstrip_&]:[color:var(--text-2)] [.kstrip_&]:[font-size:var(--fs-small)]">Non applicable</span></div>
-              <div class="[.kstrip_&]:[display:flex] [.kstrip_&]:[flex-direction:column] [.kstrip_&]:[gap:4px] [.kstrip_&]:[padding:14px_18px] [.kstrip_&]:[border-left:1px_solid_var(--line-2)] [.kstrip_:first-child]:[padding-left:0] [.kstrip_:first-child]:[border-left:0]"><strong class="accent [.kstrip_&]:[color:var(--primary)] [.kstrip_&]:[font-size:24px] [.kstrip_&]:[font-weight:700] [.kstrip_&]:[letter-spacing:-0.02em] [.kstrip_&]:[font-variant-numeric:tabular-nums]">{{ analytics.responseRate | number: '1.0-1' : 'fr-FR' }} %</strong><span class="[.kstrip_&]:[color:var(--text-2)] [.kstrip_&]:[font-size:var(--fs-small)]">Taux de réponse</span></div>
+              <div class="[.kstrip_&]:[display:flex] [.kstrip_&]:[flex-direction:column] [.kstrip_&]:[gap:4px] [.kstrip_&]:[padding:14px_18px] [.kstrip_&]:[border-left:1px_solid_var(--line-2)] [.kstrip_:first-child]:[padding-left:0] [.kstrip_:first-child]:[border-left:0]">
+                <strong class="accent [.kstrip_&]:[color:var(--primary)] [.kstrip_&]:[font-size:24px] [.kstrip_&]:[font-weight:700] [.kstrip_&]:[letter-spacing:-0.02em] [.kstrip_&]:[font-variant-numeric:tabular-nums]">{{ analytics.responseCount + analytics.missingCount ? (analytics.responseRate | number: '1.0-1' : 'fr-FR') + ' %' : '—' }}</strong>
+                <span class="[.kstrip_&]:[display:flex] [.kstrip_&]:[align-items:center] [.kstrip_&]:[gap:5px] [.kstrip_&]:[color:var(--text-2)] [.kstrip_&]:[font-size:var(--fs-small)]">Taux de réponse <app-info-tooltip [text]="responseRateHelp" /></span>
+              </div>
             </div>
             <p class="hint [color:var(--text-2)] [font-size:var(--fs-small)] [.question-head_&]:[margin:0]">
               {{ analytics.interviewCount | number: '1.0-0' : 'fr-FR' }} interview(s) · {{ statusList(analytics.includedStatuses) }}
@@ -94,6 +92,7 @@
                 <div class="[.kstrip_&]:[display:flex] [.kstrip_&]:[flex-direction:column] [.kstrip_&]:[gap:4px] [.kstrip_&]:[padding:14px_18px] [.kstrip_&]:[border-left:1px_solid_var(--line-2)] [.kstrip_:first-child]:[padding-left:0] [.kstrip_:first-child]:[border-left:0]"><strong class="[.kstrip_&]:[font-size:24px] [.kstrip_&]:[font-weight:700] [.kstrip_&]:[letter-spacing:-0.02em] [.kstrip_&]:[font-variant-numeric:tabular-nums]">{{ analytics.minimum | number: '1.0-2' : 'fr-FR' }} – {{ analytics.maximum | number: '1.0-2' : 'fr-FR' }}</strong><span class="[.kstrip_&]:[color:var(--text-2)] [.kstrip_&]:[font-size:var(--fs-small)]">Minimum – maximum</span></div>
                 <div class="[.kstrip_&]:[display:flex] [.kstrip_&]:[flex-direction:column] [.kstrip_&]:[gap:4px] [.kstrip_&]:[padding:14px_18px] [.kstrip_&]:[border-left:1px_solid_var(--line-2)] [.kstrip_:first-child]:[padding-left:0] [.kstrip_:first-child]:[border-left:0]"><strong class="[.kstrip_&]:[font-size:24px] [.kstrip_&]:[font-weight:700] [.kstrip_&]:[letter-spacing:-0.02em] [.kstrip_&]:[font-variant-numeric:tabular-nums]">{{ analytics.percentile05 | number: '1.0-2' : 'fr-FR' }} – {{ analytics.percentile95 | number: '1.0-2' : 'fr-FR' }}</strong><span class="[.kstrip_&]:[color:var(--text-2)] [.kstrip_&]:[font-size:var(--fs-small)]">P5 – P95</span></div>
               </div>
+              <p class="hint [color:var(--text-2)] [font-size:var(--fs-small)] [.question-head_&]:[margin:0]">Calculs sur les réponses numériques valides : moyenne = somme ÷ effectif ; médiane = valeur centrale (ou moyenne des deux centrales) ; P5 et P95 = valeurs aux rangs ceil(5 % × n) et ceil(95 % × n), dans la série triée. Les codes spéciaux et réponses non numériques sont exclus de ces statistiques.</p>
             </section>
           }
 
@@ -101,12 +100,14 @@
             <section class="card pad [margin-bottom:16px] [border:1px_solid_var(--line)] [border-radius:var(--radius)] [background:var(--surface)] [box-shadow:var(--shadow)] [&.pad]:[padding:20px_22px] [padding:20px_22px]">
               <div class="card-head [display:flex] [flex-wrap:wrap] [gap:12px] [align-items:center] [justify-content:space-between] [.card.pad_&]:[margin-bottom:14px]">
                 <div>
-                  <h2>{{ analytics.mean !== null ? 'Distribution des valeurs' : 'Répartition des réponses' }}</h2>
+                  <h2>{{ analytics.mean !== null ? 'Distribution des valeurs' : 'Répartition des réponses' }} <app-info-tooltip [text]="distributionPercentageHelp(analytics)" /></h2>
                   <p class="[.card-head_&]:[margin:4px_0_0] [.card-head_&]:[color:var(--text-2)] [.card-head_&]:[font-size:var(--fs-small)]">
                     @if (analytics.percentageBase === 'RESPONDENTS') {
-                      Choix multiples : part des réponses ayant coché chaque modalité ; le total peut dépasser 100 %
+                      Choix multiples : tableau = réponses ayant coché la modalité ÷ réponses non vides ; le total peut dépasser 100 %. Le graphique circulaire montre plutôt la part de chaque modalité parmi toutes les sélections.
+                    } @else if (analytics.percentageBase === 'NUMERIC_VALUES') {
+                      Histogramme : part de chaque intervalle parmi les réponses numériques valides ; les codes spéciaux et réponses non numériques sont exclus.
                     } @else {
-                      Base : {{ analytics.responseCount | number: '1.0-0' : 'fr-FR' }} réponse(s)
+                      Modalité : part des réponses non vides correspondant à cette modalité ; base de calcul {{ analytics.responseCount | number: '1.0-0' : 'fr-FR' }} réponse(s).
                     }
                   </p>
                 </div>
@@ -138,7 +139,7 @@
                       <tr>
                         <td class="l !text-left wrap [table.data_&]:[text-align:left] [table.data_&]:[min-width:220px] [table.data_&]:[white-space:normal] [table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]">{{ answer.label }}</td>
                         <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]">{{ answer.count | number: '1.0-0' : 'fr-FR' }}</td>
-                        <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]">{{ answer.percentage | number: '1.0-1' : 'fr-FR' }} %</td>
+                        <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]"><span class="inline-flex items-center gap-1">{{ answer.percentage | number: '1.0-1' : 'fr-FR' }} % <app-info-tooltip [text]="distributionPercentageHelp(analytics)" /></span></td>
                       </tr>
                     }
                   </tbody>
@@ -160,7 +161,7 @@
                       <tr>
                         <td class="l !text-left [table.data_&]:[text-align:left] [table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]">{{ special.label }}</td>
                         <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]">{{ special.count | number: '1.0-0' : 'fr-FR' }}</td>
-                        <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]">{{ special.percentage | number: '1.0-1' : 'fr-FR' }} %</td>
+                        <td class="[table.data_&]:[padding:13px_12px] [table.data_&]:[border-bottom:1px_solid_var(--line-2)] [table.data_&]:[text-align:right] [table.data_&]:[white-space:nowrap] [table.data_&]:[vertical-align:middle] [table.data_tbody_tr:last-child_&]:[border-bottom:0] [table.data_tbody_tr:hover_&]:[background:#f8faff] [_table.data_:first-child]:[padding-left:22px] [_table.data_:last-child]:[padding-right:22px]"><span class="inline-flex items-center gap-1">{{ special.percentage | number: '1.0-1' : 'fr-FR' }} % <app-info-tooltip [text]="specialValuePercentageHelp" /></span></td>
                       </tr>
                     }
                   </tbody>
