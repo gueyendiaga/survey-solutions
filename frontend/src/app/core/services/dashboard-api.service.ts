@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { map, Observable } from 'rxjs';
 import {
+  FieldOperations,
   AnalysisFilters,
   ArchivedReport,
   CompletenessOverview,
@@ -129,6 +130,22 @@ export class DashboardApiService {
         params: filterParams(filters)
       })
       .pipe(map((response) => normalizeKeys(response) as FieldworkOverview));
+  }
+
+  /** Opérations de terrain : tablettes, file de validation, zones, mode de collecte, rendez-vous. */
+  operations(
+    questionnaireId: string,
+    version: number,
+    filters: AnalysisFilters,
+    zoneVariable: string | null
+  ): Observable<FieldOperations> {
+    let params = filterParams(filters);
+    if (zoneVariable) {
+      params = params.set('zoneVariable', zoneVariable);
+    }
+    return this.http
+      .get<unknown>(`${this.baseUrl}/questionnaires/${questionnaireId}/${version}/operations`, { params })
+      .pipe(map((response) => normalizeKeys(response) as FieldOperations));
   }
 
   filterOptions(questionnaireId: string, version: number): Observable<FilterOptions> {

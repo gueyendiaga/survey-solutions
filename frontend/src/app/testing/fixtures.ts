@@ -116,3 +116,34 @@ export function fieldworkResponse() {
 export function filterOptionsResponse() {
   return { supervisors: ['sup1'], interviewers: ['enq1', 'enq2'], statuses: ['Completed'] };
 }
+
+export function operationsResponse() {
+  return {
+    syncedAt: '2026-11-17T10:00:00Z',
+    inactivityDays: 3,
+    tablets: { interviewers: 2, active: 1, inactive: 0, neverActive: 1, pendingAssignments: 2, withoutDevice: 1, locked: 0 },
+    interviewers: [
+      { interviewer: 'enq1', supervisor: 'sup1', lastTabletContact: '2026-11-16T08:00:00Z', lastCompletion: '2026-11-16T18:00:00Z',
+        daysSinceActivity: 0, pendingAssignments: 0, oldestPendingSince: null, locked: false, deviceLinked: true, state: 'ACTIVE' },
+      { interviewer: 'enq2', supervisor: 'sup1', lastTabletContact: null, lastCompletion: null,
+        daysSinceActivity: null, pendingAssignments: 2, oldestPendingSince: '2026-11-10T08:00:00Z', locked: false, deviceLinked: false, state: 'NEVER' }
+    ],
+    validation: {
+      supervisor: { total: 3, lessThanOneDay: 1, oneToThreeDays: 0, threeToSevenDays: 1, moreThanSevenDays: 1 },
+      headquarters: { total: 1, lessThanOneDay: 1, oneToThreeDays: 0, threeToSevenDays: 0, moreThanSevenDays: 0 },
+      medianSupervisorReviewHours: 30,
+      medianHqReviewHours: 5.5,
+      oldest: [{ interviewId: 'i-1', interviewKey: '01-50-90-18', interviewer: 'enq1', supervisor: 'sup1',
+        status: 'Completed', since: '2026-11-08T08:00:00Z', waitingDays: 9.2 }]
+    },
+    zones: {
+      variable: 'region',
+      candidates: [{ variable: 'region', label: 'Région', identifying: true }, { variable: 'milieu', label: 'Milieu', identifying: false }],
+      rows: [{ code: '1', label: 'Dakar', interviews: 3, completed: 3, approved: 2, rejected: 1, inProgress: 0, approvalRate: 66.7 }]
+    },
+    modes: [{ mode: 'CAPI', count: 3 }, { mode: 'CAWI', count: 1 }],
+    appointments: { upcoming: 1, overdue: 1, items: [
+      { startAt: '2026-11-15T09:00:00Z', interviewKey: '02-11-22-33', assignmentId: null, responsible: 'enq1', supervisor: 'sup1', overdue: true, comment: 'Rappeler' }
+    ] }
+  };
+}

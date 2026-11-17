@@ -1,5 +1,7 @@
 package com.surveysolutions.analytics.store;
 
+import com.surveysolutions.analytics.surveysolutions.SurveySolutionsDtos;
+
 import static com.surveysolutions.analytics.surveysolutions.SurveySolutionsDtos.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -52,7 +54,8 @@ class SyncServiceTest {
         when(surveySolutions.getDataFingerprint(QUESTIONNAIRE_ID, 1)).thenReturn("2|2026-11-05");
         when(repository.startSync(any(), anyLong(), any(), any())).thenReturn(7L);
         when(surveySolutions.getAssignments(QUESTIONNAIRE_ID, 1)).thenReturn(List.of());
-        when(surveySolutions.getTeams()).thenReturn(java.util.Map.of("enq1", "sup1"));
+        when(surveySolutions.getTeamMembers()).thenReturn(List.of(
+                new SurveySolutionsDtos.TeamMember("enq1", "sup1", false, true)));
     }
 
     @Test
@@ -60,17 +63,27 @@ class SyncServiceTest {
         Path archive = Files.createTempFile("export", ".zip");
         when(exportClient.startTabularExport(QUESTIONNAIRE_ID, 1)).thenReturn(42L);
         when(exportClient.download(42L)).thenReturn(archive);
-        when(repository.replaceVersion(eq(QUESTIONNAIRE_ID), eq(1L), any(), any()))
+        List<SurveySolutionsDtos.InterviewMetadata> interviews = List.of(new SurveySolutionsDtos.InterviewMetadata(
+                "01-50-90-18", "CAPI", null, "enq1", null));
+        when(surveySolutions.getInterviewMetadata(QUESTIONNAIRE_ID, 1)).thenReturn(interviews);
+        when(surveySolutions.getAssignmentCalendars(QUESTIONNAIRE_ID, 1))
+                .thenThrow(new IllegalStateException("GraphQL indisponible"));
+        when(repository.replaceVersion(eq(QUESTIONNAIRE_ID), eq(1L), any(), any(AnalyticsRepository.FieldMetadata.class), any()))
                 .thenReturn(new AnalyticsRepository.ImportCounts(2, 5));
 
         assertThat(HqCredentialContext.with(principal,
                 () -> service.requestSync(QUESTIONNAIRE_ID, 1, SyncService.Trigger.MANUAL))).isTrue();
 
+        // Les rendez-vous indisponibles n'empêchent pas l'import ; le mode de collecte est transmis.
+        verify(repository).replaceVersion(eq(QUESTIONNAIRE_ID), eq(1L), any(),
+                eq(new AnalyticsRepository.FieldMetadata(interviews, List.of())), any());
+
         verify(repository).startSync(QUESTIONNAIRE_ID, 1, "MANUAL", "2|2026-11-05");
         verify(repository).recordExportJob(7L, 42L);
         verify(exportClient).awaitCompletion(42L);
         verify(repository).finishSync(7L, 2, 5);
-        verify(repository).replaceTeams(java.util.Map.of("enq1", "sup1"));
+        verify(repository).replaceTeamMembers(List.of(
+                new SurveySolutionsDtos.TeamMember("enq1", "sup1", false, true)));
         assertThat(Files.exists(archive)).isFalse();
         assertThat(service.isPending(QUESTIONNAIRE_ID, 1)).isFalse();
     }

@@ -118,6 +118,35 @@ class TabularExportParserTest {
     }
 
     @Test
+    void keepsTheLatestValidationAndTabletDates() throws IOException {
+        String actions = "interview__key\tinterview__id\tdate\ttime\taction\toriginator\trole\tresponsible__name\tresponsible__role\r\n"
+                + "01\t" + RAW_ID + "\t2026-11-03\t09:00:00\t13\tenq1\t1\tenq1\t1\r\n"
+                + "01\t" + RAW_ID + "\t2026-11-04\t10:00:00\t3\tenq1\t1\tsup1\t2\r\n"
+                + "01\t" + RAW_ID + "\t2026-11-04\t18:00:00\t5\tsup1\t2\tsup1\t2\r\n"
+                + "01\t" + RAW_ID + "\t2026-11-05\t08:00:00\t8\tadmin\t4\tenq1\t1\r\n"
+                + "01\t" + RAW_ID + "\t2026-11-05\t12:00:00\t13\tenq1\t1\tenq1\t1\r\n"
+                + "01\t" + RAW_ID + "\t2026-11-06\t09:30:00\t3\tenq1\t1\tsup1\t2\r\n"
+                + "01\t" + RAW_ID + "\t2026-11-06\t17:00:00\t5\tsup1\t2\tsup1\t2\r\n"
+                + "01\t" + RAW_ID + "\t2026-11-07\t11:00:00\t6\tadmin\t4\tsup1\t2\r\n"
+                + "01\t" + RAW_ID + "\t2026-11-08\t10:00:00\t11\tadmin\t4\tsup1\t2\r\n";
+        Path zip = zip(Map.of(
+                "survey.tab", "interview__key\tinterview__id\tinterview__status\r\n01\t" + RAW_ID + "\t130\r\n",
+                "interview__actions.tab", actions));
+
+        new TabularExportParser().parse(zip, Map.of(), "survey", sink);
+
+        assertThat(interviews).singleElement().satisfies(interview -> {
+            assertThat(interview.completedAt()).isEqualTo(java.time.Instant.parse("2026-11-04T10:00:00Z"));
+            assertThat(interview.lastCompletedAt()).isEqualTo(java.time.Instant.parse("2026-11-06T09:30:00Z"));
+            assertThat(interview.supervisorApprovedAt()).isEqualTo(java.time.Instant.parse("2026-11-06T17:00:00Z"));
+            // La désapprobation HQ du 8 renvoie l'interview dans la file de HQ, sans être une approbation superviseur.
+            assertThat(interview.hqQueueSince()).isEqualTo(java.time.Instant.parse("2026-11-08T10:00:00Z"));
+            assertThat(interview.hqApprovedAt()).isEqualTo(java.time.Instant.parse("2026-11-07T11:00:00Z"));
+            assertThat(interview.receivedByTabletAt()).isEqualTo(java.time.Instant.parse("2026-11-05T12:00:00Z"));
+        });
+    }
+
+    @Test
     void fallsBackToTheLastInterviewerResponsibleWhenNeverCompleted() throws IOException {
         String actions = "interview__key\tinterview__id\tdate\ttime\taction\toriginator\trole\tresponsible__name\tresponsible__role\r\n"
                 + "01\t" + RAW_ID + "\t2026-11-04\t10:00:00\t1\tsup1\t2\tenq1\t1\r\n"

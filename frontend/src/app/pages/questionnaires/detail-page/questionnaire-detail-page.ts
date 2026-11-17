@@ -4,6 +4,7 @@ import { CatalogService } from '../../../core/services/catalog.service';
 import { FilterBarComponent } from '../../../shared/components/filter-bar/filter-bar';
 import { statusLabel } from '../../../shared/utils/labels';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state';
+import { FieldOperationsComponent } from '../tabs/field-operations/field-operations';
 import { FieldworkPanelComponent } from '../tabs/fieldwork-panel/fieldwork-panel';
 import { QualityTabComponent } from '../tabs/quality-tab/quality-tab';
 import { QuestionnaireHeaderComponent } from '../questionnaire-header/questionnaire-header';
@@ -27,6 +28,7 @@ import { InterviewReviewComponent } from '../tabs/interview-review/interview-rev
     FilterBarComponent,
     LoadingStateComponent,
     FieldworkPanelComponent,
+    FieldOperationsComponent,
     VariablesTabComponent,
     QualityTabComponent,
     ReportsTabComponent,

@@ -11,7 +11,7 @@ import { AuthService } from './core/services/auth.service';
 import { DashboardChartComponent } from './shared/components/dashboard-chart/dashboard-chart';
 import {
   BASE, QUESTIONNAIRE_ID, analyticsResponse, completenessResponse, dashboardResponse, fieldworkResponse,
-  filterOptionsResponse, ageQuestion, syncResponse
+  filterOptionsResponse, operationsResponse, ageQuestion, syncResponse
 } from './testing/fixtures';
 
 const QUESTIONNAIRE_URL = `/questionnaires/${QUESTIONNAIRE_ID}/1`;
@@ -49,6 +49,7 @@ describe('Application routée', () => {
     http.expectOne(`${BASE}/filter-options`).flush(filterOptionsResponse());
     if (tab === 'suivi-terrain') {
       http.expectOne((request) => request.url === `${BASE}/fieldwork`).flush(fieldworkResponse());
+      http.expectOne((request) => request.url === `${BASE}/operations`).flush(operationsResponse());
     }
     http.expectOne(`${BASE}/reports`).flush([
       { id: 7, generatedAt: '2026-11-09T07:00:00Z', trigger: 'SCHEDULED', filename: 'rapport.pdf', sizeBytes: 51200 }
@@ -126,11 +127,26 @@ describe('Application routée', () => {
     expect(page().querySelector('app-fieldwork-panel .kpis')?.textContent).toContain('66,7 %');
   });
 
+  it('affiche les opérations de terrain et recharge la ventilation choisie', async () => {
+    await openQuestionnaire();
+    const operations = page().querySelector('app-field-operations') as HTMLElement;
+    expect(operations.querySelector('.ops-kpis')?.textContent).toContain('1 / 2');
+    expect(operations.querySelector('.zone-table')?.textContent).toContain('Dakar');
+
+    const select = operations.querySelector('select[name="zoneVariable"]') as HTMLSelectElement;
+    select.value = 'milieu';
+    select.dispatchEvent(new Event('change'));
+    harness.detectChanges();
+    const request = http.expectOne((item) => item.url === `${BASE}/operations`);
+    expect(request.request.params.get('zoneVariable')).toBe('milieu');
+    request.flush(operationsResponse());
+  });
+
   it('reflète l’onglet actif dans l’URL et corrige un onglet inconnu', async () => {
     await openQuestionnaire();
     const tabs = page().querySelectorAll<HTMLButtonElement>('[role="tab"]');
 
-    tabs[4].click();
+    [...tabs].find((button) => button.id === 'tab-reports')!.click();
     await harness.fixture.whenStable();
     harness.detectChanges();
     expect(url()).toBe(`${QUESTIONNAIRE_URL}/rapports`);
@@ -315,6 +331,9 @@ describe('Application routée', () => {
     expect(fieldwork.request.params.get('from')).toBe('2026-11-01');
     expect(fieldwork.request.params.has('statuses')).toBeFalse();
     fieldwork.flush({ ...fieldworkResponse(), filtersApplied: true });
+    const operations = http.expectOne((request) => request.url === `${BASE}/operations`);
+    expect(operations.request.params.get('interviewer')).toBe('enq1');
+    operations.flush(operationsResponse());
     http.expectOne((request) => request.url === `${BASE}/question-completeness`
       && request.params.get('interviewer') === 'enq1').flush(completenessResponse());
     http.expectOne((request) => request.url === `${BASE}/question-analytics`
@@ -398,6 +417,7 @@ describe('Attente de l’import des données', () => {
     http.expectOne(`${BASE}/sync`).flush({ inProgress: false, lastSuccessAt: null, interviewCount: null, lastStatus: null, lastError: null });
     http.expectOne(`${BASE}/filter-options`).flush({ supervisors: [], interviewers: [], statuses: [] });
     http.expectOne((request) => request.url === `${BASE}/fieldwork`).flush({ detail: 'Synchronisation en cours', syncPending: true }, pending);
+    http.expectOne((request) => request.url === `${BASE}/operations`).flush({ syncPending: true }, pending);
     http.expectOne(`${BASE}/reports`).flush([]);
     http.expectOne(`${BASE}/question-list`).flush([ageQuestion()]);
     harness.detectChanges();
@@ -415,10 +435,10 @@ describe('Attente de l’import des données', () => {
     harness.detectChanges();
     http.expectOne(`${BASE}/filter-options`).flush({ supervisors: [], interviewers: [], statuses: [] });
     http.expectOne((request) => request.url === `${BASE}/fieldwork`).flush(fieldworkResponse());
+    http.expectOne((request) => request.url === `${BASE}/operations`).flush(operationsResponse());
     http.expectOne((request) => request.url === `${BASE}/question-completeness`).flush(completenessResponse());
     http.expectOne((request) => request.url === `${BASE}/question-analytics`).flush(analyticsResponse());
     harness.detectChanges();
     expect(page.querySelector('.sync-line')?.textContent).toContain('2 interview(s)');
     http.verify();
   });
-});

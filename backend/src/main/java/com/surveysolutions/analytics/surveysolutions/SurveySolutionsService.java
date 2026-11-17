@@ -184,6 +184,143 @@ public class SurveySolutionsService {
         return Map.copyOf(teams);
     }
 
+    /** Enquêteurs des équipes, avec l'état de leur compte (verrouillé) et de leur tablette. */
+    public List<TeamMember> getTeamMembers() {
+        Map<String, TeamMember> members = new java.util.LinkedHashMap<>();
+        for (User supervisor : getUsers("/api/v1/supervisors")) {
+            for (User interviewer : getUsers(supervisorInterviewersPath(supervisor))) {
+                if (interviewer.userName() != null) {
+                    members.put(interviewer.userName(), new TeamMember(
+                            interviewer.userName(),
+                            supervisor.userName(),
+                            Boolean.TRUE.equals(interviewer.isLocked()),
+                            interviewer.deviceId() == null ? Boolean.FALSE : !interviewer.deviceId().isBlank()));
+                }
+            }
+        }
+        return List.copyOf(members.values());
+    }
+
+    private static final int GRAPHQL_PAGE_SIZE = 100;
+
+    /** Mode de collecte, réception par l'enquêteur et rendez-vous de chaque interview (GraphQL). */
+    public List<InterviewMetadata> getInterviewMetadata(UUID questionnaireId, long version) {
+        String query = """
+                query($questionnaireId: UUID!, $version: Long!, $skip: Int!, $take: Int!) {
+                  interviews(skip: $skip, take: $take, where: {
+                    questionnaireId: { eq: $questionnaireId },
+                    questionnaireVersion: { eq: $version } },
+                    order: [{ key: ASC }]) {
+                    filteredCount
+                    nodes {
+                      key interviewMode receivedByInterviewerAtUtc responsibleName
+                      calendarEvent { startUtc isCompleted comment }
+                    }
+                  }
+                }""";
+        List<InterviewMetadata> result = new ArrayList<>();
+        long total;
+        int pages = 0;
+        do {
+            JsonNode interviews = graphql(query, Map.of(
+                    "questionnaireId", questionnaireId.toString(), "version", version,
+                    "skip", result.size(), "take", GRAPHQL_PAGE_SIZE)).path("interviews");
+            total = interviews.path("filteredCount").asLong();
+            int before = result.size();
+            for (JsonNode node : interviews.path("nodes")) {
+                result.add(new InterviewMetadata(
+                        text(node, "key"),
+                        text(node, "interviewMode"),
+                        HqDates.parse(text(node, "receivedByInterviewerAtUtc")),
+                        text(node, "responsibleName"),
+                        calendar(node.path("calendarEvent"))));
+            }
+            pages++;
+            ensurePaginationProgress(result.size(), (int) total, result.size() - before, pages);
+        } while (result.size() < total);
+        return result;
+    }
+
+    /** Rendez-vous posés sur les affectations d'une version (GraphQL). */
+    public List<AssignmentCalendar> getAssignmentCalendars(UUID questionnaireId, long version) {
+        String query = """
+                query($questionnaireId: UUID!, $version: Long!, $skip: Int!, $take: Int!) {
+                  assignments(skip: $skip, take: $take, where: {
+                    questionnaireId: { id: { eq: $questionnaireId }, version: { eq: $version } },
+                    archived: { eq: false } }) {
+                    filteredCount
+                    nodes { id calendarEvent { startUtc isCompleted comment } }
+                  }
+                }""";
+        List<AssignmentCalendar> result = new ArrayList<>();
+        int seen = 0;
+        long total;
+        int pages = 0;
+        do {
+            JsonNode assignments = graphql(query, Map.of(
+                    "questionnaireId", questionnaireId.toString(), "version", version,
+                    "skip", seen, "take", GRAPHQL_PAGE_SIZE)).path("assignments");
+            total = assignments.path("filteredCount").asLong();
+            int before = seen;
+            for (JsonNode node : assignments.path("nodes")) {
+                seen++;
+                CalendarEntry calendar = calendar(node.path("calendarEvent"));
+                if (calendar != null && node.path("id").canConvertToInt()) {
+                    result.add(new AssignmentCalendar(node.path("id").asInt(), calendar));
+                }
+            }
+            pages++;
+            ensurePaginationProgress(seen, (int) total, seen - before, pages);
+        } while (seen < total);
+        return result;
+    }
+
+    /** Variables des questions d'identification (région, commune, zone…), dans l'ordre du questionnaire. */
+    public List<String> getIdentifyingVariables(UUID questionnaireId, long version) {
+        JsonNode items = graphql("""
+                query($id: UUID!, $version: Long!) {
+                  questionnaireItems(id: $id, version: $version) { variable identifying entityType }
+                }""", Map.of("id", questionnaireId.toString(), "version", version)).path("questionnaireItems");
+        List<String> variables = new ArrayList<>();
+        for (JsonNode item : items) {
+            if (item.path("identifying").asBoolean(false) && !text(item, "variable").isEmpty()) {
+                variables.add(text(item, "variable"));
+            }
+        }
+        return variables;
+    }
+
+    private JsonNode graphql(String query, Map<String, Object> variables) {
+        JsonNode response = currentClient().post()
+                .uri("/graphql")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("query", query, "variables", variables))
+                .retrieve()
+                .body(JsonNode.class);
+        if (response == null || response.has("errors") || !response.has("data")) {
+            String detail = response == null ? "" : response.path("errors").path(0).path("message").asText("");
+            throw new IllegalStateException("HQ GraphQL a renvoyé une erreur" + (detail.isEmpty() ? "." : " : " + detail));
+        }
+        return response.path("data");
+    }
+
+    private static CalendarEntry calendar(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull()) {
+            return null;
+        }
+        java.time.Instant start = HqDates.parse(text(node, "startUtc"));
+        if (start == null) {
+            return null;
+        }
+        String comment = text(node, "comment");
+        return new CalendarEntry(start, node.path("isCompleted").asBoolean(false), comment.isEmpty() ? null : comment);
+    }
+
+    private static String text(JsonNode node, String field) {
+        JsonNode value = node.path(field);
+        return value.isMissingNode() || value.isNull() ? "" : value.asText("");
+    }
+
     public List<User> getReviewInterviewers() {
         Map<String, User> interviewers = new java.util.LinkedHashMap<>();
         for (User supervisor : getUsers("/api/v1/supervisors")) {

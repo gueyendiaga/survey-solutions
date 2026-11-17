@@ -202,6 +202,7 @@ public class SyncService implements DisposableBean {
 
             List<Assignment> assignments = surveySolutions.getAssignments(questionnaireId, version);
             refreshTeams();
+            AnalyticsRepository.FieldMetadata metadata = fieldMetadata(questionnaireId, version);
 
             long jobId = exportClient.startTabularExport(questionnaireId, version);
             repository.recordExportJob(syncId, jobId);
@@ -209,7 +210,7 @@ public class SyncService implements DisposableBean {
             archive = exportClient.download(jobId);
 
             Path file = archive;
-            ImportCounts counts = repository.replaceVersion(questionnaireId, version, assignments, writer ->
+            ImportCounts counts = repository.replaceVersion(questionnaireId, version, assignments, metadata, writer ->
                     parser.parse(file, questionTypes, questionnaire.variable(), writer));
             repository.finishSync(syncId, counts.interviews(), counts.units());
             LOG.info("Synchronisation {} v{} terminée : {} interview(s), {} unité(s).",
@@ -228,10 +229,32 @@ public class SyncService implements DisposableBean {
         }
     }
 
+    /**
+     * Mode de collecte et rendez-vous (GraphQL HQ). Facultatifs : en cas d'échec, l'import continue
+     * sans eux plutôt que d'échouer.
+     */
+    private AnalyticsRepository.FieldMetadata fieldMetadata(UUID questionnaireId, long version) {
+        List<InterviewMetadata> interviews = List.of();
+        List<AssignmentCalendar> calendars = List.of();
+        try {
+            interviews = surveySolutions.getInterviewMetadata(questionnaireId, version);
+        } catch (RuntimeException exception) {
+            LOG.warn("Métadonnées GraphQL des interviews indisponibles pour {} v{} : {}",
+                    questionnaireId, version, exception.getMessage());
+        }
+        try {
+            calendars = surveySolutions.getAssignmentCalendars(questionnaireId, version);
+        } catch (RuntimeException exception) {
+            LOG.warn("Rendez-vous des affectations indisponibles pour {} v{} : {}",
+                    questionnaireId, version, exception.getMessage());
+        }
+        return new AnalyticsRepository.FieldMetadata(interviews, calendars);
+    }
+
     /** Les équipes servent au regroupement par superviseur ; un échec n'empêche pas l'import. */
     private void refreshTeams() {
         try {
-            repository.replaceTeams(surveySolutions.getTeams());
+            repository.replaceTeamMembers(surveySolutions.getTeamMembers());
         } catch (RuntimeException exception) {
             LOG.warn("Composition des équipes indisponible, l'ancienne est conservée : {}",
                     exception.getMessage());

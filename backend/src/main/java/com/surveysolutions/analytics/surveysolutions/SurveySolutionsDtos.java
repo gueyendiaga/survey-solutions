@@ -43,9 +43,19 @@ public final class SurveySolutionsDtos {
             @JsonProperty("Users") List<User> users,
             @JsonProperty("TotalCount") int totalCount) {}
 
+    /** isLocked et deviceId ne sont renvoyés que par la liste des enquêteurs d'un superviseur. */
     public record User(
             @JsonProperty("UserId") String userId,
-            @JsonProperty("UserName") String userName) {}
+            @JsonProperty("UserName") String userName,
+            @JsonProperty("IsLocked") Boolean isLocked,
+            @JsonProperty("DeviceId") String deviceId) {
+        public User(String userId, String userName) {
+            this(userId, userName, null, null);
+        }
+    }
+
+    /** Enquêteur d'une équipe, avec l'état de son compte et de sa tablette. */
+    public record TeamMember(String interviewer, String supervisor, boolean locked, Boolean deviceLinked) {}
 
     public record AssignmentPage(
             @JsonProperty("Assignments") List<Assignment> assignments,
@@ -57,7 +67,34 @@ public final class SurveySolutionsDtos {
             @JsonProperty("ResponsibleName") String responsibleName,
             @JsonProperty("Quantity") Integer quantity,
             @JsonProperty("InterviewsCount") int interviewsCount,
-            @JsonProperty("Archived") boolean archived) {}
+            @JsonProperty("Archived") boolean archived,
+            /** Dates HQ en UTC, sans fuseau explicite selon les versions : voir {@link HqDates}. */
+            @JsonProperty("CreatedAtUtc") String createdAtUtc,
+            @JsonProperty("ReceivedByTabletAtUtc") String receivedByTabletAtUtc,
+            @JsonProperty("WebMode") boolean webMode,
+            @JsonProperty("TargetArea") String targetArea) {
+        public Assignment(int id, String responsibleName, Integer quantity, int interviewsCount, boolean archived) {
+            this(id, responsibleName, quantity, interviewsCount, archived, null, null, false, null);
+        }
+    }
+
+    /** Rendez-vous du calendrier HQ. */
+    public record CalendarEntry(java.time.Instant startAt, boolean completed, String comment) {}
+
+    /**
+     * Métadonnées d'une interview lues par GraphQL (absentes de l'export Tabular).
+     *
+     * @param mode CAPI, CAWI ou UNKNOWN
+     */
+    public record InterviewMetadata(
+            String key,
+            String mode,
+            java.time.Instant receivedByInterviewerAt,
+            String responsibleName,
+            CalendarEntry calendar) {}
+
+    /** Rendez-vous posé sur une affectation (pas encore d'interview). */
+    public record AssignmentCalendar(int assignmentId, CalendarEntry calendar) {}
 
     public record InterviewDetails(
             @JsonProperty("Answers") List<InterviewAnswer> answers) {}
