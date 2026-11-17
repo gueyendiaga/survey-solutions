@@ -9,6 +9,8 @@ describe('FieldOperationsComponent', () => {
     const fixture = TestBed.createComponent(FieldOperationsComponent);
     fixture.componentRef.setInput('operations', operations as FieldOperations);
     fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
     return fixture;
   }
 
@@ -43,9 +45,13 @@ describe('FieldOperationsComponent', () => {
 
     expect(element.querySelector('.zone-table tbody')!.textContent).toContain('Dakar');
     expect(element.querySelector('.zone-table tbody')!.textContent).toContain('66,7 %');
-    const select = element.querySelector('select[name="zoneVariable"]') as HTMLSelectElement;
-    select.value = 'milieu';
-    select.dispatchEvent(new Event('change'));
+    const picker = element.querySelector('app-search-select[name="zoneVariable"]') as HTMLElement;
+    expect(picker.querySelector('.select-trigger')!.textContent).toContain('Région (region) · identification');
+    (picker.querySelector('.select-trigger') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const milieu = [...picker.querySelectorAll<HTMLButtonElement>('[role="option"]')]
+      .find((option) => option.textContent!.includes('Milieu'))!;
+    milieu.click();
     expect(chosen).toEqual(['milieu']);
   });
 

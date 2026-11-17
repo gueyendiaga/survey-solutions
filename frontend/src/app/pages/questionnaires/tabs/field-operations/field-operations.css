@@ -448,21 +448,17 @@
 
 .zone-select {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   color: var(--text-2);
   font-size: var(--fs-small);
 }
 
-.zone-select select {
-  max-width: 340px;
-  min-height: 38px;
-  padding: 0 10px;
-  border: 1px solid var(--control);
-  border-radius: 10px;
-  background: var(--surface);
+.zone-picker {
+  display: block;
+  width: min(380px, 70vw);
   color: var(--text);
-  font-size: var(--fs-small);
 }
 
 @media (max-width: 1100px) {

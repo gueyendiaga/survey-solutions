@@ -177,15 +177,17 @@
         <p>Interviews par modalité d’une variable géographique ou de stratification</p>
       </div>
       @if (operations.zones.candidates.length) {
-        <label class="zone-select">
-          <span>Ventiler par</span>
-          <select name="zoneVariable" (change)="onZoneChange($event)">
-            @if (!operations.zones.variable) { <option value="" selected>Choisir une variable…</option> }
-            @for (option of operations.zones.candidates; track option.variable) {
-              <option [value]="option.variable" [selected]="option.variable === operations.zones.variable">{{ option.label }} ({{ option.variable }}){{ option.identifying ? ' · identification' : '' }}</option>
-            }
-          </select>
-        </label>
+        <div class="zone-select">
+          <span id="zone-select-label">Ventiler par</span>
+          <app-search-select
+            class="zone-picker"
+            name="zoneVariable"
+            ariaLabel="Variable de ventilation par zone"
+            placeholder="Choisir une variable…"
+            [options]="zoneOptions()"
+            [ngModel]="operations.zones.variable"
+            (ngModelChange)="zoneVariableChange.emit($event)" />
+        </div>
       }
     </div>
     @if (operations.zones.rows.length) {

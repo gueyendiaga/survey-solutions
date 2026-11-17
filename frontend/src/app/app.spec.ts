@@ -133,9 +133,11 @@ describe('Application routée', () => {
     expect(operations.querySelector('.ops-kpis')?.textContent).toContain('1 / 2');
     expect(operations.querySelector('.zone-table')?.textContent).toContain('Dakar');
 
-    const select = operations.querySelector('select[name="zoneVariable"]') as HTMLSelectElement;
-    select.value = 'milieu';
-    select.dispatchEvent(new Event('change'));
+    const picker = operations.querySelector('app-search-select[name="zoneVariable"]') as HTMLElement;
+    (picker.querySelector('.select-trigger') as HTMLButtonElement).click();
+    harness.detectChanges();
+    [...picker.querySelectorAll<HTMLButtonElement>('[role="option"]')]
+      .find((option) => option.textContent!.includes('Milieu'))!.click();
     harness.detectChanges();
     const request = http.expectOne((item) => item.url === `${BASE}/operations`);
     expect(request.request.params.get('zoneVariable')).toBe('milieu');
@@ -442,3 +444,4 @@ describe('Attente de l’import des données', () => {
     expect(page.querySelector('.sync-line')?.textContent).toContain('2 interview(s)');
     http.verify();
   });
+});

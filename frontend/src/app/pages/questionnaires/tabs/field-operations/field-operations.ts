@@ -1,5 +1,6 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import {
   FieldOperations,
   InterviewerTablet,
@@ -8,6 +9,10 @@ import {
   ZoneProgress
 } from '../../../../core/models/dashboard.models';
 import { InfoTooltipComponent } from '../../../../shared/components/info-tooltip/info-tooltip';
+import {
+  SearchSelectComponent,
+  SearchSelectOption
+} from '../../../../shared/components/search-select/search-select';
 import { statusLabel } from '../../../../shared/utils/labels';
 
 interface StateView {
@@ -38,7 +43,7 @@ interface Bucket {
 @Component({
   selector: 'app-field-operations',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, InfoTooltipComponent],
+  imports: [DatePipe, DecimalPipe, FormsModule, InfoTooltipComponent, SearchSelectComponent],
   templateUrl: './field-operations.html',
   styleUrl: './field-operations.css'
 })
@@ -131,8 +136,11 @@ export class FieldOperationsComponent {
     return (row.interviews * 100) / this.zoneMax();
   }
 
-  protected onZoneChange(event: Event): void {
-    const value = (event.target as HTMLSelectElement).value;
-    this.zoneVariableChange.emit(value || null);
+  /** Variables proposées à la ventilation, questions d'identification d'abord (ordre du backend). */
+  protected zoneOptions(): SearchSelectOption[] {
+    return this.operations.zones.candidates.map((option) => ({
+      value: option.variable,
+      label: `${option.label} (${option.variable})${option.identifying ? ' · identification' : ''}`
+    }));
   }
 }
