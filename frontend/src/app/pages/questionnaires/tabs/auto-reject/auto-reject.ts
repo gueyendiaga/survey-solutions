@@ -28,6 +28,9 @@ export const RULE_TEMPLATES: RuleTemplate[] = [
   { type: 'VALUE_RANGE', label: 'Valeur hors plage', description: 'Valeur numérique hors des bornes attendues.', defaults: {} }
 ];
 
+/** Règles globales : une seule par questionnaire. Les autres portent sur une question. */
+const GLOBAL_RULES = new Set<AutoRejectRuleType>(['VALIDATION_ERRORS', 'MIN_DURATION', 'MAX_UNANSWERED']);
+
 const MODES: { id: AutoRejectMode; label: string; help: string }[] = [
   { id: 'OFF', label: 'Désactivé', help: 'Les règles sont conservées mais ne sont pas évaluées.' },
   { id: 'SIMULATION', label: 'Simulation', help: 'Les règles signalent les interviews concernées ; aucune n’est rejetée.' },
@@ -73,6 +76,10 @@ export class AutoRejectComponent {
     this.store.questions()
       .filter((question) => /numeric/i.test(question.type))
       .map((question) => ({ value: question.variableName, label: `${question.label || question.questionText} (${question.variableName})` })));
+
+  /** Règles globales déjà présentes : leur bouton d'ajout est désactivé. */
+  protected readonly usedGlobalTypes = computed(() =>
+    new Set(this.rules().map((rule) => rule.type).filter((type) => GLOBAL_RULES.has(type))));
 
   protected readonly dirty = computed(() => {
     const saved = this.saved();
@@ -126,7 +133,24 @@ export class AutoRejectComponent {
     return MODES.find((mode) => mode.id === this.mode())?.help ?? '';
   }
 
+  protected isGlobalUsed(type: AutoRejectRuleType): boolean {
+    return this.usedGlobalTypes().has(type);
+  }
+
+  /** Questions proposées à une règle : celles déjà prises par une autre règle du même type sont exclues. */
+  protected optionsFor(index: number): SearchSelectOption[] {
+    const rule = this.rules()[index];
+    const base = rule.type === 'VALUE_RANGE' ? this.numericOptions() : this.variableOptions();
+    const taken = new Set(this.rules()
+      .filter((other, i) => i !== index && other.type === rule.type && other.variable)
+      .map((other) => other.variable));
+    return base.filter((option) => !taken.has(option.value));
+  }
+
   protected addRule(type: AutoRejectRuleType): void {
+    if (this.isGlobalUsed(type)) {
+      return;
+    }
     const template = this.templateFor(type);
     this.rules.update((rules) => [...rules, {
       id: null, type, variable: null, minValue: null, maxValue: null, message: null, enabled: true, ...template.defaults

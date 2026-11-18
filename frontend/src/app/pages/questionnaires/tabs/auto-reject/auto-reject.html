@@ -90,13 +90,13 @@
                 }
                 @case ('REQUIRED_ANSWER') {
                   <label class="wide">Question
-                    <app-search-select [options]="variableOptions()" ariaLabel="Question obligatoire" placeholder="Choisir une question…"
+                    <app-search-select [options]="optionsFor(i)" ariaLabel="Question obligatoire" placeholder="Choisir une question…"
                       [ngModel]="rule.variable" (ngModelChange)="updateRule(i, { variable: $event })" />
                   </label>
                 }
                 @case ('VALUE_RANGE') {
                   <label class="wide">Question numérique
-                    <app-search-select [options]="numericOptions()" ariaLabel="Question numérique contrôlée" placeholder="Choisir une question…"
+                    <app-search-select [options]="optionsFor(i)" ariaLabel="Question numérique contrôlée" placeholder="Choisir une question…"
                       [ngModel]="rule.variable" (ngModelChange)="updateRule(i, { variable: $event })" />
                   </label>
                   <label>Minimum
@@ -118,7 +118,11 @@
 
       <div class="ar-templates" role="group" aria-label="Ajouter une règle">
         @for (template of templates; track template.type) {
-          <button type="button" class="ar-add" [title]="template.description" (click)="addRule(template.type)">+ {{ template.label }}</button>
+          <button type="button" class="ar-add" [disabled]="isGlobalUsed(template.type)"
+            [title]="isGlobalUsed(template.type) ? 'Déjà ajoutée : modifiez son seuil' : template.description"
+            (click)="addRule(template.type)">
+            @if (isGlobalUsed(template.type)) { ✓ } @else { + } {{ template.label }}
+          </button>
         }
       </div>
 

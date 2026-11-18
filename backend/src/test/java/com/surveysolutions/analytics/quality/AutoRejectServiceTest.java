@@ -123,4 +123,24 @@ class AutoRejectServiceTest {
                 new Rule(null, RuleType.VALIDATION_ERRORS, null, BigDecimal.ONE, null, null, false))), "hq"))
                 .hasMessageContaining("au moins une règle");
     }
+
+    @Test
+    void refusesDuplicateRules() {
+        when(repository.variableExists(eq(Q), eq(1L), anyString())).thenReturn(Optional.of(true));
+        Rule unanswered = new Rule(null, RuleType.MAX_UNANSWERED, null, null, BigDecimal.valueOf(5), null, true);
+        Rule ageRange = new Rule(null, RuleType.VALUE_RANGE, "AgeAnnee", BigDecimal.ONE, BigDecimal.TEN, null, true);
+
+        assertThatThrownBy(() -> service.save(Q, 1, new SettingsUpdate(Mode.SIMULATION, 2,
+                List.of(unanswered, unanswered)), "hq"))
+                .hasMessageContaining("« Trop de non-réponses » ne peut être définie qu’une fois");
+        assertThatThrownBy(() -> service.save(Q, 1, new SettingsUpdate(Mode.SIMULATION, 2,
+                List.of(ageRange, ageRange)), "hq"))
+                .hasMessageContaining("déjà définie pour « AgeAnnee »");
+
+        // Même type sur deux questions différentes, ou même question avec deux types : autorisé.
+        service.save(Q, 1, new SettingsUpdate(Mode.SIMULATION, 2, List.of(ageRange,
+                new Rule(null, RuleType.VALUE_RANGE, "B5", BigDecimal.ONE, null, null, true),
+                new Rule(null, RuleType.REQUIRED_ANSWER, "AgeAnnee", null, null, null, true))), "hq");
+        verify(repository).save(eq(Q), eq(1L), eq(Mode.SIMULATION), eq(2), any(), eq("hq"));
+    }
 }

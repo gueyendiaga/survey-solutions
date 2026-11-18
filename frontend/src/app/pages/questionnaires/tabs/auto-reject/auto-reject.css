@@ -198,7 +198,8 @@
   cursor: pointer;
 }
 
-.ar-add:hover { background: var(--primary-soft); }
+.ar-add:hover:not(:disabled) { background: var(--primary-soft); }
+.ar-add:disabled { border-style: solid; border-color: var(--line); background: var(--surface-soft); color: var(--text-2); cursor: not-allowed; }
 
 .ar-limit { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: flex-end; margin-top: 18px; }
 .ar-limit input { width: 90px; }

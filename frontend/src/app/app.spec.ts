@@ -321,6 +321,10 @@ describe('Application routée', () => {
     [...card.querySelectorAll<HTMLButtonElement>('.ar-segmented button')].find((b) => b.textContent?.includes('Simulation'))!.click();
     harness.detectChanges();
     await harness.fixture.whenStable();
+    const durationButton = [...card.querySelectorAll<HTMLButtonElement>('.ar-add')].find((b) => b.textContent?.includes('Durée trop courte'))!;
+    expect(durationButton.disabled).toBeTrue();
+    expect(durationButton.title).toBe('Déjà ajoutée : modifiez son seuil');
+    expect([...card.querySelectorAll<HTMLButtonElement>('.ar-add')].find((b) => b.textContent?.includes('Valeur hors plage'))!.disabled).toBeFalse();
     (card.querySelector('.ar-btn.primary') as HTMLButtonElement).click();
 
     const save = http.expectOne((request) => request.method === 'PUT' && request.url === `${BASE}/auto-reject`);

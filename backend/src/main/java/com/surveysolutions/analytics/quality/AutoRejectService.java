@@ -61,6 +61,7 @@ public class AutoRejectService {
             throw new IllegalArgumentException("Le plafond de rejets HQ doit être compris entre 1 et 10.");
         }
         List<Rule> cleaned = rules.stream().map(rule -> validate(questionnaireId, version, rule)).toList();
+        rejectDuplicates(cleaned);
         if (update.mode() == Mode.AUTO && cleaned.stream().noneMatch(Rule::enabled)) {
             throw new IllegalArgumentException("Activez au moins une règle avant de passer en mode automatique.");
         }
@@ -194,6 +195,29 @@ public class AutoRejectService {
             throw new IllegalArgumentException("Le message d’une règle ne peut pas dépasser 300 caractères.");
         }
         return new Rule(rule.id(), rule.type(), variable, min, max, message, rule.enabled());
+    }
+
+    /** Une règle globale n'existe qu'une fois ; une règle par question, une fois par question. */
+    private static void rejectDuplicates(List<Rule> rules) {
+        Set<String> seen = new java.util.HashSet<>();
+        for (Rule rule : rules) {
+            String key = rule.type() + "|" + (rule.variable() == null ? "" : rule.variable());
+            if (!seen.add(key)) {
+                throw new IllegalArgumentException(rule.variable() == null
+                        ? "La règle « " + label(rule.type()) + " » ne peut être définie qu’une fois : modifiez son seuil."
+                        : "La règle « " + label(rule.type()) + " » est déjà définie pour « " + rule.variable() + " ».");
+            }
+        }
+    }
+
+    private static String label(RuleType type) {
+        return switch (type) {
+            case VALIDATION_ERRORS -> "Erreurs de validation";
+            case MIN_DURATION -> "Durée trop courte";
+            case MAX_UNANSWERED -> "Trop de non-réponses";
+            case REQUIRED_ANSWER -> "Réponse obligatoire";
+            case VALUE_RANGE -> "Valeur hors plage";
+        };
     }
 
     private static void requirePositive(BigDecimal value, String label) {
