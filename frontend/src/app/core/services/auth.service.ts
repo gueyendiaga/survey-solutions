@@ -25,7 +25,8 @@ export class AuthService {
         switchMap(() => this.http.get<AuthSession>('/api/auth/session')),
         timeout({ first: 5000 }),
         tap((session) => this.applySession(session)),
-        catchError((error: unknown) => {
+        catchError(() => {
+          this.username.set(null);
           this.phase.set('anonymous');
           this.connectionError.set('Impossible de contacter le serveur. Vérifiez votre connexion puis réessayez.');
           return of({ authenticated: false, username: null, canReviewInterviews: false });
@@ -94,7 +95,11 @@ export const authExpiryInterceptor: HttpInterceptorFn = (request, next) => {
   return next(request).pipe(catchError((error: unknown) => {
     if (error instanceof HttpErrorResponse && error.status === 401) {
       auth.expireSession();
-      void router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
+      // Plusieurs requêtes peuvent échouer en même temps : une seule redirection, sans
+      // imbriquer /login dans son propre returnUrl.
+      if (!router.url.startsWith('/login')) {
+        void router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
+      }
     }
     return throwError(() => error);
   }));
@@ -109,3 +114,46 @@ export const authGuard: CanActivateFn = (_route, state) => {
       : router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } }))
   );
 };
+
+const RELOAD_MARKER = 'survey-analytics:chunk-reload';
+
+/** Fichier JS introuvable : l'application a été redéployée depuis l'ouverture de l'onglet. */
+export function isStaleBundleError(error: unknown): boolean {
+  const text = error instanceof Error ? `${error.name} ${error.message}` : String(error ?? '');
+  return /ChunkLoadError|Loading chunk|dynamically imported module|Importing a module script failed|MIME type/i.test(text);
+}
+
+/**
+ * Gestionnaire d'erreur de navigation : après un redéploiement, recharge la page complète vers
+ * la destination demandée pour récupérer la nouvelle version (une seule fois, pour éviter une boucle).
+ */
+export function reloadOnStaleBundle(
+  error: unknown,
+  targetUrl: string,
+  storage: Storage | null = safeSession(),
+  reload: (url: string) => void = (url) => window.location.assign(url)
+): boolean {
+  if (!isStaleBundleError(error)) {
+    return false;
+  }
+  if (storage?.getItem(RELOAD_MARKER) === targetUrl) {
+    storage.removeItem(RELOAD_MARKER);
+    return false;
+  }
+  storage?.setItem(RELOAD_MARKER, targetUrl);
+  reload(targetUrl);
+  return true;
+}
+
+/** Navigation réussie : le rechargement éventuel a fonctionné, on oublie le marqueur. */
+export function clearStaleBundleMarker(storage: Storage | null = safeSession()): void {
+  storage?.removeItem(RELOAD_MARKER);
+}
+
+function safeSession(): Storage | null {
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}

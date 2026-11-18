@@ -30,6 +30,7 @@ class AutoRejectServiceTest {
     private static final UUID LIMIT = UUID.fromString("00000000-0000-0000-0000-000000000002");
     private static final UUID CLEAN = UUID.fromString("00000000-0000-0000-0000-000000000003");
     private static final UUID DONE = UUID.fromString("00000000-0000-0000-0000-000000000004");
+    private static final UUID APPROVED = UUID.fromString("00000000-0000-0000-0000-000000000005");
     private static final Instant COMPLETED = Instant.parse("2026-11-13T13:05:24Z");
 
     private final AutoRejectRepository repository = mock(AutoRejectRepository.class);
@@ -43,12 +44,17 @@ class AutoRejectServiceTest {
 
     private void given(Mode mode) {
         when(repository.settings(Q, 1)).thenReturn(new Settings(mode, 2, List.of(duration, age, disabled), null, null));
-        when(repository.pending(Q, 1)).thenReturn(List.of(
+        List<PendingInterview> pending = List.of(
                 new PendingInterview(FAST, "11-11-11-11", "Completed", "gueye27", 0, COMPLETED),
                 new PendingInterview(LIMIT, "22-22-22-22", "ApprovedBySupervisor", "gueye29", 2, COMPLETED),
                 new PendingInterview(CLEAN, "33-33-33-33", "Completed", "gueye27", 0, COMPLETED),
-                new PendingInterview(DONE, "44-44-44-44", "Completed", "gueye30", 1, COMPLETED)));
-        when(repository.hits(Q, 1, duration)).thenReturn(List.of(new Hit(FAST, "6"), new Hit(LIMIT, "4"), new Hit(DONE, "3")));
+                new PendingInterview(DONE, "44-44-44-44", "Completed", "gueye30", 1, COMPLETED));
+        when(repository.pending(Q, 1)).thenReturn(pending);
+        List<PendingInterview> all = new java.util.ArrayList<>(pending);
+        all.add(new PendingInterview(APPROVED, "55-55-55-55", "ApprovedByHeadquarters", "gueye27", 0, COMPLETED));
+        when(repository.all(Q, 1)).thenReturn(all);
+        when(repository.hits(Q, 1, duration)).thenReturn(List.of(
+                new Hit(FAST, "6"), new Hit(LIMIT, "4"), new Hit(DONE, "3"), new Hit(APPROVED, "5")));
         when(repository.hits(Q, 1, age)).thenReturn(List.of(new Hit(FAST, "7")));
         when(repository.alreadyHandled(DONE, COMPLETED)).thenReturn(true);
     }
@@ -59,14 +65,17 @@ class AutoRejectServiceTest {
 
         Preview preview = service.preview(Q, 1);
 
-        assertThat(preview.evaluated()).isEqualTo(4);
+        // Toutes les interviews sont évaluées, y compris celles déjà approuvées par HQ.
+        assertThat(preview.evaluated()).isEqualTo(5);
+        assertThat(preview.pending()).isEqualTo(4);
         assertThat(preview.candidates()).extracting(Candidate::interviewKey)
-                .containsExactly("11-11-11-11", "22-22-22-22", "44-44-44-44");
+                .containsExactly("11-11-11-11", "22-22-22-22", "44-44-44-44", "55-55-55-55");
+        assertThat(preview.candidates()).extracting(Candidate::rejectable).containsExactly(true, true, true, false);
         assertThat(preview.candidates().get(0).violations()).extracting(Violation::reason).containsExactly(
                 "Durée d’interview trop courte (6 min, minimum 20 min)",
-                "Âge incohérent : vérifier la date de naissance");
+                "Âge incohérent : vérifier la date de naissance (AgeAnnee)");
         assertThat(preview.candidates().get(1).overLimit()).isTrue();
-        assertThat(preview.perRule()).extracting(RuleCount::interviews).containsExactly(3, 1);
+        assertThat(preview.perRule()).extracting(RuleCount::interviews).containsExactly(4, 1);
         verify(repository, never()).hits(Q, 1, disabled);
     }
 
@@ -80,9 +89,10 @@ class AutoRejectServiceTest {
         verify(actions).reject(eq(Q), eq(1L), eq(FAST), eq("""
                 Rejet automatique (contrôle qualité) :
                 - Durée d’interview trop courte (6 min, minimum 20 min)
-                - Âge incohérent : vérifier la date de naissance"""), isNull());
+                - Âge incohérent : vérifier la date de naissance (AgeAnnee)"""), isNull());
         verify(actions, never()).reject(eq(Q), eq(1L), eq(LIMIT), anyString(), any());
         verify(actions, never()).reject(eq(Q), eq(1L), eq(DONE), anyString(), any());
+        verify(actions, never()).reject(eq(Q), eq(1L), eq(APPROVED), anyString(), any());
         verify(repository).recordEvent(eq(Q), eq(1L), any(), eq("REJECTED"), anyString(), isNull());
         verify(repository).recordEvent(eq(Q), eq(1L), any(), eq("SKIPPED_LIMIT"), anyString(), isNull());
     }
@@ -122,5 +132,25 @@ class AutoRejectServiceTest {
         assertThatThrownBy(() -> service.save(Q, 1, new SettingsUpdate(Mode.AUTO, 2, List.of(
                 new Rule(null, RuleType.VALIDATION_ERRORS, null, BigDecimal.ONE, null, null, false))), "hq"))
                 .hasMessageContaining("au moins une règle");
+    }
+
+    @Test
+    void refusesDuplicateRules() {
+        when(repository.variableExists(eq(Q), eq(1L), anyString())).thenReturn(Optional.of(true));
+        Rule unanswered = new Rule(null, RuleType.MAX_UNANSWERED, null, null, BigDecimal.valueOf(5), null, true);
+        Rule ageRange = new Rule(null, RuleType.VALUE_RANGE, "AgeAnnee", BigDecimal.ONE, BigDecimal.TEN, null, true);
+
+        assertThatThrownBy(() -> service.save(Q, 1, new SettingsUpdate(Mode.SIMULATION, 2,
+                List.of(unanswered, unanswered)), "hq"))
+                .hasMessageContaining("« Trop de non-réponses » ne peut être définie qu’une fois");
+        assertThatThrownBy(() -> service.save(Q, 1, new SettingsUpdate(Mode.SIMULATION, 2,
+                List.of(ageRange, ageRange)), "hq"))
+                .hasMessageContaining("déjà définie pour « AgeAnnee »");
+
+        // Même type sur deux questions différentes, ou même question avec deux types : autorisé.
+        service.save(Q, 1, new SettingsUpdate(Mode.SIMULATION, 2, List.of(ageRange,
+                new Rule(null, RuleType.VALUE_RANGE, "B5", BigDecimal.ONE, null, null, true),
+                new Rule(null, RuleType.REQUIRED_ANSWER, "AgeAnnee", null, null, null, true))), "hq");
+        verify(repository).save(eq(Q), eq(1L), eq(Mode.SIMULATION), eq(2), any(), eq("hq"));
     }
 }

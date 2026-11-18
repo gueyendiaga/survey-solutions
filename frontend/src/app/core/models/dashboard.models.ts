@@ -456,11 +456,16 @@ export interface AutoRejectCandidate {
   responsible: string | null;
   hqRejections: number;
   overLimit: boolean;
+  /** Terminée ou approuvée par le superviseur : HQ peut encore la rejeter. */
+  rejectable: boolean;
   violations: AutoRejectViolation[];
 }
 
 export interface AutoRejectPreview {
+  /** Interviews synchronisées évaluées, tous statuts confondus. */
   evaluated: number;
+  /** Parmi elles, celles qu'HQ peut encore rejeter. */
+  pending: number;
   candidates: AutoRejectCandidate[];
   perRule: { ruleId: number | null; type: AutoRejectRuleType; variable: string | null; interviews: number }[];
 }

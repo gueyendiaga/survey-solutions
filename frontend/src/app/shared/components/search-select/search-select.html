@@ -9,7 +9,7 @@
     [attr.aria-controls]="open ? 'search-select-options' : null"
     [disabled]="disabled"
     (click)="toggle()">
-    <span class="selected-label [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{{ selectedLabel }}</span>
+    <span class="selected-label [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]" [innerHTML]="selectedLabel"></span>
     <svg viewBox="0 0 12 12" aria-hidden="true" class="[.select-trigger_&]:[width:12px] [.select-trigger_&]:[height:12px] [.select-trigger_&]:[flex:0_0_auto] [.select-trigger_&]:[fill:none] [.select-trigger_&]:[stroke:#747d90] [.select-trigger_&]:[stroke-width:1.5] [.select-trigger_&]:[stroke-linecap:round] [.select-trigger_&]:[stroke-linejoin:round]"><path d="m2 4 4 4 4-4" /></svg>
   </button>
   @if (open) {
@@ -33,9 +33,8 @@
             role="option"
             [attr.aria-selected]="option.value === value"
             [class.selected]="option.value === value"
-            (click)="choose(option)">
-            {{ option.label }}
-          </button>
+            [innerHTML]="option.label"
+            (click)="choose(option)"></button>
         } @empty {
           <p class="no-results [margin:0] [padding:12px_10px] [color:#747d90] [font-size:12px]">Aucun résultat</p>
         }

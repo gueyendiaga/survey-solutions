@@ -297,7 +297,8 @@ describe('Application routée', () => {
 
   it('ouvre une variable depuis l’écran qualité', async () => {
     await openQuestionnaire('qualite');
-    flushAutoReject();
+    http.expectNone(`${BASE}/auto-reject`);
+    expect(page().querySelector('app-auto-reject')).toBeNull();
     const row = page().querySelector('tbody tr') as HTMLElement;
     expect(page().querySelector('.kpis')?.textContent).toContain('50 %');
     expect(row.textContent).toContain('age');
@@ -312,8 +313,10 @@ describe('Application routée', () => {
   });
 
   it('simule puis enregistre des règles de rejet automatique', async () => {
-    await openQuestionnaire('qualite');
+    await openQuestionnaire('rejet-automatique');
     flushAutoReject();
+    expect(page().querySelector('#tab-autoReject')?.getAttribute('aria-selected')).toBe('true');
+    expect(page().querySelector('app-filter-bar')).toBeNull();
     const card = page().querySelector('app-auto-reject') as HTMLElement;
     expect(card.textContent).toContain('Aucune règle');
 
@@ -321,6 +324,10 @@ describe('Application routée', () => {
     [...card.querySelectorAll<HTMLButtonElement>('.ar-segmented button')].find((b) => b.textContent?.includes('Simulation'))!.click();
     harness.detectChanges();
     await harness.fixture.whenStable();
+    const durationButton = [...card.querySelectorAll<HTMLButtonElement>('.ar-add')].find((b) => b.textContent?.includes('Durée trop courte'))!;
+    expect(durationButton.disabled).toBeTrue();
+    expect(durationButton.title).toBe('Déjà ajoutée : complétez la carte existante');
+    expect([...card.querySelectorAll<HTMLButtonElement>('.ar-add')].find((b) => b.textContent?.includes('Valeur hors plage'))!.disabled).toBeFalse();
     (card.querySelector('.ar-btn.primary') as HTMLButtonElement).click();
 
     const save = http.expectOne((request) => request.method === 'PUT' && request.url === `${BASE}/auto-reject`);
@@ -332,15 +339,30 @@ describe('Application routée', () => {
     save.flush({ mode: 'SIMULATION', maxHqRejections: 2, updatedAt: null, updatedBy: null,
       rules: [{ id: 7, type: 'MIN_DURATION', variable: null, minValue: 15, maxValue: null, message: null, enabled: true }] });
     http.expectOne(`${BASE}/auto-reject/preview`).flush({
-      evaluated: 3,
-      perRule: [{ ruleId: 7, type: 'MIN_DURATION', variable: null, interviews: 1 }],
-      candidates: [{ interviewId: 'i1', interviewKey: '11-22-33-44', status: 'Completed', responsible: 'enq1',
-        hqRejections: 0, overLimit: false, violations: [{ ruleId: 7, type: 'MIN_DURATION', variable: null,
-          reason: 'Durée d’interview trop courte (6 min, minimum 15 min)' }] }]
+      evaluated: 4,
+      pending: 3,
+      perRule: [{ ruleId: 7, type: 'MIN_DURATION', variable: null, interviews: 2 }],
+      candidates: [
+        { interviewId: 'i1', interviewKey: '11-22-33-44', status: 'Completed', responsible: 'enq1',
+          hqRejections: 0, overLimit: false, rejectable: true, violations: [{ ruleId: 7, type: 'MIN_DURATION', variable: null,
+            reason: 'Durée d’interview trop courte (6 min, minimum 15 min)' }] },
+        { interviewId: 'i2', interviewKey: '63-61-00-10', status: 'ApprovedByHeadquarters', responsible: 'enq1',
+          hqRejections: 0, overLimit: false, rejectable: false, violations: [{ ruleId: 7, type: 'MIN_DURATION', variable: null,
+            reason: 'Durée d’interview trop courte (8 min, minimum 15 min)' }] }
+      ]
     });
     harness.detectChanges();
 
-    expect(card.querySelector('.ar-hit')?.textContent).toContain('1 interview(s)');
+    // Une interview déjà approuvée par HQ est signalée, mais marquée comme non rejetable.
+    const rows = [...card.querySelectorAll<HTMLTableRowElement>('.ar-preview tbody tr')];
+    expect(card.querySelector('.ar-preview h3')?.textContent).toContain('2 interview(s) en infraction sur 4 évaluée(s)');
+    expect(card.querySelector('.ar-preview-note')?.textContent).toContain('1 pourrai(en)t être rejetée(s)');
+    expect(rows[1].classList).toContain('ar-out-of-queue');
+    expect(rows[1].textContent).toContain('Approuvée par HQ');
+    expect(rows[1].textContent).toContain('Non rejetée');
+    expect(rows[0].textContent).not.toContain('Non rejetée');
+
+    expect(card.querySelector('.ar-hit')?.textContent).toContain('2 interview(s)');
     expect(card.querySelector('.ar-preview')?.textContent).toContain('11-22-33-44');
     expect(card.querySelector('.ar-preview')?.textContent).toContain('trop courte (6 min');
   });

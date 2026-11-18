@@ -5,7 +5,18 @@
       <p>Renvoyez à l’enquêteur, avec un commentaire explicite, les interviews qui enfreignent des règles qualité, avant même la revue du superviseur.</p>
     </div>
     @if (saved()?.updatedAt) {
-      <span class="ar-meta">Modifié le {{ date(saved()!.updatedAt) }}@if (saved()!.updatedBy) { par {{ saved()!.updatedBy }} }</span>
+      <div class="ar-meta" role="status">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+        <div>
+          <span class="ar-meta-label">Dernière modification</span>
+          <span class="ar-meta-value">
+            <time [attr.datetime]="saved()!.updatedAt">{{ date(saved()!.updatedAt) }}</time>
+            @if (saved()!.updatedBy) {
+              <span class="ar-meta-by">par <strong>{{ saved()!.updatedBy }}</strong></span>
+            }
+          </span>
+        </div>
+      </div>
     }
   </header>
 
@@ -13,12 +24,6 @@
     <p class="ar-muted ar-pad">Chargement des règles…</p>
   } @else {
     <div class="ar-body">
-      @if (error(); as message) {
-        <div class="ar-alert danger" role="alert">{{ message }}</div>
-      }
-      @if (notice(); as message) {
-        <div class="ar-alert success" role="status">{{ message }}</div>
-      }
 
       <div class="ar-mode">
         <div class="ar-segmented" role="radiogroup" aria-label="Mode de rejet automatique">
@@ -42,74 +47,95 @@
         </div>
       }
 
-      <h3 class="ar-subtitle">Règles <span>{{ activeRules() }} active(s) sur {{ rules().length }}</span></h3>
+      <h3 class="ar-subtitle">Règles <span>{{ activeRules() }} active(s) sur {{ cards().length }}</span></h3>
 
-      @if (!rules().length) {
+      @if (!cards().length) {
         <div class="ar-empty">
           <p>Aucune règle. Commencez par un modèle :</p>
         </div>
       }
 
       <ol class="ar-rules">
-        @for (rule of rules(); track $index; let i = $index) {
-          <li class="ar-rule" [class.off]="!rule.enabled">
+        @for (card of cards(); track card.type; let i = $index) {
+          <li class="ar-rule" [class.off]="!card.enabled">
             <div class="ar-rule-top">
-              <label class="ar-switch" [title]="rule.enabled ? 'Désactiver la règle' : 'Activer la règle'">
-                <input type="checkbox" [ngModel]="rule.enabled" (ngModelChange)="updateRule(i, { enabled: $event })"
-                  [attr.aria-label]="'Règle active : ' + templateFor(rule.type).label" />
+              <label class="ar-switch" [title]="card.enabled ? 'Désactiver la règle' : 'Activer la règle'">
+                <input type="checkbox" [ngModel]="card.enabled" (ngModelChange)="updateCard(i, { enabled: $event })"
+                  [attr.aria-label]="'Règle active : ' + templateFor(card.type).label" />
                 <span aria-hidden="true"></span>
               </label>
               <div class="ar-rule-title">
-                <strong>{{ templateFor(rule.type).label }}</strong>
-                <small>{{ templateFor(rule.type).description }}</small>
+                <strong>{{ templateFor(card.type).label }}</strong>
+                <small>{{ templateFor(card.type).description }}</small>
               </div>
-              @if (ruleCount(i); as count) {
+              @if (cardCount(card); as count) {
                 <span class="ar-hit">{{ count }} interview(s)</span>
-              } @else if (ruleCount(i) === 0) {
+              } @else if (cardCount(card) === 0) {
                 <span class="ar-hit ok">0</span>
               }
-              <button type="button" class="ar-icon" aria-label="Supprimer la règle" title="Supprimer" (click)="removeRule(i)">×</button>
+              <button type="button" class="ar-icon" aria-label="Supprimer la règle" title="Supprimer" (click)="removeCard(i)">×</button>
             </div>
 
             <div class="ar-fields">
-              @switch (rule.type) {
+              @switch (card.type) {
                 @case ('VALIDATION_ERRORS') {
                   <label>Erreurs minimum
-                    <input type="number" min="1" step="1" [ngModel]="rule.minValue" (ngModelChange)="updateRule(i, { minValue: $event })" />
+                    <input type="number" min="1" step="1" [ngModel]="card.minValue" (ngModelChange)="updateCard(i, { minValue: $event })" />
                   </label>
                 }
                 @case ('MIN_DURATION') {
                   <label>Durée minimale (min)
-                    <input type="number" min="1" step="1" [ngModel]="rule.minValue" (ngModelChange)="updateRule(i, { minValue: $event })" />
+                    <input type="number" min="1" step="1" [ngModel]="card.minValue" (ngModelChange)="updateCard(i, { minValue: $event })" />
                   </label>
                 }
                 @case ('MAX_UNANSWERED') {
                   <label>Non-réponses tolérées
-                    <input type="number" min="0" step="1" [ngModel]="rule.maxValue" (ngModelChange)="updateRule(i, { maxValue: $event })" />
+                    <input type="number" min="0" step="1" [ngModel]="card.maxValue" (ngModelChange)="updateCard(i, { maxValue: $event })" />
                   </label>
                 }
                 @case ('REQUIRED_ANSWER') {
-                  <label class="wide">Question
-                    <app-search-select [options]="variableOptions()" ariaLabel="Question obligatoire" placeholder="Choisir une question…"
-                      [ngModel]="rule.variable" (ngModelChange)="updateRule(i, { variable: $event })" />
-                  </label>
+                  <div class="full ar-field">
+                    <span class="ar-field-label">Questions obligatoires</span>
+                    <app-multi-search-select [options]="variableOptions()" ariaLabel="Questions obligatoires"
+                      placeholder="Choisir une ou plusieurs questions…" itemsLabel="question(s)"
+                      [counts]="preview() ? variableCounts()['REQUIRED_ANSWER'] : null"
+                      [ngModel]="card.variables" (ngModelChange)="updateCard(i, { variables: $event })" />
+                  </div>
                 }
                 @case ('VALUE_RANGE') {
-                  <label class="wide">Question numérique
-                    <app-search-select [options]="numericOptions()" ariaLabel="Question numérique contrôlée" placeholder="Choisir une question…"
-                      [ngModel]="rule.variable" (ngModelChange)="updateRule(i, { variable: $event })" />
-                  </label>
-                  <label>Minimum
-                    <input type="number" [ngModel]="rule.minValue" (ngModelChange)="updateRule(i, { minValue: $event })" />
-                  </label>
-                  <label>Maximum
-                    <input type="number" [ngModel]="rule.maxValue" (ngModelChange)="updateRule(i, { maxValue: $event })" />
-                  </label>
+                  <div class="full ar-ranges" role="group" aria-label="Plages de valeurs">
+                    <div class="ar-range-head" aria-hidden="true">
+                      <span>Question numérique</span><span>Minimum</span><span>Maximum</span><span></span>
+                    </div>
+                    @for (range of card.ranges; track $index; let r = $index) {
+                      <div class="ar-range">
+                        <app-search-select [options]="rangeOptions(card, r)" [ariaLabel]="'Question numérique, ligne ' + (r + 1)"
+                          placeholder="Choisir une question…" [ngModel]="range.variable"
+                          (ngModelChange)="updateRange(i, r, { variable: $event })" />
+                        <input type="number" [attr.aria-label]="'Minimum, ligne ' + (r + 1)" placeholder="—"
+                          [ngModel]="range.minValue" (ngModelChange)="updateRange(i, r, { minValue: $event })" />
+                        <input type="number" [attr.aria-label]="'Maximum, ligne ' + (r + 1)" placeholder="—"
+                          [ngModel]="range.maxValue" (ngModelChange)="updateRange(i, r, { maxValue: $event })" />
+                        <span class="ar-range-end">
+                          @if (rangeCount(range); as count) {
+                            <span class="ar-hit">{{ count }}</span>
+                          } @else if (rangeCount(range) === 0) {
+                            <span class="ar-hit ok">0</span>
+                          }
+                          <button type="button" class="ar-icon" [attr.aria-label]="'Retirer la ligne ' + (r + 1)" title="Retirer la ligne"
+                            [disabled]="card.ranges.length === 1" (click)="removeRange(i, r)">×</button>
+                        </span>
+                      </div>
+                    }
+                    <button type="button" class="ar-add-line" [disabled]="card.ranges.length >= numericOptions().length" (click)="addRange(i)">
+                      + Ajouter une question
+                    </button>
+                  </div>
                 }
               }
-              <label class="full">Message à l’enquêteur <small>(facultatif — un message par défaut décrit l’écart)</small>
+              <label class="full">Message à l’enquêteur <small>(facultatif — un message par défaut décrit l’écart{{ isGlobal(card) ? '' : ' ; la question concernée est ajoutée à la fin' }})</small>
                 <input type="text" maxlength="300" placeholder="Ex. : Vérifiez l’âge déclaré avec la date de naissance"
-                  [ngModel]="rule.message" (ngModelChange)="updateRule(i, { message: $event })" />
+                  [ngModel]="card.message" (ngModelChange)="updateCard(i, { message: $event })" />
               </label>
             </div>
           </li>
@@ -118,7 +144,11 @@
 
       <div class="ar-templates" role="group" aria-label="Ajouter une règle">
         @for (template of templates; track template.type) {
-          <button type="button" class="ar-add" [title]="template.description" (click)="addRule(template.type)">+ {{ template.label }}</button>
+          <button type="button" class="ar-add" [disabled]="isUsed(template.type)"
+            [title]="isUsed(template.type) ? 'Déjà ajoutée : complétez la carte existante' : template.description"
+            (click)="addRule(template.type)">
+            @if (isUsed(template.type)) { ✓ } @else { + } {{ template.label }}
+          </button>
         }
       </div>
 
@@ -129,6 +159,12 @@
         <p class="ar-muted">Au-delà, l’interview n’est plus rejetée automatiquement : le superviseur tranche.</p>
       </div>
 
+      @if (error(); as message) {
+        <div class="ar-alert danger ar-footer-alert" role="alert">{{ message }}</div>
+      }
+      @if (notice(); as message) {
+        <div class="ar-alert success ar-footer-alert" role="status">{{ message }}</div>
+      }
       <footer class="ar-actions">
         <button type="button" class="ar-btn primary" [disabled]="saving() || !dirty() || needsAutoConfirmation()" (click)="save()">
           {{ saving() ? 'Enregistrement…' : 'Enregistrer' }}
@@ -157,20 +193,29 @@
         <section class="ar-preview" aria-label="Résultat de la simulation">
           <h3 class="ar-subtitle">
             Simulation
-            <span>{{ result.candidates.length }} interview(s) en infraction sur {{ result.evaluated }} en attente de validation</span>
+            <span>{{ result.candidates.length }} interview(s) en infraction sur {{ result.evaluated }} évaluée(s)</span>
           </h3>
+          @if (result.candidates.length) {
+            <p class="ar-muted ar-preview-note">
+              {{ rejectableCount(result) }} pourrai(en)t être rejetée(s) automatiquement :
+              seules les interviews terminées ou approuvées par le superviseur ({{ result.pending }} en attente) sont concernées.
+              Les autres sont signalées pour information.
+            </p>
+          }
           @if (result.candidates.length) {
             <div class="ar-table">
               <table>
                 <thead><tr><th>Clé HQ</th><th>Enquêteur</th><th>Statut</th><th>Motifs envoyés à l’enquêteur</th></tr></thead>
                 <tbody>
                   @for (candidate of result.candidates; track candidate.interviewId) {
-                    <tr>
+                    <tr [class.ar-out-of-queue]="!candidate.rejectable">
                       <td class="mono">{{ candidate.interviewKey ?? '—' }}</td>
                       <td>{{ candidate.responsible ?? '—' }}</td>
                       <td>
                         {{ statusLabel(candidate.status) }}
-                        @if (candidate.overLimit) {
+                        @if (!candidate.rejectable) {
+                          <span class="ar-tag" title="Hors de la file de validation : le rejet automatique ne s’applique pas">Non rejetée</span>
+                        } @else if (candidate.overLimit) {
                           <span class="ar-tag warn" title="Plafond de rejets atteint : revue manuelle">Revue manuelle</span>
                         } @else if (candidate.hqRejections) {
                           <span class="ar-tag">{{ candidate.hqRejections }} rejet(s)</span>
@@ -189,7 +234,7 @@
               </table>
             </div>
           } @else {
-            <p class="ar-muted">Aucune interview en attente n’enfreint les règles actives.</p>
+            <p class="ar-muted">Aucune interview n’enfreint les règles actives.</p>
           }
         </section>
       }

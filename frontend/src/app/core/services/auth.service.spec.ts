@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { AuthService } from './auth.service';
+import { AuthService, isStaleBundleError, reloadOnStaleBundle } from './auth.service';
 
 describe('AuthService', () => {
   let auth: AuthService;
@@ -54,5 +54,23 @@ describe('AuthService', () => {
 
     expect(auth.phase()).toBe('anonymous');
     expect(auth.username()).toBeNull();
+  });
+
+  it('recharge une seule fois la page quand un fichier JS a disparu après un redéploiement', () => {
+    const values = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => void values.set(key, value),
+      removeItem: (key: string) => void values.delete(key)
+    } as Storage;
+    const reloads: string[] = [];
+    const stale = new TypeError('Failed to fetch dynamically imported module: /chunk-OLD.js');
+
+    expect(isStaleBundleError(stale)).toBeTrue();
+    expect(isStaleBundleError(new Error('Http failure response: 500'))).toBeFalse();
+    expect(reloadOnStaleBundle(stale, '/questionnaires/q/1/qualite', storage, (url) => reloads.push(url))).toBeTrue();
+    // Si l'erreur persiste après rechargement, on n'insiste pas (pas de boucle).
+    expect(reloadOnStaleBundle(stale, '/questionnaires/q/1/qualite', storage, (url) => reloads.push(url))).toBeFalse();
+    expect(reloads).toEqual(['/questionnaires/q/1/qualite']);
   });
 });

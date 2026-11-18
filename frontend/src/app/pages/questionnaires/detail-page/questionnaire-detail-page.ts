@@ -13,6 +13,7 @@ import { QuestionnaireStore } from '../questionnaire.store';
 import { ReportsTabComponent } from '../tabs/reports-tab/reports-tab';
 import { VariablesTabComponent } from '../tabs/variables-tab/variables-tab';
 import { InterviewReviewComponent } from '../tabs/interview-review/interview-review';
+import { AutoRejectComponent } from '../tabs/auto-reject/auto-reject';
 
 /**
  * Page d'un questionnaire : /questionnaires/:questionnaireId/:version/:tab.
@@ -31,6 +32,7 @@ import { InterviewReviewComponent } from '../tabs/interview-review/interview-rev
     FieldOperationsComponent,
     VariablesTabComponent,
     QualityTabComponent,
+    AutoRejectComponent,
     ReportsTabComponent,
     InterviewReviewComponent
   ],

@@ -17,7 +17,8 @@
     <div class="tab-panel [&:focus]:[outline:none]" role="tabpanel" [id]="'panel-' + store.tab()" [attr.aria-labelledby]="'tab-' + store.tab()" tabindex="-1">
       <div class="panel-toolbar [display:flex] [flex-wrap:wrap] [gap:12px] [align-items:center] [justify-content:space-between] [margin-bottom:20px]">
         <p class="lead [margin:4px_0_0] [color:var(--text-2)] [font-size:var(--fs-body)] [.panel-toolbar_&]:[margin:0]">{{ store.lead() }}</p>
-        @if (store.tab() !== 'review') {
+        <!-- Les filtres d'analyse ne s'appliquent ni à la revue ni aux règles de rejet (toutes les interviews en attente). -->
+        @if (store.tab() !== 'review' && store.tab() !== 'autoReject') {
           <app-filter-bar
             [filters]="store.filters()"
             [options]="store.filterOptions()"
@@ -67,6 +68,9 @@
         }
         @case ('quality') {
           <app-quality-tab (openVariable)="openVariable($event)" />
+        }
+        @case ('autoReject') {
+          <app-auto-reject />
         }
         @case ('reports') {
           <app-reports-tab />

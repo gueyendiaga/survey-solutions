@@ -95,7 +95,7 @@ export class QuestionnaireHeaderComponent {
   }
 
   protected badge(tab: QuestionnaireTab): number | null {
-    return tab === 'fieldwork' ? null : this.badges[tab] || null;
+    return tab === 'fieldwork' || tab === 'autoReject' ? null : this.badges[tab] || null;
   }
 
   protected badgeLabel(tab: QuestionnaireTab, count: number): string {

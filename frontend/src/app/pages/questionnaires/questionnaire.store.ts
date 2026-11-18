@@ -18,6 +18,7 @@ import {
 import { AnswerChartType } from '../../shared/utils/chart-options';
 import { apiErrorMessage, blobErrorDetail, isSyncPending, saveFile } from '../../shared/utils/http-utils';
 import { VARIABLE_KIND_LABELS, VariableKind, variableKind } from '../../shared/utils/labels';
+import { htmlToText } from '../../shared/utils/html-text';
 import { QuestionnaireTab, TabBadges } from './questionnaire-tabs';
 
 const SYNC_POLL_INTERVAL_MS = 3000;
@@ -84,7 +85,7 @@ export class QuestionnaireStore {
     const kind = this.variableType();
     return this.questions().filter((question) =>
       (kind === 'all' || variableKind(question) === kind)
-      && (!term || `${question.variableName} ${question.label} ${question.questionText}`.toLowerCase().includes(term)));
+      && (!term || htmlToText(`${question.variableName} ${question.label} ${question.questionText}`).toLowerCase().includes(term)));
   });
 
   /** Filtres par type proposés au-dessus de la liste (seuls les types présents). */
@@ -135,6 +136,8 @@ export class QuestionnaireStore {
         return 'File de revue centralisée · réponses, historique et décisions HQ';
       case 'quality':
         return 'Complétude, non-réponses et questions non applicables par variable';
+      case 'autoReject':
+        return 'Règles qualité appliquées aux interviews terminées, avant la revue du superviseur';
       default:
         return 'Rapports PDF à la demande et archivés chaque matin';
     }

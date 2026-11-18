@@ -4,28 +4,38 @@ import {
   AutoRejectEvent,
   AutoRejectMode,
   AutoRejectPreview,
-  AutoRejectRule,
   AutoRejectRuleType,
   AutoRejectSettings
 } from '../../../../core/models/dashboard.models';
 import { DashboardApiService } from '../../../../core/services/dashboard-api.service';
 import { SearchSelectComponent, SearchSelectOption } from '../../../../shared/components/search-select/search-select';
+import { MultiSearchSelectComponent } from '../../../../shared/components/multi-search-select/multi-search-select';
 import { apiErrorMessage } from '../../../../shared/utils/http-utils';
 import { QuestionnaireStore } from '../../questionnaire.store';
+import {
+  GLOBAL_TYPES,
+  RangeItem,
+  RuleCard,
+  cardProblem,
+  cardsFromRules,
+  emptyCard,
+  rulesFromCards,
+  rulesSignature
+} from './rule-cards';
 
 interface RuleTemplate {
   type: AutoRejectRuleType;
   label: string;
   description: string;
-  defaults: Partial<AutoRejectRule>;
+  defaults: Partial<RuleCard>;
 }
 
 export const RULE_TEMPLATES: RuleTemplate[] = [
   { type: 'VALIDATION_ERRORS', label: 'Erreurs de validation', description: 'Au moins N erreurs de validation non résolues.', defaults: { minValue: 1 } },
   { type: 'MIN_DURATION', label: 'Durée trop courte', description: 'Interview saisie en moins de N minutes.', defaults: { minValue: 15 } },
   { type: 'MAX_UNANSWERED', label: 'Trop de non-réponses', description: 'Plus de N questions actives laissées sans réponse.', defaults: { maxValue: 5 } },
-  { type: 'REQUIRED_ANSWER', label: 'Réponse obligatoire', description: 'Une question active sans réponse.', defaults: {} },
-  { type: 'VALUE_RANGE', label: 'Valeur hors plage', description: 'Valeur numérique hors des bornes attendues.', defaults: {} }
+  { type: 'REQUIRED_ANSWER', label: 'Réponse obligatoire', description: 'Une ou plusieurs questions actives laissées sans réponse.', defaults: {} },
+  { type: 'VALUE_RANGE', label: 'Valeur hors plage', description: 'Valeurs numériques hors des bornes attendues, question par question.', defaults: {} }
 ];
 
 const MODES: { id: AutoRejectMode; label: string; help: string }[] = [
@@ -38,7 +48,7 @@ const MODES: { id: AutoRejectMode; label: string; help: string }[] = [
 @Component({
   selector: 'app-auto-reject',
   standalone: true,
-  imports: [FormsModule, SearchSelectComponent],
+  imports: [FormsModule, SearchSelectComponent, MultiSearchSelectComponent],
   templateUrl: './auto-reject.html',
   styleUrl: './auto-reject.css'
 })
@@ -56,7 +66,8 @@ export class AutoRejectComponent {
   protected readonly events = signal<AutoRejectEvent[]>([]);
   protected readonly mode = signal<AutoRejectMode>('OFF');
   protected readonly maxHqRejections = signal(2);
-  protected readonly rules = signal<AutoRejectRule[]>([]);
+  /** Une carte par type de règle (voir rule-cards.ts). */
+  protected readonly cards = signal<RuleCard[]>([]);
   protected readonly autoConfirmed = signal(false);
   protected readonly preview = signal<AutoRejectPreview | null>(null);
   protected readonly previewing = signal(false);
@@ -74,6 +85,9 @@ export class AutoRejectComponent {
       .filter((question) => /numeric/i.test(question.type))
       .map((question) => ({ value: question.variableName, label: `${question.label || question.questionText} (${question.variableName})` })));
 
+  /** Types déjà présents : leur bouton d'ajout est désactivé (une carte par type). */
+  protected readonly usedTypes = computed(() => new Set(this.cards().map((card) => card.type)));
+
   protected readonly dirty = computed(() => {
     const saved = this.saved();
     if (!saved) {
@@ -81,13 +95,24 @@ export class AutoRejectComponent {
     }
     return saved.mode !== this.mode()
       || saved.maxHqRejections !== this.maxHqRejections()
-      || JSON.stringify(saved.rules.map(comparable)) !== JSON.stringify(this.rules().map(comparable));
+      || rulesSignature(rulesFromCards(cardsFromRules(saved.rules))) !== rulesSignature(rulesFromCards(this.cards()));
+  });
+
+  /** Nombre d'interviews concernées par question, d'après la dernière simulation. */
+  protected readonly variableCounts = computed(() => {
+    const counts: Record<string, Record<string, number>> = { REQUIRED_ANSWER: {}, VALUE_RANGE: {} };
+    for (const count of this.preview()?.perRule ?? []) {
+      if (count.variable && counts[count.type]) {
+        counts[count.type][count.variable] = count.interviews;
+      }
+    }
+    return counts;
   });
 
   protected readonly needsAutoConfirmation = computed(() =>
     this.mode() === 'AUTO' && this.saved()?.mode !== 'AUTO' && !this.autoConfirmed());
 
-  protected readonly activeRules = computed(() => this.rules().filter((rule) => rule.enabled).length);
+  protected readonly activeRules = computed(() => this.cards().filter((card) => card.enabled).length);
 
   constructor() {
     effect(() => {
@@ -126,22 +151,58 @@ export class AutoRejectComponent {
     return MODES.find((mode) => mode.id === this.mode())?.help ?? '';
   }
 
+  protected isUsed(type: AutoRejectRuleType): boolean {
+    return this.usedTypes().has(type);
+  }
+
+  protected isGlobal(card: RuleCard): boolean {
+    return GLOBAL_TYPES.has(card.type);
+  }
+
+  /** Questions proposées à une ligne de plage : celles des autres lignes sont exclues. */
+  protected rangeOptions(card: RuleCard, index: number): SearchSelectOption[] {
+    const taken = new Set(card.ranges.filter((_, i) => i !== index).map((range) => range.variable));
+    return this.numericOptions().filter((option) => !taken.has(option.value));
+  }
+
   protected addRule(type: AutoRejectRuleType): void {
-    const template = this.templateFor(type);
-    this.rules.update((rules) => [...rules, {
-      id: null, type, variable: null, minValue: null, maxValue: null, message: null, enabled: true, ...template.defaults
-    }]);
-    this.preview.set(null);
+    if (this.isUsed(type)) {
+      return;
+    }
+    this.cards.update((cards) => [...cards, emptyCard(type, this.templateFor(type).defaults)]);
+    this.changed();
   }
 
-  protected updateRule(index: number, change: Partial<AutoRejectRule>): void {
-    this.rules.update((rules) => rules.map((rule, i) => (i === index ? { ...rule, ...change } : rule)));
-    this.preview.set(null);
+  protected updateCard(index: number, change: Partial<RuleCard>): void {
+    this.cards.update((cards) => cards.map((card, i) => (i === index ? { ...card, ...change } : card)));
+    this.changed();
   }
 
-  protected removeRule(index: number): void {
-    this.rules.update((rules) => rules.filter((_, i) => i !== index));
+  protected removeCard(index: number): void {
+    this.cards.update((cards) => cards.filter((_, i) => i !== index));
+    this.changed();
+  }
+
+  protected addRange(index: number): void {
+    const card = this.cards()[index];
+    this.updateCard(index, { ranges: [...card.ranges, { variable: null, minValue: null, maxValue: null }] });
+  }
+
+  protected updateRange(index: number, rangeIndex: number, change: Partial<RangeItem>): void {
+    const card = this.cards()[index];
+    this.updateCard(index, { ranges: card.ranges.map((range, i) => (i === rangeIndex ? { ...range, ...change } : range)) });
+  }
+
+  protected removeRange(index: number, rangeIndex: number): void {
+    const card = this.cards()[index];
+    this.updateCard(index, { ranges: card.ranges.filter((_, i) => i !== rangeIndex) });
+  }
+
+  /** Toute modification invalide la simulation et les messages précédents. */
+  private changed(): void {
     this.preview.set(null);
+    this.error.set(null);
+    this.notice.set(null);
   }
 
   protected setMode(mode: AutoRejectMode): void {
@@ -161,13 +222,19 @@ export class AutoRejectComponent {
     if (!questionnaire || this.saving() || this.needsAutoConfirmation()) {
       return;
     }
+    const problem = cardProblem(this.cards());
+    if (problem) {
+      this.notice.set(null);
+      this.error.set(problem);
+      return;
+    }
     this.saving.set(true);
     this.error.set(null);
     this.notice.set(null);
     this.api.saveAutoReject(questionnaire.questionnaireId, questionnaire.version, {
       mode: this.mode(),
       maxHqRejections: this.maxHqRejections(),
-      rules: this.rules().map((rule) => ({ ...rule, minValue: numberOrNull(rule.minValue), maxValue: numberOrNull(rule.maxValue) }))
+      rules: rulesFromCards(this.cards())
     }).subscribe({
       next: (settings) => {
         this.apply(settings);
@@ -229,13 +296,17 @@ export class AutoRejectComponent {
     });
   }
 
-  protected ruleCount(index: number): number | null {
-    const rule = this.rules()[index];
+  /** Interviews concernées par une règle globale, d'après la dernière simulation. */
+  protected cardCount(card: RuleCard): number | null {
     const preview = this.preview();
-    if (!preview || rule.id === null) {
+    if (!preview || !this.isGlobal(card)) {
       return null;
     }
-    return preview.perRule.find((count) => count.ruleId === rule.id)?.interviews ?? 0;
+    return preview.perRule.find((count) => count.type === card.type)?.interviews ?? 0;
+  }
+
+  protected rangeCount(range: RangeItem): number | null {
+    return this.preview() && range.variable ? this.variableCounts()['VALUE_RANGE'][range.variable] ?? null : null;
   }
 
   protected outcomeLabel(outcome: AutoRejectEvent['outcome']): string {
@@ -249,26 +320,27 @@ export class AutoRejectComponent {
   }
 
   protected statusLabel(status: string): string {
-    return status === 'ApprovedBySupervisor' ? 'Approuvée superviseur' : 'Terminée';
+    return ({
+      Completed: 'Terminée',
+      ApprovedBySupervisor: 'Approuvée superviseur',
+      ApprovedByHeadquarters: 'Approuvée par HQ',
+      RejectedBySupervisor: 'Rejetée par le superviseur',
+      RejectedByHeadquarters: 'Rejetée par HQ',
+      InterviewerAssigned: 'Chez l’enquêteur'
+    } as Record<string, string>)[status] ?? status;
+  }
+
+  /** Interviews en infraction qu'HQ peut encore rejeter (les seules concernées par le mode automatique). */
+  protected rejectableCount(preview: AutoRejectPreview): number {
+    return preview.candidates.filter((candidate) => candidate.rejectable).length;
   }
 
   private apply(settings: AutoRejectSettings): void {
     this.saved.set(settings);
     this.mode.set(settings.mode);
     this.maxHqRejections.set(settings.maxHqRejections);
-    this.rules.set(settings.rules.map((rule) => ({ ...rule })));
+    this.cards.set(cardsFromRules(settings.rules));
     this.autoConfirmed.set(false);
   }
 }
 
-function numberOrNull(value: unknown): number | null {
-  if (value === null || value === undefined || value === '') {
-    return null;
-  }
-  const number = Number(value);
-  return Number.isFinite(number) ? number : null;
-}
-
-function comparable(rule: AutoRejectRule): unknown[] {
-  return [rule.type, rule.variable ?? null, numberOrNull(rule.minValue), numberOrNull(rule.maxValue), rule.message || null, rule.enabled];
-}

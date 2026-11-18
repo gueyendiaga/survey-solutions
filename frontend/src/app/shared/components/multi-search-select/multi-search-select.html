@@ -1,0 +1,54 @@
+<div class="ms-control" (keydown)="onKeydown($event)">
+  <button type="button" class="ms-trigger" role="combobox" aria-haspopup="listbox"
+    [class.placeholder]="!values.length"
+    [attr.aria-label]="ariaLabel" [attr.aria-expanded]="open" [attr.aria-controls]="open ? listId : null"
+    [disabled]="disabled" (click)="toggleOpen()">
+    <span>{{ summary }}</span>
+    <svg viewBox="0 0 12 12" aria-hidden="true"><path d="m2 4 4 4 4-4" /></svg>
+  </button>
+
+  @if (open) {
+    <div class="ms-menu">
+      <label class="ms-search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+        <input type="search" placeholder="Rechercher…" [attr.aria-label]="'Rechercher dans ' + ariaLabel"
+          [ngModel]="query" (ngModelChange)="query = $event" [ngModelOptions]="{ standalone: true }" />
+      </label>
+      <div class="ms-tools">
+        <span>{{ values.length }} sélectionné(s)</span>
+        <span class="ms-tools-actions">
+          <button type="button" [disabled]="!filteredOptions.length" (click)="selectVisible()">
+            {{ query.trim() ? 'Cocher les résultats' : 'Tout cocher' }}
+          </button>
+          <button type="button" [disabled]="!values.length" (click)="clear()">Tout effacer</button>
+        </span>
+      </div>
+      <div class="ms-list" role="listbox" aria-multiselectable="true" [id]="listId" [attr.aria-label]="ariaLabel">
+        @for (option of filteredOptions; track option.value) {
+          <button type="button" class="ms-option" role="option" [attr.aria-selected]="isSelected(option)"
+            [class.selected]="isSelected(option)" (click)="toggle(option)">
+            <span class="ms-box" aria-hidden="true"></span>
+            <span class="ms-label" [innerHTML]="option.label"></span>
+          </button>
+        } @empty {
+          <p class="ms-empty">Aucun résultat</p>
+        }
+      </div>
+    </div>
+  }
+
+  @if (values.length) {
+    <ul class="ms-chips" [attr.aria-label]="ariaLabel + ' : sélection'">
+      @for (option of selected; track option.value) {
+        <li class="ms-chip">
+          <span class="ms-chip-label" [innerHTML]="option.label"></span>
+          @if (counts && option.value !== null && counts[option.value] !== undefined) {
+            <span class="ms-chip-count" [class.ok]="counts[option.value] === 0"
+              [title]="counts[option.value] + ' interview(s) concernée(s)'">{{ counts[option.value] }}</span>
+          }
+          <button type="button" [attr.aria-label]="'Retirer ' + option.value" [disabled]="disabled" (click)="remove(option.value)">×</button>
+        </li>
+      }
+    </ul>
+  }
+</div>
