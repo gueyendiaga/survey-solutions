@@ -33,6 +33,9 @@
   line-height: 1.5;
 }
 
+.ar-footer-alert { margin: 18px 0 0; }
+.ar-footer-alert + .ar-footer-alert { margin-top: 8px; }
+.ar-footer-alert + .ar-actions { margin-top: 12px; }
 .ar-alert.danger { border-color: #f0c9c5; background: #fff6f5; color: #9b3a33; }
 .ar-alert.success { border-color: #b8e4d1; background: var(--green-faint); color: var(--green); }
 .ar-alert.warn { border-color: #f2c46d; background: var(--ochre-faint); color: var(--ochre-text); }

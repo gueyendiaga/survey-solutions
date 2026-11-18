@@ -13,12 +13,6 @@
     <p class="ar-muted ar-pad">Chargement des règles…</p>
   } @else {
     <div class="ar-body">
-      @if (error(); as message) {
-        <div class="ar-alert danger" role="alert">{{ message }}</div>
-      }
-      @if (notice(); as message) {
-        <div class="ar-alert success" role="status">{{ message }}</div>
-      }
 
       <div class="ar-mode">
         <div class="ar-segmented" role="radiogroup" aria-label="Mode de rejet automatique">
@@ -133,6 +127,12 @@
         <p class="ar-muted">Au-delà, l’interview n’est plus rejetée automatiquement : le superviseur tranche.</p>
       </div>
 
+      @if (error(); as message) {
+        <div class="ar-alert danger ar-footer-alert" role="alert">{{ message }}</div>
+      }
+      @if (notice(); as message) {
+        <div class="ar-alert success ar-footer-alert" role="status">{{ message }}</div>
+      }
       <footer class="ar-actions">
         <button type="button" class="ar-btn primary" [disabled]="saving() || !dirty() || needsAutoConfirmation()" (click)="save()">
           {{ saving() ? 'Enregistrement…' : 'Enregistrer' }}
