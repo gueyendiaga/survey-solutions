@@ -297,7 +297,8 @@ describe('Application routée', () => {
 
   it('ouvre une variable depuis l’écran qualité', async () => {
     await openQuestionnaire('qualite');
-    flushAutoReject();
+    http.expectNone(`${BASE}/auto-reject`);
+    expect(page().querySelector('app-auto-reject')).toBeNull();
     const row = page().querySelector('tbody tr') as HTMLElement;
     expect(page().querySelector('.kpis')?.textContent).toContain('50 %');
     expect(row.textContent).toContain('age');
@@ -312,8 +313,10 @@ describe('Application routée', () => {
   });
 
   it('simule puis enregistre des règles de rejet automatique', async () => {
-    await openQuestionnaire('qualite');
+    await openQuestionnaire('rejet-automatique');
     flushAutoReject();
+    expect(page().querySelector('#tab-autoReject')?.getAttribute('aria-selected')).toBe('true');
+    expect(page().querySelector('app-filter-bar')).toBeNull();
     const card = page().querySelector('app-auto-reject') as HTMLElement;
     expect(card.textContent).toContain('Aucune règle');
 

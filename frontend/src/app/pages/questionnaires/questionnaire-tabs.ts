@@ -1,5 +1,5 @@
 /** Onglets d'un questionnaire ouvert. */
-export type QuestionnaireTab = 'fieldwork' | 'review' | 'variables' | 'quality' | 'reports';
+export type QuestionnaireTab = 'fieldwork' | 'review' | 'variables' | 'quality' | 'autoReject' | 'reports';
 
 export interface TabDefinition {
   id: QuestionnaireTab;
@@ -13,6 +13,7 @@ export const QUESTIONNAIRE_TABS: TabDefinition[] = [
   //{ id: 'review', label: 'Revue', slug: 'revue' },
   { id: 'variables', label: 'Variables', slug: 'variables' },
   { id: 'quality', label: 'Qualité des données', slug: 'qualite' },
+  { id: 'autoReject', label: 'Rejet automatique', slug: 'rejet-automatique' },
   { id: 'reports', label: 'Rapports', slug: 'rapports' }
 ];
 

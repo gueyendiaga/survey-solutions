@@ -135,6 +135,8 @@ export class QuestionnaireStore {
         return 'File de revue centralisée · réponses, historique et décisions HQ';
       case 'quality':
         return 'Complétude, non-réponses et questions non applicables par variable';
+      case 'autoReject':
+        return 'Règles qualité appliquées aux interviews terminées, avant la revue du superviseur';
       default:
         return 'Rapports PDF à la demande et archivés chaque matin';
     }
