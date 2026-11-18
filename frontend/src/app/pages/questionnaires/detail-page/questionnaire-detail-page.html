@@ -48,6 +48,13 @@
             </section>
           } @else if (store.fieldwork(); as overview) {
             <app-fieldwork-panel [overview]="overview" />
+            @if (store.operationsError(); as operationsMessage) {
+              <p class="operations-error" role="alert">{{ operationsMessage }} <button type="button" class="link-button" (click)="store.reloadOperations()">Réessayer</button></p>
+            } @else if (store.operations(); as operations) {
+              <app-field-operations [operations]="operations" (zoneVariableChange)="store.setZoneVariable($event)" />
+            } @else {
+              <app-loading-state label="Calcul des opérations de terrain…" />
+            }
           } @else {
             <app-loading-state label="Calcul du suivi terrain…" [importing]="!!store.syncStatus()?.inProgress" />
           }

@@ -1,0 +1,214 @@
+<section class="ar-card" aria-labelledby="ar-title">
+  <header class="ar-head">
+    <div>
+      <h2 id="ar-title">Rejet automatique</h2>
+      <p>Renvoyez à l’enquêteur, avec un commentaire explicite, les interviews qui enfreignent des règles qualité, avant même la revue du superviseur.</p>
+    </div>
+    @if (saved()?.updatedAt) {
+      <span class="ar-meta">Modifié le {{ date(saved()!.updatedAt) }}@if (saved()!.updatedBy) { par {{ saved()!.updatedBy }} }</span>
+    }
+  </header>
+
+  @if (loading()) {
+    <p class="ar-muted ar-pad">Chargement des règles…</p>
+  } @else {
+    <div class="ar-body">
+      @if (error(); as message) {
+        <div class="ar-alert danger" role="alert">{{ message }}</div>
+      }
+      @if (notice(); as message) {
+        <div class="ar-alert success" role="status">{{ message }}</div>
+      }
+
+      <div class="ar-mode">
+        <div class="ar-segmented" role="radiogroup" aria-label="Mode de rejet automatique">
+          @for (item of modes; track item.id) {
+            <button type="button" role="radio" [attr.aria-checked]="mode() === item.id" [class.active]="mode() === item.id"
+              [class]="'mode-' + item.id" (click)="setMode(item.id)">{{ item.label }}</button>
+          }
+        </div>
+        <p class="ar-muted">{{ modeHelp() }}</p>
+      </div>
+
+      @if (mode() === 'AUTO' && saved()?.mode !== 'AUTO') {
+        <div class="ar-alert warn">
+          <strong>Les rejets sont envoyés à HQ et notifiés aux enquêteurs.</strong>
+          Testez d’abord vos règles avec « Simuler ». Une interview n’est rejetée qu’une fois par soumission, et
+          plus du tout au-delà du plafond ci-dessous : elle revient alors au superviseur.
+          <label class="ar-check">
+            <input type="checkbox" [ngModel]="autoConfirmed()" (ngModelChange)="autoConfirmed.set($event)" />
+            J’ai vérifié les règles et j’active le rejet automatique
+          </label>
+        </div>
+      }
+
+      <h3 class="ar-subtitle">Règles <span>{{ activeRules() }} active(s) sur {{ rules().length }}</span></h3>
+
+      @if (!rules().length) {
+        <div class="ar-empty">
+          <p>Aucune règle. Commencez par un modèle :</p>
+        </div>
+      }
+
+      <ol class="ar-rules">
+        @for (rule of rules(); track $index; let i = $index) {
+          <li class="ar-rule" [class.off]="!rule.enabled">
+            <div class="ar-rule-top">
+              <label class="ar-switch" [title]="rule.enabled ? 'Désactiver la règle' : 'Activer la règle'">
+                <input type="checkbox" [ngModel]="rule.enabled" (ngModelChange)="updateRule(i, { enabled: $event })"
+                  [attr.aria-label]="'Règle active : ' + templateFor(rule.type).label" />
+                <span aria-hidden="true"></span>
+              </label>
+              <div class="ar-rule-title">
+                <strong>{{ templateFor(rule.type).label }}</strong>
+                <small>{{ templateFor(rule.type).description }}</small>
+              </div>
+              @if (ruleCount(i); as count) {
+                <span class="ar-hit">{{ count }} interview(s)</span>
+              } @else if (ruleCount(i) === 0) {
+                <span class="ar-hit ok">0</span>
+              }
+              <button type="button" class="ar-icon" aria-label="Supprimer la règle" title="Supprimer" (click)="removeRule(i)">×</button>
+            </div>
+
+            <div class="ar-fields">
+              @switch (rule.type) {
+                @case ('VALIDATION_ERRORS') {
+                  <label>Erreurs minimum
+                    <input type="number" min="1" step="1" [ngModel]="rule.minValue" (ngModelChange)="updateRule(i, { minValue: $event })" />
+                  </label>
+                }
+                @case ('MIN_DURATION') {
+                  <label>Durée minimale (min)
+                    <input type="number" min="1" step="1" [ngModel]="rule.minValue" (ngModelChange)="updateRule(i, { minValue: $event })" />
+                  </label>
+                }
+                @case ('MAX_UNANSWERED') {
+                  <label>Non-réponses tolérées
+                    <input type="number" min="0" step="1" [ngModel]="rule.maxValue" (ngModelChange)="updateRule(i, { maxValue: $event })" />
+                  </label>
+                }
+                @case ('REQUIRED_ANSWER') {
+                  <label class="wide">Question
+                    <app-search-select [options]="variableOptions()" ariaLabel="Question obligatoire" placeholder="Choisir une question…"
+                      [ngModel]="rule.variable" (ngModelChange)="updateRule(i, { variable: $event })" />
+                  </label>
+                }
+                @case ('VALUE_RANGE') {
+                  <label class="wide">Question numérique
+                    <app-search-select [options]="numericOptions()" ariaLabel="Question numérique contrôlée" placeholder="Choisir une question…"
+                      [ngModel]="rule.variable" (ngModelChange)="updateRule(i, { variable: $event })" />
+                  </label>
+                  <label>Minimum
+                    <input type="number" [ngModel]="rule.minValue" (ngModelChange)="updateRule(i, { minValue: $event })" />
+                  </label>
+                  <label>Maximum
+                    <input type="number" [ngModel]="rule.maxValue" (ngModelChange)="updateRule(i, { maxValue: $event })" />
+                  </label>
+                }
+              }
+              <label class="full">Message à l’enquêteur <small>(facultatif — un message par défaut décrit l’écart)</small>
+                <input type="text" maxlength="300" placeholder="Ex. : Vérifiez l’âge déclaré avec la date de naissance"
+                  [ngModel]="rule.message" (ngModelChange)="updateRule(i, { message: $event })" />
+              </label>
+            </div>
+          </li>
+        }
+      </ol>
+
+      <div class="ar-templates" role="group" aria-label="Ajouter une règle">
+        @for (template of templates; track template.type) {
+          <button type="button" class="ar-add" [title]="template.description" (click)="addRule(template.type)">+ {{ template.label }}</button>
+        }
+      </div>
+
+      <div class="ar-limit">
+        <label>Plafond de rejets HQ par interview
+          <input type="number" min="1" max="10" [ngModel]="maxHqRejections()" (ngModelChange)="maxHqRejections.set(+$event)" />
+        </label>
+        <p class="ar-muted">Au-delà, l’interview n’est plus rejetée automatiquement : le superviseur tranche.</p>
+      </div>
+
+      <footer class="ar-actions">
+        <button type="button" class="ar-btn primary" [disabled]="saving() || !dirty() || needsAutoConfirmation()" (click)="save()">
+          {{ saving() ? 'Enregistrement…' : 'Enregistrer' }}
+        </button>
+        @if (dirty()) {
+          <button type="button" class="ar-btn" (click)="reset()">Annuler les modifications</button>
+        }
+        <span class="ar-spacer"></span>
+        <button type="button" class="ar-btn" [disabled]="previewing() || dirty() || !activeRules()"
+          [title]="dirty() ? 'Enregistrez d’abord vos modifications' : 'Évaluer les règles sans rien rejeter'" (click)="runPreview()">
+          {{ previewing() ? 'Simulation…' : 'Simuler' }}
+        </button>
+        @if (saved()?.mode === 'AUTO' && !dirty()) {
+          @if (confirmRun()) {
+            <span class="ar-confirm">Rejeter maintenant dans HQ ?
+              <button type="button" class="ar-btn danger" [disabled]="running()" (click)="runNow()">{{ running() ? 'Rejet…' : 'Confirmer' }}</button>
+              <button type="button" class="ar-btn" (click)="confirmRun.set(false)">Annuler</button>
+            </span>
+          } @else {
+            <button type="button" class="ar-btn danger" (click)="confirmRun.set(true)">Exécuter maintenant</button>
+          }
+        }
+      </footer>
+
+      @if (preview(); as result) {
+        <section class="ar-preview" aria-label="Résultat de la simulation">
+          <h3 class="ar-subtitle">
+            Simulation
+            <span>{{ result.candidates.length }} interview(s) en infraction sur {{ result.evaluated }} en attente de validation</span>
+          </h3>
+          @if (result.candidates.length) {
+            <div class="ar-table">
+              <table>
+                <thead><tr><th>Clé HQ</th><th>Enquêteur</th><th>Statut</th><th>Motifs envoyés à l’enquêteur</th></tr></thead>
+                <tbody>
+                  @for (candidate of result.candidates; track candidate.interviewId) {
+                    <tr>
+                      <td class="mono">{{ candidate.interviewKey ?? '—' }}</td>
+                      <td>{{ candidate.responsible ?? '—' }}</td>
+                      <td>
+                        {{ statusLabel(candidate.status) }}
+                        @if (candidate.overLimit) {
+                          <span class="ar-tag warn" title="Plafond de rejets atteint : revue manuelle">Revue manuelle</span>
+                        } @else if (candidate.hqRejections) {
+                          <span class="ar-tag">{{ candidate.hqRejections }} rejet(s)</span>
+                        }
+                      </td>
+                      <td>
+                        <ul class="ar-reasons">
+                          @for (violation of candidate.violations; track $index) {
+                            <li>{{ violation.reason }}</li>
+                          }
+                        </ul>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <p class="ar-muted">Aucune interview en attente n’enfreint les règles actives.</p>
+          }
+        </section>
+      }
+
+      @if (events().length) {
+        <details class="ar-journal">
+          <summary>Journal des rejets automatiques ({{ events().length }})</summary>
+          <ul>
+            @for (event of events(); track $index) {
+              <li [class]="'outcome-' + event.outcome">
+                <span class="mono">{{ event.interviewKey ?? event.interviewId }}</span>
+                <span class="ar-tag">{{ outcomeLabel(event.outcome) }}</span>
+                <time>{{ date(event.evaluatedAt) }}</time>
+                <p>{{ event.reasons }}@if (event.error) { — {{ event.error }} }</p>
+              </li>
+            }
+          </ul>
+        </details>
+      }
+    </div>
+  }
+</section>

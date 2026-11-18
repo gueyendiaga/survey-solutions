@@ -27,6 +27,8 @@ import com.surveysolutions.analytics.questions.QuestionAnalyticsDtos;
 import com.surveysolutions.analytics.questions.QuestionAnalyticsService;
 import com.surveysolutions.analytics.fieldwork.FieldworkDtos;
 import com.surveysolutions.analytics.fieldwork.FieldworkService;
+import com.surveysolutions.analytics.fieldwork.OperationsDtos;
+import com.surveysolutions.analytics.fieldwork.OperationsService;
 import com.surveysolutions.analytics.report.ReportArchive;
 import com.surveysolutions.analytics.report.ReportService;
 import com.surveysolutions.analytics.store.AnalyticsRepository;
@@ -43,6 +45,7 @@ public class AnalyticsController {
     private final DataExportService dataExport;
     private final SyncService sync;
     private final FieldworkService fieldwork;
+    private final OperationsService operations;
     private final ReportService reports;
     private final ReportArchive reportArchive;
     private final InterviewActionService interviewActions;
@@ -55,6 +58,7 @@ public class AnalyticsController {
             DataExportService dataExport,
             SyncService sync,
             FieldworkService fieldwork,
+            OperationsService operations,
             ReportService reports,
             ReportArchive reportArchive,
             InterviewActionService interviewActions,
@@ -65,6 +69,7 @@ public class AnalyticsController {
         this.dataExport = dataExport;
         this.sync = sync;
         this.fieldwork = fieldwork;
+        this.operations = operations;
         this.reports = reports;
         this.reportArchive = reportArchive;
         this.interviewActions = interviewActions;
@@ -124,6 +129,19 @@ public class AnalyticsController {
             throw new IllegalArgumentException("La version doit être supérieure à zéro.");
         }
         return fieldwork.overview(questionnaireId, version, filter.toFilter());
+    }
+
+    /** Opérations de terrain : tablettes, file de validation, zones, mode de collecte, rendez-vous. */
+    @GetMapping("/api/questionnaires/{questionnaireId}/{version}/operations")
+    public OperationsDtos.FieldOperations operations(
+            @PathVariable UUID questionnaireId,
+            @PathVariable long version,
+            @ModelAttribute FilterParams filter,
+            @RequestParam(required = false) String zoneVariable) {
+        if (version < 1) {
+            throw new IllegalArgumentException("La version doit être supérieure à zéro.");
+        }
+        return operations.overview(questionnaireId, version, filter.toFilter(), zoneVariable);
     }
 
     @GetMapping("/api/questionnaires/{questionnaireId}/{version}/filter-options")

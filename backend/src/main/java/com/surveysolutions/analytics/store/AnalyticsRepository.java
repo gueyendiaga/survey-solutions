@@ -14,7 +14,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.support.TransactionTemplate;
 import com.surveysolutions.analytics.store.TabularExportParser.AnswerState;
+import com.surveysolutions.analytics.surveysolutions.HqDates;
 import com.surveysolutions.analytics.surveysolutions.SurveySolutionsDtos.Assignment;
+import com.surveysolutions.analytics.surveysolutions.SurveySolutionsDtos.AssignmentCalendar;
+import com.surveysolutions.analytics.surveysolutions.SurveySolutionsDtos.InterviewMetadata;
+import com.surveysolutions.analytics.surveysolutions.SurveySolutionsDtos.TeamMember;
 import com.surveysolutions.analytics.store.TabularExportParser.InterviewRecord;
 import com.surveysolutions.analytics.store.TabularExportParser.UnitRecord;
 
@@ -154,32 +158,88 @@ public class AnalyticsRepository {
      * Remplace atomiquement les données d'une version : les lecteurs voient l'ancienne version
      * jusqu'au commit, puis la nouvelle.
      */
+    /** Métadonnées HQ lues hors de l'export (GraphQL) : mode de collecte, rendez-vous. */
+    public record FieldMetadata(
+            List<InterviewMetadata> interviews,
+            List<AssignmentCalendar> assignmentCalendars) {
+        public static FieldMetadata empty() {
+            return new FieldMetadata(List.of(), List.of());
+        }
+    }
+
     public ImportCounts replaceVersion(
             UUID questionnaireId,
             long version,
             List<Assignment> assignments,
+            java.util.function.Consumer<TabularExportParser.Sink> importer) {
+        return replaceVersion(questionnaireId, version, assignments, FieldMetadata.empty(), importer);
+    }
+
+    public ImportCounts replaceVersion(
+            UUID questionnaireId,
+            long version,
+            List<Assignment> assignments,
+            FieldMetadata metadata,
             java.util.function.Consumer<TabularExportParser.Sink> importer) {
         return transactions.execute(status -> {
             jdbc.update("DELETE FROM interview WHERE questionnaire_id = ? AND version = ?",
                     questionnaireId, version);
             jdbc.update("DELETE FROM assignment WHERE questionnaire_id = ? AND version = ?",
                     questionnaireId, version);
+            jdbc.update("DELETE FROM appointment WHERE questionnaire_id = ? AND version = ?",
+                    questionnaireId, version);
             jdbc.batchUpdate("""
                     INSERT INTO assignment (questionnaire_id, version, assignment_id, responsible_name,
-                        quantity, interviews_count, archived)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                        quantity, interviews_count, archived, created_at, received_by_tablet_at, web_mode, target_area)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, assignments.stream().map(assignment -> new Object[] {
                         questionnaireId, version, assignment.id(), assignment.responsibleName(),
-                        assignment.quantity(), assignment.interviewsCount(), assignment.archived()
+                        assignment.quantity(), assignment.interviewsCount(), assignment.archived(),
+                        timestamp(HqDates.parse(assignment.createdAtUtc())),
+                        timestamp(HqDates.parse(assignment.receivedByTabletAtUtc())),
+                        assignment.webMode(), assignment.targetArea()
                     }).toList(), new int[] {
                         Types.OTHER, Types.BIGINT, Types.INTEGER, Types.VARCHAR,
-                        Types.INTEGER, Types.INTEGER, Types.BOOLEAN
+                        Types.INTEGER, Types.INTEGER, Types.BOOLEAN, Types.TIMESTAMP_WITH_TIMEZONE,
+                        Types.TIMESTAMP_WITH_TIMEZONE, Types.BOOLEAN, Types.VARCHAR
                     });
             BatchWriter writer = new BatchWriter(questionnaireId, version);
             importer.accept(writer);
             writer.flush();
+            applyMetadata(questionnaireId, version, assignments, metadata);
             return new ImportCounts(writer.interviewCount, writer.unitCount);
         });
+    }
+
+    private void applyMetadata(UUID questionnaireId, long version, List<Assignment> assignments, FieldMetadata metadata) {
+        jdbc.batchUpdate("""
+                UPDATE interview SET interview_mode = ?, received_by_interviewer_at = ?
+                WHERE questionnaire_id = ? AND version = ? AND interview_key = ?
+                """, metadata.interviews().stream()
+                        .filter(item -> item.key() != null && !item.key().isBlank())
+                        .map(item -> new Object[] {
+                            item.mode() == null || item.mode().isBlank() ? null : item.mode(),
+                            timestamp(item.receivedByInterviewerAt()), questionnaireId, version, item.key()})
+                        .toList(), new int[] {
+                    Types.VARCHAR, Types.TIMESTAMP_WITH_TIMEZONE, Types.OTHER, Types.BIGINT, Types.VARCHAR
+                });
+        Map<Integer, String> responsibles = new java.util.HashMap<>();
+        assignments.forEach(assignment -> responsibles.put(assignment.id(), assignment.responsibleName()));
+        List<Object[]> appointments = new ArrayList<>();
+        metadata.interviews().stream().filter(item -> item.calendar() != null).forEach(item -> appointments.add(
+                new Object[] {questionnaireId, version, item.key(), null, item.responsibleName(),
+                    timestamp(item.calendar().startAt()), item.calendar().completed(), item.calendar().comment()}));
+        metadata.assignmentCalendars().forEach(item -> appointments.add(
+                new Object[] {questionnaireId, version, null, item.assignmentId(), responsibles.get(item.assignmentId()),
+                    timestamp(item.calendar().startAt()), item.calendar().completed(), item.calendar().comment()}));
+        jdbc.batchUpdate("""
+                INSERT INTO appointment (questionnaire_id, version, interview_key, assignment_id, responsible_name,
+                    start_at, completed, comment)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, appointments, new int[] {
+                    Types.OTHER, Types.BIGINT, Types.VARCHAR, Types.INTEGER, Types.VARCHAR,
+                    Types.TIMESTAMP_WITH_TIMEZONE, Types.BOOLEAN, Types.VARCHAR
+                });
     }
 
     private final class BatchWriter implements TabularExportParser.Sink {
@@ -203,7 +263,10 @@ public class AnalyticsRepository {
                 interview.errorsCount(), interview.rejectionsSupervisor(), interview.rejectionsHq(),
                 interview.interviewerCount(), interview.durationSeconds(), interview.unansweredCount(),
                 interview.interviewerName(), timestamp(interview.createdAt()),
-                timestamp(interview.completedAt()), timestamp(interview.lastActionAt())
+                timestamp(interview.completedAt()), timestamp(interview.lastActionAt()),
+                timestamp(interview.lastCompletedAt()), timestamp(interview.supervisorApprovedAt()),
+                timestamp(interview.hqApprovedAt()), timestamp(interview.receivedByTabletAt()),
+                timestamp(interview.hqQueueSince())
             });
             interviewCount++;
             if (interviews.size() >= BATCH_SIZE) {
@@ -237,14 +300,17 @@ public class AnalyticsRepository {
                     INSERT INTO interview (interview_id, questionnaire_id, version, interview_key, status,
                         assignment_id, has_errors, errors_count, rejections_supervisor, rejections_hq,
                         interviewer_count, duration_seconds, unanswered_count,
-                        interviewer_name, created_at, completed_at, last_action_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        interviewer_name, created_at, completed_at, last_action_at,
+                        last_completed_at, supervisor_approved_at, hq_approved_at, received_by_tablet_at,
+                        hq_queue_since)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, interviews, new int[] {
                         Types.OTHER, Types.OTHER, Types.BIGINT, Types.VARCHAR, Types.VARCHAR,
                         Types.INTEGER, Types.BOOLEAN, Types.INTEGER, Types.INTEGER, Types.INTEGER,
                         Types.INTEGER, Types.BIGINT, Types.INTEGER,
                         Types.VARCHAR, Types.TIMESTAMP_WITH_TIMEZONE, Types.TIMESTAMP_WITH_TIMEZONE,
-                        Types.TIMESTAMP_WITH_TIMEZONE
+                        Types.TIMESTAMP_WITH_TIMEZONE, Types.TIMESTAMP_WITH_TIMEZONE, Types.TIMESTAMP_WITH_TIMEZONE,
+                        Types.TIMESTAMP_WITH_TIMEZONE, Types.TIMESTAMP_WITH_TIMEZONE, Types.TIMESTAMP_WITH_TIMEZONE
                     });
             interviews.clear();
         }
@@ -265,12 +331,22 @@ public class AnalyticsRepository {
 
     /** Remplace la composition des équipes (globale à l'instance HQ). */
     public void replaceTeams(Map<String, String> interviewerToSupervisor) {
+        replaceTeamMembers(interviewerToSupervisor.entrySet().stream()
+                .map(entry -> new TeamMember(entry.getKey(), entry.getValue(), false, null))
+                .toList());
+    }
+
+    /** Composition des équipes, avec l'état des comptes enquêteurs et de leurs tablettes. */
+    public void replaceTeamMembers(List<TeamMember> members) {
         transactions.executeWithoutResult(status -> {
             jdbc.update("DELETE FROM team_member");
-            jdbc.batchUpdate("INSERT INTO team_member (interviewer_name, supervisor_name) VALUES (?, ?)",
-                    interviewerToSupervisor.entrySet().stream()
-                            .map(entry -> new Object[] {entry.getKey(), entry.getValue()})
-                            .toList());
+            jdbc.batchUpdate("""
+                    INSERT INTO team_member (interviewer_name, supervisor_name, locked, device_linked)
+                    VALUES (?, ?, ?, ?)
+                    """, members.stream()
+                            .map(member -> new Object[] {
+                                member.interviewer(), member.supervisor(), member.locked(), member.deviceLinked()})
+                            .toList(), new int[] {Types.VARCHAR, Types.VARCHAR, Types.BOOLEAN, Types.BOOLEAN});
         });
     }
 

@@ -2,6 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { map, Observable } from 'rxjs';
 import {
+  AutoRejectMode,
+  AutoRejectOverview,
+  AutoRejectPreview,
+  AutoRejectRule,
+  AutoRejectRunResult,
+  AutoRejectSettings,
+  FieldOperations,
   AnalysisFilters,
   ArchivedReport,
   CompletenessOverview,
@@ -131,6 +138,22 @@ export class DashboardApiService {
       .pipe(map((response) => normalizeKeys(response) as FieldworkOverview));
   }
 
+  /** Opérations de terrain : tablettes, file de validation, zones, mode de collecte, rendez-vous. */
+  operations(
+    questionnaireId: string,
+    version: number,
+    filters: AnalysisFilters,
+    zoneVariable: string | null
+  ): Observable<FieldOperations> {
+    let params = filterParams(filters);
+    if (zoneVariable) {
+      params = params.set('zoneVariable', zoneVariable);
+    }
+    return this.http
+      .get<unknown>(`${this.baseUrl}/questionnaires/${questionnaireId}/${version}/operations`, { params })
+      .pipe(map((response) => normalizeKeys(response) as FieldOperations));
+  }
+
   filterOptions(questionnaireId: string, version: number): Observable<FilterOptions> {
     return this.http
       .get<unknown>(`${this.baseUrl}/questionnaires/${questionnaireId}/${version}/filter-options`)
@@ -197,6 +220,26 @@ export class DashboardApiService {
     return this.http
       .get<unknown>(`${this.baseUrl}/questionnaires/${questionnaireId}/${version}/interview-review`, { params })
       .pipe(map((response) => normalizeKeys(response) as InterviewReviewPage));
+  }
+
+  autoReject(questionnaireId: string, version: number): Observable<AutoRejectOverview> {
+    return this.http.get<AutoRejectOverview>(`${this.baseUrl}/questionnaires/${questionnaireId}/${version}/auto-reject`);
+  }
+
+  saveAutoReject(
+    questionnaireId: string,
+    version: number,
+    settings: { mode: AutoRejectMode; maxHqRejections: number; rules: AutoRejectRule[] }
+  ): Observable<AutoRejectSettings> {
+    return this.http.put<AutoRejectSettings>(`${this.baseUrl}/questionnaires/${questionnaireId}/${version}/auto-reject`, settings);
+  }
+
+  previewAutoReject(questionnaireId: string, version: number): Observable<AutoRejectPreview> {
+    return this.http.get<AutoRejectPreview>(`${this.baseUrl}/questionnaires/${questionnaireId}/${version}/auto-reject/preview`);
+  }
+
+  runAutoReject(questionnaireId: string, version: number): Observable<AutoRejectRunResult> {
+    return this.http.post<AutoRejectRunResult>(`${this.baseUrl}/questionnaires/${questionnaireId}/${version}/auto-reject/run`, {});
   }
 
   interviewHistory(interviewId: string): Observable<InterviewHistory> {

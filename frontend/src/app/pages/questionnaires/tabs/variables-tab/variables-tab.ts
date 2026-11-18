@@ -15,6 +15,7 @@ import { InfoTooltipComponent } from '../../../../shared/components/info-tooltip
 import { DashboardChartComponent } from '../../../../shared/components/dashboard-chart/dashboard-chart';
 import { isSensitiveQuestion, statusList, typeLabel } from '../../../../shared/utils/labels';
 import { LoadingStateComponent } from '../../../../shared/components/loading-state/loading-state';
+import { InterviewHistoryComponent } from '../../../../shared/components/interview-history/interview-history';
 import { apiErrorMessage, blobErrorDetail, saveFile } from '../../../../shared/utils/http-utils';
 import { QuestionnaireStore } from '../../questionnaire.store';
 
@@ -33,7 +34,7 @@ interface PendingInterviewAction {
 @Component({
   selector: 'app-variables-tab',
   standalone: true,
-  imports: [DecimalPipe, FormsModule, DashboardChartComponent, LoadingStateComponent, CompletenessStatusComponent, InfoTooltipComponent],
+  imports: [DecimalPipe, FormsModule, DashboardChartComponent, LoadingStateComponent, CompletenessStatusComponent, InfoTooltipComponent, InterviewHistoryComponent],
   templateUrl: './variables-tab.html',
   styleUrl: './variables-tab.css'
 })
@@ -50,6 +51,8 @@ export class VariablesTabComponent {
   protected readonly transcriptError = signal<string | null>(null);
   protected readonly downloadingTranscript = signal<string | null>(null);
   protected readonly detailInterview = signal<InterviewReviewRow | null>(null);
+  /** Interview dont l'historique complet est affiché dans le panneau latéral. */
+  protected readonly historyInterview = signal<InterviewReviewRow | null>(null);
   protected readonly interviewAnswers = signal<InterviewAnswer[]>([]);
   private readonly rosterTitles = computed(() => {
     const titles = new Map<string, string>();

@@ -4,6 +4,7 @@ import {
   AnalysisFilters,
   ArchivedReport,
   CompletenessOverview,
+  FieldOperations,
   FieldworkOverview,
   FilterOptions,
   NO_FILTERS,
@@ -42,6 +43,11 @@ export class QuestionnaireStore {
 
   readonly fieldwork = signal<FieldworkOverview | null>(null);
   readonly fieldworkError = signal<string | null>(null);
+  /** Opérations de terrain, chargées avec le suivi terrain. */
+  readonly operations = signal<FieldOperations | null>(null);
+  readonly operationsError = signal<string | null>(null);
+  /** Variable de ventilation choisie (null : question d'identification proposée par HQ). */
+  readonly zoneVariable = signal<string | null>(null);
 
   readonly questions = signal<QuestionSummary[]>([]);
   readonly questionsLoading = signal(false);
@@ -151,6 +157,9 @@ export class QuestionnaireStore {
     this.variableOptions.set([]);
     this.fieldwork.set(null);
     this.fieldworkError.set(null);
+    this.operations.set(null);
+    this.operationsError.set(null);
+    this.zoneVariable.set(null);
     this.questions.set([]);
     this.selectedQuestion.set(null);
     this.analytics.set(null);
@@ -347,10 +356,46 @@ export class QuestionnaireStore {
     this.reloadSelectedQuestion();
   }
 
+  /** Change la variable de ventilation par zone et recharge les opérations. */
+  setZoneVariable(variable: string | null): void {
+    this.zoneVariable.set(variable);
+    const questionnaire = this.questionnaire();
+    if (questionnaire) {
+      this.loadOperations(questionnaire);
+    }
+  }
+
+  reloadOperations(): void {
+    const questionnaire = this.questionnaire();
+    if (questionnaire) {
+      this.loadOperations(questionnaire);
+    }
+  }
+
+  private loadOperations(questionnaire: Questionnaire): void {
+    this.operations.set(null);
+    this.operationsError.set(null);
+    this.api
+      .operations(questionnaire.questionnaireId, questionnaire.version, this.filters(), this.zoneVariable())
+      .subscribe({
+        next: (operations) => {
+          if (this.isCurrent(questionnaire)) {
+            this.operations.set(operations);
+          }
+        },
+        error: (error: unknown) => {
+          if (this.isCurrent(questionnaire) && !isSyncPending(error)) {
+            this.operationsError.set(apiErrorMessage(error, 'Impossible de calculer les opérations de terrain.'));
+          }
+        }
+      });
+  }
+
   private loadFieldwork(questionnaire: Questionnaire): void {
     this.fieldwork.set(null);
     this.fieldworkError.set(null);
     this.fieldworkLoading = true;
+    this.loadOperations(questionnaire);
     this.api.fieldwork(questionnaire.questionnaireId, questionnaire.version, this.filters()).subscribe({
       next: (overview) => {
         this.fieldworkLoading = false;

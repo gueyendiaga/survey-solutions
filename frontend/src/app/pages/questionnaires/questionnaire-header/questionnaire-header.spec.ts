@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Questionnaire } from '../../../core/models/dashboard.models';
+import { QUESTIONNAIRE_TABS } from '../questionnaire-tabs';
 import { QuestionnaireHeaderComponent } from './questionnaire-header';
 
 describe('QuestionnaireHeaderComponent', () => {
@@ -25,32 +26,36 @@ describe('QuestionnaireHeaderComponent', () => {
     return [...(fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('[role="tab"]')];
   }
 
+  function tab(id: string): HTMLButtonElement {
+    return tabs().find((button) => button.id === `tab-${id}`)!;
+  }
+
   it('exposes accessible tabs with badges and a single tab stop', () => {
-    expect(tabs().map((tab) => tab.textContent?.replace(/\d+/g, '').trim()))
-      .toEqual(['Suivi terrain', 'Revue', 'Variables', 'Qualité des données', 'Rapports']);
+    expect(tabs().map((button) => button.textContent?.replace(/\d+/g, '').trim()))
+      .toEqual(QUESTIONNAIRE_TABS.map((definition) => definition.label));
     expect(tabs()[0].getAttribute('aria-selected')).toBe('true');
     expect(tabs()[0].getAttribute('aria-controls')).toBe('panel-fieldwork');
-    expect(tabs().map((tab) => tab.tabIndex)).toEqual([0, -1, -1, -1, -1]);
-    expect(tabs()[2].querySelector('.qh-badge')?.textContent).toContain('12');
-    expect(tabs()[3].querySelector('.qh-badge.warn')?.getAttribute('aria-label')).toBe('3 variable(s) à examiner');
-    expect(tabs()[4].querySelector('.qh-badge')).toBeNull();
+    expect(tabs().map((button) => button.tabIndex)).toEqual(tabs().map((_, index) => (index === 0 ? 0 : -1)));
+    expect(tab('variables').querySelector('.qh-badge')?.textContent).toContain('12');
+    expect(tab('quality').querySelector('.qh-badge.warn')?.getAttribute('aria-label')).toBe('3 variable(s) à examiner');
+    expect(tab('reports').querySelector('.qh-badge')).toBeNull();
   });
 
   it('moves focus with arrow keys and activates a tab on click only', () => {
     const changes: string[] = [];
-    header.tabChange.subscribe((tab) => changes.push(tab));
+    header.tabChange.subscribe((value) => changes.push(value));
     const list = (fixture.nativeElement as HTMLElement).querySelector('[role="tablist"]') as HTMLElement;
 
     tabs()[0].focus();
     list.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
     fixture.detectChanges();
-    expect(document.activeElement).toBe(tabs()[4]);
+    expect(document.activeElement).toBe(tabs()[tabs().length - 1]);
     list.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
     fixture.detectChanges();
     expect(document.activeElement).toBe(tabs()[0]);
     expect(changes).toEqual([]);
 
-    tabs()[3].click();
+    tab('quality').click();
     tabs()[0].click();
     expect(changes).toEqual(['quality']);
   });

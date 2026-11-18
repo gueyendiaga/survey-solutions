@@ -296,3 +296,179 @@ export interface FieldworkOverview {
   daily: DailyProgress[];
   teams: TeamProgress[];
 }
+
+// ---- Opérations de terrain (tablettes, validation, zones, mode, rendez-vous) ----------------
+
+/** ACTIVE, INACTIVE (aucune activité depuis inactivityDays), NEVER (jamais d'activité), LOCKED. */
+export type TabletState = 'ACTIVE' | 'INACTIVE' | 'NEVER' | 'LOCKED';
+
+export interface TabletSummary {
+  interviewers: number;
+  active: number;
+  inactive: number;
+  neverActive: number;
+  pendingAssignments: number;
+  withoutDevice: number;
+  locked: number;
+}
+
+export interface InterviewerTablet {
+  interviewer: string;
+  supervisor: string | null;
+  lastTabletContact: string | null;
+  lastCompletion: string | null;
+  daysSinceActivity: number | null;
+  pendingAssignments: number;
+  oldestPendingSince: string | null;
+  locked: boolean;
+  deviceLinked: boolean | null;
+  state: TabletState;
+}
+
+export interface QueueStage {
+  total: number;
+  lessThanOneDay: number;
+  oneToThreeDays: number;
+  threeToSevenDays: number;
+  moreThanSevenDays: number;
+}
+
+export interface WaitingInterview {
+  interviewId: string;
+  interviewKey: string;
+  interviewer: string | null;
+  supervisor: string | null;
+  status: string;
+  since: string | null;
+  waitingDays: number | null;
+}
+
+export interface ValidationQueue {
+  supervisor: QueueStage;
+  headquarters: QueueStage;
+  medianSupervisorReviewHours: number | null;
+  medianHqReviewHours: number | null;
+  oldest: WaitingInterview[];
+}
+
+export interface ZoneOption {
+  variable: string;
+  label: string;
+  identifying: boolean;
+}
+
+export interface ZoneProgress {
+  code: string | null;
+  label: string;
+  interviews: number;
+  completed: number;
+  approved: number;
+  rejected: number;
+  inProgress: number;
+  approvalRate: number | null;
+}
+
+export interface ZoneBreakdown {
+  variable: string | null;
+  candidates: ZoneOption[];
+  rows: ZoneProgress[];
+}
+
+export interface ModeCount {
+  mode: 'CAPI' | 'CAWI' | 'UNKNOWN' | string;
+  count: number;
+}
+
+export interface AppointmentItem {
+  startAt: string;
+  interviewKey: string | null;
+  assignmentId: number | null;
+  responsible: string | null;
+  supervisor: string | null;
+  overdue: boolean;
+  comment: string | null;
+}
+
+export interface Appointments {
+  upcoming: number;
+  overdue: number;
+  items: AppointmentItem[];
+}
+
+export interface FieldOperations {
+  syncedAt: string | null;
+  inactivityDays: number;
+  tablets: TabletSummary;
+  interviewers: InterviewerTablet[];
+  validation: ValidationQueue;
+  zones: ZoneBreakdown;
+  modes: ModeCount[];
+  appointments: Appointments;
+}
+
+/* ---- Rejet automatique ---------------------------------------------------------------- */
+export type AutoRejectMode = 'OFF' | 'SIMULATION' | 'AUTO';
+export type AutoRejectRuleType = 'VALIDATION_ERRORS' | 'MIN_DURATION' | 'MAX_UNANSWERED' | 'REQUIRED_ANSWER' | 'VALUE_RANGE';
+
+export interface AutoRejectRule {
+  id: number | null;
+  type: AutoRejectRuleType;
+  variable: string | null;
+  minValue: number | null;
+  maxValue: number | null;
+  message: string | null;
+  enabled: boolean;
+}
+
+export interface AutoRejectSettings {
+  mode: AutoRejectMode;
+  maxHqRejections: number;
+  rules: AutoRejectRule[];
+  updatedAt: string | null;
+  updatedBy: string | null;
+}
+
+export interface AutoRejectEvent {
+  interviewId: string;
+  interviewKey: string | null;
+  evaluatedAt: string;
+  outcome: 'REJECTED' | 'FAILED' | 'SKIPPED_LIMIT';
+  reasons: string;
+  error: string | null;
+}
+
+export interface AutoRejectOverview {
+  settings: AutoRejectSettings;
+  recentEvents: AutoRejectEvent[];
+}
+
+export interface AutoRejectViolation {
+  ruleId: number | null;
+  type: AutoRejectRuleType;
+  variable: string | null;
+  reason: string;
+}
+
+export interface AutoRejectCandidate {
+  interviewId: string;
+  interviewKey: string | null;
+  status: string;
+  responsible: string | null;
+  hqRejections: number;
+  overLimit: boolean;
+  violations: AutoRejectViolation[];
+}
+
+export interface AutoRejectPreview {
+  evaluated: number;
+  candidates: AutoRejectCandidate[];
+  perRule: { ruleId: number | null; type: AutoRejectRuleType; variable: string | null; interviews: number }[];
+}
+
+export interface AutoRejectRunResult {
+  evaluated: number;
+  rejected: number;
+  skippedLimit: number;
+  alreadyHandled: number;
+  failed: number;
+}

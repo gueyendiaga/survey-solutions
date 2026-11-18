@@ -79,7 +79,28 @@ public class TabularExportParser {
             Instant createdAt,
             /** Première complétion par l'enquêteur (action Completed) ; null si jamais terminée. */
             Instant completedAt,
-            Instant lastActionAt) {}
+            Instant lastActionAt,
+            /** Dernière complétion : point de départ de l'attente de validation. */
+            Instant lastCompletedAt,
+            /** Dernière approbation par le superviseur. */
+            Instant supervisorApprovedAt,
+            /** Dernière approbation par HQ. */
+            Instant hqApprovedAt,
+            /** Dernière réception de l'interview par une tablette. */
+            Instant receivedByTabletAt,
+            /** Dernière entrée dans la file de HQ : approbation superviseur ou désapprobation HQ. */
+            Instant hqQueueSince) {
+
+        /** Interview sans historique de validation ni de tablette (formats d'export anciens, tests). */
+        public InterviewRecord(UUID interviewId, String interviewKey, String status, Integer assignmentId,
+                Boolean hasErrors, Integer errorsCount, Integer rejectionsSupervisor, Integer rejectionsHq,
+                Integer interviewerCount, Long durationSeconds, Integer unansweredCount, String interviewerName,
+                Instant createdAt, Instant completedAt, Instant lastActionAt) {
+            this(interviewId, interviewKey, status, assignmentId, hasErrors, errorsCount, rejectionsSupervisor,
+                    rejectionsHq, interviewerCount, durationSeconds, unansweredCount, interviewerName, createdAt,
+                    completedAt, lastActionAt, null, null, null, null, null);
+        }
+    }
 
     public record UnitRecord(
             UUID interviewId,
@@ -96,7 +117,11 @@ public class TabularExportParser {
 
     /** Codes d'action de interview__actions.tab utilisés pour le suivi terrain. */
     private static final int ACTION_COMPLETED = 3;
+    private static final int ACTION_APPROVED_BY_SUPERVISOR = 5;
+    private static final int ACTION_APPROVED_BY_HQ = 6;
+    private static final int ACTION_UNAPPROVED_BY_HQ = 11;
     private static final int ACTION_CREATED = 12;
+    private static final int ACTION_RECEIVED_BY_TABLET = 13;
     /** Code de rôle « enquêteur » dans les colonnes role et responsible__role. */
     private static final int ROLE_INTERVIEWER = 1;
 
@@ -108,6 +133,11 @@ public class TabularExportParser {
         private Instant completedAt;
         private Instant lastAction;
         private Instant lastCompletion;
+        private Instant lastCompletedAt;
+        private Instant supervisorApprovedAt;
+        private Instant hqQueueSince;
+        private Instant hqApprovedAt;
+        private Instant receivedByTabletAt;
         private Instant lastInterviewerResponsibility;
 
         private String interviewerName() {
@@ -175,7 +205,12 @@ public class TabularExportParser {
                         history == null ? null
                                 : history.createdAt != null ? history.createdAt : history.firstAction,
                         history == null ? null : history.completedAt,
-                        history == null ? null : history.lastAction));
+                        history == null ? null : history.lastAction,
+                        history == null ? null : history.lastCompletedAt,
+                        history == null ? null : history.supervisorApprovedAt,
+                        history == null ? null : history.hqApprovedAt,
+                        history == null ? null : history.receivedByTabletAt,
+                        history == null ? null : history.hqQueueSince));
                 interviews.add(interviewId);
             });
 
@@ -256,6 +291,18 @@ public class TabularExportParser {
             if (action == ACTION_CREATED && (history.createdAt == null || at.isBefore(history.createdAt))) {
                 history.createdAt = at;
             }
+            switch (action) {
+                case ACTION_COMPLETED -> history.lastCompletedAt = latest(history.lastCompletedAt, at);
+                case ACTION_APPROVED_BY_SUPERVISOR -> {
+                    history.supervisorApprovedAt = latest(history.supervisorApprovedAt, at);
+                    history.hqQueueSince = latest(history.hqQueueSince, at);
+                }
+                // Une désapprobation HQ renvoie l'interview dans la file de HQ.
+                case ACTION_UNAPPROVED_BY_HQ -> history.hqQueueSince = latest(history.hqQueueSince, at);
+                case ACTION_APPROVED_BY_HQ -> history.hqApprovedAt = latest(history.hqApprovedAt, at);
+                case ACTION_RECEIVED_BY_TABLET -> history.receivedByTabletAt = latest(history.receivedByTabletAt, at);
+                default -> { }
+            }
             if (action == ACTION_COMPLETED) {
                 if (history.completedAt == null || at.isBefore(history.completedAt)) {
                     history.completedAt = at;
@@ -278,6 +325,10 @@ public class TabularExportParser {
             }
         });
         return histories;
+    }
+
+    private static Instant latest(Instant current, Instant candidate) {
+        return current == null || candidate.isAfter(current) ? candidate : current;
     }
 
     static Instant timestamp(String date, String time) {

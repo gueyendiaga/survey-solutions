@@ -11,7 +11,7 @@ import { AuthService } from './core/services/auth.service';
 import { DashboardChartComponent } from './shared/components/dashboard-chart/dashboard-chart';
 import {
   BASE, QUESTIONNAIRE_ID, analyticsResponse, completenessResponse, dashboardResponse, fieldworkResponse,
-  filterOptionsResponse, ageQuestion, syncResponse
+  filterOptionsResponse, operationsResponse, ageQuestion, syncResponse
 } from './testing/fixtures';
 
 const QUESTIONNAIRE_URL = `/questionnaires/${QUESTIONNAIRE_ID}/1`;
@@ -49,6 +49,7 @@ describe('Application routée', () => {
     http.expectOne(`${BASE}/filter-options`).flush(filterOptionsResponse());
     if (tab === 'suivi-terrain') {
       http.expectOne((request) => request.url === `${BASE}/fieldwork`).flush(fieldworkResponse());
+      http.expectOne((request) => request.url === `${BASE}/operations`).flush(operationsResponse());
     }
     http.expectOne(`${BASE}/reports`).flush([
       { id: 7, generatedAt: '2026-11-09T07:00:00Z', trigger: 'SCHEDULED', filename: 'rapport.pdf', sizeBytes: 51200 }
@@ -58,6 +59,14 @@ describe('Application routée', () => {
     http.expectOne((request) => request.url === `${BASE}/question-completeness`).flush(completenessResponse());
     http.expectOne((request) => request.url === `${BASE}/question-analytics`
       && request.params.get('variableName') === 'age').flush(analyticsResponse());
+    harness.detectChanges();
+  }
+
+  function flushAutoReject(): void {
+    http.expectOne(`${BASE}/auto-reject`).flush({
+      settings: { mode: 'OFF', maxHqRejections: 2, rules: [], updatedAt: null, updatedBy: null },
+      recentEvents: []
+    });
     harness.detectChanges();
   }
 
@@ -126,11 +135,28 @@ describe('Application routée', () => {
     expect(page().querySelector('app-fieldwork-panel .kpis')?.textContent).toContain('66,7 %');
   });
 
+  it('affiche les opérations de terrain et recharge la ventilation choisie', async () => {
+    await openQuestionnaire();
+    const operations = page().querySelector('app-field-operations') as HTMLElement;
+    expect(operations.querySelector('.ops-kpis')?.textContent).toContain('1 / 2');
+    expect(operations.querySelector('.zone-table')?.textContent).toContain('Dakar');
+
+    const picker = operations.querySelector('app-search-select[name="zoneVariable"]') as HTMLElement;
+    (picker.querySelector('.select-trigger') as HTMLButtonElement).click();
+    harness.detectChanges();
+    [...picker.querySelectorAll<HTMLButtonElement>('[role="option"]')]
+      .find((option) => option.textContent!.includes('Milieu'))!.click();
+    harness.detectChanges();
+    const request = http.expectOne((item) => item.url === `${BASE}/operations`);
+    expect(request.request.params.get('zoneVariable')).toBe('milieu');
+    request.flush(operationsResponse());
+  });
+
   it('reflète l’onglet actif dans l’URL et corrige un onglet inconnu', async () => {
     await openQuestionnaire();
     const tabs = page().querySelectorAll<HTMLButtonElement>('[role="tab"]');
 
-    tabs[4].click();
+    [...tabs].find((button) => button.id === 'tab-reports')!.click();
     await harness.fixture.whenStable();
     harness.detectChanges();
     expect(url()).toBe(`${QUESTIONNAIRE_URL}/rapports`);
@@ -271,6 +297,7 @@ describe('Application routée', () => {
 
   it('ouvre une variable depuis l’écran qualité', async () => {
     await openQuestionnaire('qualite');
+    flushAutoReject();
     const row = page().querySelector('tbody tr') as HTMLElement;
     expect(page().querySelector('.kpis')?.textContent).toContain('50 %');
     expect(row.textContent).toContain('age');
@@ -282,6 +309,40 @@ describe('Application routée', () => {
     http.match((request) => request.url === `${BASE}/question-analytics`).forEach((r) => r.flush(analyticsResponse()));
     harness.detectChanges();
     expect(url()).toBe(`${QUESTIONNAIRE_URL}/variables`);
+  });
+
+  it('simule puis enregistre des règles de rejet automatique', async () => {
+    await openQuestionnaire('qualite');
+    flushAutoReject();
+    const card = page().querySelector('app-auto-reject') as HTMLElement;
+    expect(card.textContent).toContain('Aucune règle');
+
+    [...card.querySelectorAll<HTMLButtonElement>('.ar-add')].find((b) => b.textContent?.includes('Durée trop courte'))!.click();
+    [...card.querySelectorAll<HTMLButtonElement>('.ar-segmented button')].find((b) => b.textContent?.includes('Simulation'))!.click();
+    harness.detectChanges();
+    await harness.fixture.whenStable();
+    (card.querySelector('.ar-btn.primary') as HTMLButtonElement).click();
+
+    const save = http.expectOne((request) => request.method === 'PUT' && request.url === `${BASE}/auto-reject`);
+    expect(save.request.body).toEqual({
+      mode: 'SIMULATION',
+      maxHqRejections: 2,
+      rules: [{ id: null, type: 'MIN_DURATION', variable: null, minValue: 15, maxValue: null, message: null, enabled: true }]
+    });
+    save.flush({ mode: 'SIMULATION', maxHqRejections: 2, updatedAt: null, updatedBy: null,
+      rules: [{ id: 7, type: 'MIN_DURATION', variable: null, minValue: 15, maxValue: null, message: null, enabled: true }] });
+    http.expectOne(`${BASE}/auto-reject/preview`).flush({
+      evaluated: 3,
+      perRule: [{ ruleId: 7, type: 'MIN_DURATION', variable: null, interviews: 1 }],
+      candidates: [{ interviewId: 'i1', interviewKey: '11-22-33-44', status: 'Completed', responsible: 'enq1',
+        hqRejections: 0, overLimit: false, violations: [{ ruleId: 7, type: 'MIN_DURATION', variable: null,
+          reason: 'Durée d’interview trop courte (6 min, minimum 15 min)' }] }]
+    });
+    harness.detectChanges();
+
+    expect(card.querySelector('.ar-hit')?.textContent).toContain('1 interview(s)');
+    expect(card.querySelector('.ar-preview')?.textContent).toContain('11-22-33-44');
+    expect(card.querySelector('.ar-preview')?.textContent).toContain('trop courte (6 min');
   });
 
   it('transmet les filtres appliqués au suivi terrain, à la complétude et aux analyses', async () => {
@@ -315,6 +376,9 @@ describe('Application routée', () => {
     expect(fieldwork.request.params.get('from')).toBe('2026-11-01');
     expect(fieldwork.request.params.has('statuses')).toBeFalse();
     fieldwork.flush({ ...fieldworkResponse(), filtersApplied: true });
+    const operations = http.expectOne((request) => request.url === `${BASE}/operations`);
+    expect(operations.request.params.get('interviewer')).toBe('enq1');
+    operations.flush(operationsResponse());
     http.expectOne((request) => request.url === `${BASE}/question-completeness`
       && request.params.get('interviewer') === 'enq1').flush(completenessResponse());
     http.expectOne((request) => request.url === `${BASE}/question-analytics`
@@ -398,6 +462,7 @@ describe('Attente de l’import des données', () => {
     http.expectOne(`${BASE}/sync`).flush({ inProgress: false, lastSuccessAt: null, interviewCount: null, lastStatus: null, lastError: null });
     http.expectOne(`${BASE}/filter-options`).flush({ supervisors: [], interviewers: [], statuses: [] });
     http.expectOne((request) => request.url === `${BASE}/fieldwork`).flush({ detail: 'Synchronisation en cours', syncPending: true }, pending);
+    http.expectOne((request) => request.url === `${BASE}/operations`).flush({ syncPending: true }, pending);
     http.expectOne(`${BASE}/reports`).flush([]);
     http.expectOne(`${BASE}/question-list`).flush([ageQuestion()]);
     harness.detectChanges();
@@ -415,6 +480,7 @@ describe('Attente de l’import des données', () => {
     harness.detectChanges();
     http.expectOne(`${BASE}/filter-options`).flush({ supervisors: [], interviewers: [], statuses: [] });
     http.expectOne((request) => request.url === `${BASE}/fieldwork`).flush(fieldworkResponse());
+    http.expectOne((request) => request.url === `${BASE}/operations`).flush(operationsResponse());
     http.expectOne((request) => request.url === `${BASE}/question-completeness`).flush(completenessResponse());
     http.expectOne((request) => request.url === `${BASE}/question-analytics`).flush(analyticsResponse());
     harness.detectChanges();
