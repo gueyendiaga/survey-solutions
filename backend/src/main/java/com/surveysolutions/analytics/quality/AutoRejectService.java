@@ -72,7 +72,7 @@ public class AutoRejectService {
     /** Évalue les règles actives sans rien modifier dans HQ. */
     public Preview preview(UUID questionnaireId, long version) {
         Settings settings = repository.settings(questionnaireId, version);
-        List<PendingInterview> pending = repository.pending(questionnaireId, version);
+        List<PendingInterview> interviews = repository.all(questionnaireId, version);
         Map<UUID, List<Violation>> violations = new LinkedHashMap<>();
         List<RuleCount> perRule = new ArrayList<>();
         for (Rule rule : settings.rules()) {
@@ -86,7 +86,7 @@ public class AutoRejectService {
                         .add(new Violation(rule.id(), rule.type(), rule.variable(), reason(rule, hit.detail())));
             }
         }
-        List<Candidate> candidates = pending.stream()
+        List<Candidate> candidates = interviews.stream()
                 .filter(interview -> violations.containsKey(interview.interviewId()))
                 .map(interview -> new Candidate(
                         interview.interviewId(),
@@ -95,9 +95,11 @@ public class AutoRejectService {
                         interview.responsible(),
                         interview.hqRejections(),
                         interview.hqRejections() >= settings.maxHqRejections(),
+                        AutoRejectRepository.isRejectable(interview.status()),
                         violations.get(interview.interviewId())))
                 .toList();
-        return new Preview(pending.size(), candidates, perRule);
+        int pending = (int) interviews.stream().filter(interview -> AutoRejectRepository.isRejectable(interview.status())).count();
+        return new Preview(interviews.size(), pending, candidates, perRule);
     }
 
     /** Après une synchronisation réussie : ne fait rien hors du mode automatique. */
@@ -124,7 +126,8 @@ public class AutoRejectService {
         int failed = 0;
         for (Candidate candidate : preview.candidates()) {
             PendingInterview interview = pending.get(candidate.interviewId());
-            if (interview == null) {
+            if (!candidate.rejectable() || interview == null) {
+                // Déjà approuvée par HQ ou rejetée : hors de la file, jamais rejetée automatiquement.
                 continue;
             }
             if (repository.alreadyHandled(interview.interviewId(), interview.completedAt())) {
@@ -152,7 +155,7 @@ public class AutoRejectService {
         }
         LOG.info("Rejet automatique {} v{} : {} rejetée(s), {} au plafond, {} déjà traitée(s), {} échec(s).",
                 questionnaireId, version, rejected, skipped, handled, failed);
-        return new RunResult(preview.evaluated(), rejected, skipped, handled, failed);
+        return new RunResult(preview.pending(), rejected, skipped, handled, failed);
     }
 
     private Rule validate(UUID questionnaireId, long version, Rule rule) {
@@ -229,7 +232,8 @@ public class AutoRejectService {
     /** Motif lu par l'enquêteur dans le commentaire de rejet : le message personnalisé prime. */
     static String reason(Rule rule, String detail) {
         if (rule.message() != null) {
-            return rule.message();
+            // Un même message couvre plusieurs questions : on précise laquelle est en cause.
+            return rule.variable() == null ? rule.message() : rule.message() + " (" + rule.variable() + ")";
         }
         return switch (rule.type()) {
             case VALIDATION_ERRORS -> detail + " erreur(s) de validation à corriger";

@@ -1,5 +1,6 @@
 import type { EChartsCoreOption } from 'echarts/core';
 import { Dashboard, QuestionAnalytics } from '../../core/models/dashboard.models';
+import { escapeHtml, htmlToText } from './html-text';
 import { statusLabel } from './labels';
 
 export type AnswerChartType = 'bar' | 'horizontalBar' | 'pie';
@@ -44,7 +45,7 @@ export function answerOptions(analytics: QuestionAnalytics, type: AnswerChartTyp
       tooltip: {
         trigger: 'item' as const,
         formatter: (item: { name: string; value: number; percent: number }) =>
-          `${item.name}<br/><strong>${item.value.toLocaleString('fr-FR')}</strong> réponse(s) · ${item.percent}%`
+          `${escapeHtml(item.name)}<br/><strong>${item.value.toLocaleString('fr-FR')}</strong> réponse(s) · ${item.percent}%`
       },
       series: [
         {
@@ -52,7 +53,7 @@ export function answerOptions(analytics: QuestionAnalytics, type: AnswerChartTyp
           color: CHART_COLORS,
           radius: '68%',
           data: analytics.distribution.map((item) => ({
-            name: item.label,
+            name: htmlToText(item.label),
             value: item.count
           })),
           label: {
@@ -75,7 +76,7 @@ export function answerOptions(analytics: QuestionAnalytics, type: AnswerChartTyp
         axisPointer: { type: 'shadow' as const },
         formatter: (items: { dataIndex: number; value: number }[]) => {
           const answer = analytics.distribution[items[0].dataIndex];
-          return `${answer.label}<br/><strong>${answer.count.toLocaleString('fr-FR')}</strong> réponse(s) · ${answer.percentage}%`;
+          return `${escapeHtml(htmlToText(answer.label))}<br/><strong>${answer.count.toLocaleString('fr-FR')}</strong> réponse(s) · ${answer.percentage}%`;
         }
       },
       xAxis: {
@@ -86,7 +87,7 @@ export function answerOptions(analytics: QuestionAnalytics, type: AnswerChartTyp
       },
       yAxis: {
         type: 'category' as const,
-        data: analytics.distribution.map((item) => item.label),
+        data: analytics.distribution.map((item) => htmlToText(item.label)),
         triggerEvent: true,
         axisLabel: { color: '#374151', width: 160, overflow: 'truncate' as const },
         inverse: true,
@@ -118,12 +119,12 @@ export function answerOptions(analytics: QuestionAnalytics, type: AnswerChartTyp
       axisPointer: { type: 'shadow' as const },
       formatter: (items: { dataIndex: number; value: number }[]) => {
         const answer = analytics.distribution[items[0].dataIndex];
-        return `${answer.label}<br/><strong>${answer.count.toLocaleString('fr-FR')}</strong> réponse(s) · ${answer.percentage}%`;
+        return `${escapeHtml(htmlToText(answer.label))}<br/><strong>${answer.count.toLocaleString('fr-FR')}</strong> réponse(s) · ${answer.percentage}%`;
       }
     },
     xAxis: {
       type: 'category' as const,
-      data: analytics.distribution.map((item) => item.label),
+      data: analytics.distribution.map((item) => htmlToText(item.label)),
       triggerEvent: true,
       axisLabel: {
         color: '#6b7280',

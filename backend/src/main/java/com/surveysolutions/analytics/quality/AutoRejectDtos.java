@@ -35,10 +35,15 @@ public final class AutoRejectDtos {
             String responsible,
             int hqRejections,
             boolean overLimit,
+            /** Terminée ou approuvée par le superviseur : HQ peut la rejeter. */
+            boolean rejectable,
             List<Violation> violations) {}
 
-    /** Résultat d'une évaluation : interviews concernées parmi celles en attente de validation. */
-    public record Preview(int evaluated, List<Candidate> candidates, List<RuleCount> perRule) {}
+    /**
+     * Résultat d'une évaluation sur toutes les interviews synchronisées : {@code pending} compte celles
+     * qu'HQ peut encore rejeter, seules concernées par le rejet automatique.
+     */
+    public record Preview(int evaluated, int pending, List<Candidate> candidates, List<RuleCount> perRule) {}
 
     public record RuleCount(Long ruleId, RuleType type, String variable, int interviews) {}
 

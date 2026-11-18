@@ -207,7 +207,7 @@
           <tbody>
             @for (row of operations.zones.rows; track row.code) {
               <tr>
-                <td class="l">{{ row.label }}</td>
+                <td class="l" [innerHTML]="row.label"></td>
                 <td class="l"><span class="bar-cell"><span class="track"><span class="fill" [style.width.%]="zoneShare(row)"></span></span>{{ row.interviews | number: '1.0-0' : 'fr-FR' }}</span></td>
                 <td>{{ row.completed | number: '1.0-0' : 'fr-FR' }}</td>
                 <td>{{ row.approved | number: '1.0-0' : 'fr-FR' }}</td>

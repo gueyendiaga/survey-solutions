@@ -19,6 +19,10 @@ public class AutoRejectRepository {
     /** Statuts qu'HQ peut rejeter. */
     static final String REJECTABLE = "('Completed', 'ApprovedBySupervisor')";
 
+    static boolean isRejectable(String status) {
+        return "Completed".equals(status) || "ApprovedBySupervisor".equals(status);
+    }
+
     private final JdbcTemplate jdbc;
 
     public AutoRejectRepository(JdbcTemplate jdbc) {
@@ -85,14 +89,23 @@ public class AutoRejectRepository {
 
     /** Interviews terminées ou approuvées par le superviseur : les seules qu'HQ peut rejeter. */
     public List<PendingInterview> pending(UUID questionnaireId, long version) {
+        return interviews(questionnaireId, version, " AND status IN " + REJECTABLE);
+    }
+
+    /** Toutes les interviews synchronisées de la version : la simulation les évalue toutes. */
+    public List<PendingInterview> all(UUID questionnaireId, long version) {
+        return interviews(questionnaireId, version, "");
+    }
+
+    private List<PendingInterview> interviews(UUID questionnaireId, long version, String statusFilter) {
         return jdbc.query("""
                 SELECT interview_id, interview_key, status, interviewer_name,
                        coalesce(rejections_hq, 0) AS rejections_hq,
                        coalesce(last_completed_at, completed_at) AS completed_at
                 FROM interview
-                WHERE questionnaire_id = ? AND version = ? AND status IN %s
+                WHERE questionnaire_id = ? AND version = ?%s
                 ORDER BY interview_key
-                """.formatted(REJECTABLE), (rs, i) -> new PendingInterview(
+                """.formatted(statusFilter), (rs, i) -> new PendingInterview(
                         rs.getObject("interview_id", UUID.class),
                         rs.getString("interview_key"),
                         rs.getString("status"),
@@ -102,9 +115,12 @@ public class AutoRejectRepository {
                 questionnaireId, version);
     }
 
-    /** Interviews en infraction avec une règle, et le détail lisible de l'infraction. */
+    /**
+     * Interviews de la version en infraction avec une règle, quel que soit leur statut, et le détail
+     * lisible de l'infraction. Le rejet effectif ne retient ensuite que les interviews rejetables.
+     */
     public List<Hit> hits(UUID questionnaireId, long version, Rule rule) {
-        String pending = "i.questionnaire_id = ? AND i.version = ? AND i.status IN " + REJECTABLE;
+        String pending = "i.questionnaire_id = ? AND i.version = ?";
         return switch (rule.type()) {
             case VALIDATION_ERRORS -> jdbc.query("""
                     SELECT i.interview_id, i.errors_count::text AS detail FROM interview i

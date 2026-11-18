@@ -1,8 +1,10 @@
 import { Component, ElementRef, HostListener, Input, forwardRef } from '@angular/core';
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { htmlToText } from '../../utils/html-text';
 
 export interface SearchSelectOption {
   value: string | null;
+  /** Peut contenir le HTML léger des libellés HQ : affiché assaini, recherché en texte brut. */
   label: string;
 }
 
@@ -40,7 +42,7 @@ export class SearchSelectComponent implements ControlValueAccessor {
   protected get filteredOptions(): SearchSelectOption[] {
     const query = this.query.trim().toLocaleLowerCase('fr');
     return query
-      ? this.options.filter((option) => option.label.toLocaleLowerCase('fr').includes(query))
+      ? this.options.filter((option) => htmlToText(option.label).toLocaleLowerCase('fr').includes(query))
       : this.options;
   }
 
