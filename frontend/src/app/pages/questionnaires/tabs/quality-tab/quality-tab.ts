@@ -5,12 +5,13 @@ import { InfoTooltipComponent } from '../../../../shared/components/info-tooltip
 import { statusList } from '../../../../shared/utils/labels';
 import { LoadingStateComponent } from '../../../../shared/components/loading-state/loading-state';
 import { QuestionnaireStore } from '../../questionnaire.store';
+import { AutoRejectComponent } from '../auto-reject/auto-reject';
 
 /** Onglet Qualité des données : complétude de chaque variable, de la plus faible à la meilleure. */
 @Component({
   selector: 'app-quality-tab',
   standalone: true,
-  imports: [DecimalPipe, LoadingStateComponent, CompletenessStatusComponent, InfoTooltipComponent],
+  imports: [DecimalPipe, LoadingStateComponent, CompletenessStatusComponent, InfoTooltipComponent, AutoRejectComponent],
   templateUrl: './quality-tab.html',
   styleUrl: './quality-tab.css'
 })

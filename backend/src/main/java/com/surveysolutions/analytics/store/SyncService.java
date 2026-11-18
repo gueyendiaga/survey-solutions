@@ -18,6 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +39,7 @@ import org.springframework.security.core.session.SessionRegistry;
  * version déjà en cours de synchronisation n'est pas relancée.
  */
 @Service
-public class SyncService implements DisposableBean {
+public class SyncService implements DisposableBean, ApplicationEventPublisherAware {
     private static final Logger LOG = LoggerFactory.getLogger(SyncService.class);
 
     public enum Trigger { SCHEDULED, MANUAL, ON_DEMAND }
@@ -51,6 +53,10 @@ public class SyncService implements DisposableBean {
     private final SessionRegistry sessionRegistry;
     private final ExecutorService worker;
     private final Set<VersionKey> pending = ConcurrentHashMap.newKeySet();
+    private ApplicationEventPublisher events = event -> { };
+
+    /** Publiée après chaque import réussi, dans le fil de synchronisation (identifiants HQ actifs). */
+    public record VersionSynchronized(UUID questionnaireId, long version) {}
 
     @Autowired
     public SyncService(
@@ -79,6 +85,11 @@ public class SyncService implements DisposableBean {
         this.repository = repository;
         this.sessionRegistry = sessionRegistry;
         this.worker = worker;
+    }
+
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher publisher) {
+        this.events = publisher;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -215,6 +226,12 @@ public class SyncService implements DisposableBean {
             repository.finishSync(syncId, counts.interviews(), counts.units());
             LOG.info("Synchronisation {} v{} terminée : {} interview(s), {} unité(s).",
                     questionnaireId, version, counts.interviews(), counts.units());
+            try {
+                events.publishEvent(new VersionSynchronized(questionnaireId, version));
+            } catch (RuntimeException exception) {
+                LOG.warn("Traitement post-synchronisation {} v{} en échec : {}",
+                        questionnaireId, version, exception.getMessage());
+            }
         } catch (RuntimeException exception) {
             LOG.warn("Synchronisation {} v{} en échec : {}", questionnaireId, version, exception.getMessage());
             repository.failSync(syncId, exception.getMessage());

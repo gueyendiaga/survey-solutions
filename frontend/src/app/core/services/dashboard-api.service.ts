@@ -2,6 +2,12 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { map, Observable } from 'rxjs';
 import {
+  AutoRejectMode,
+  AutoRejectOverview,
+  AutoRejectPreview,
+  AutoRejectRule,
+  AutoRejectRunResult,
+  AutoRejectSettings,
   FieldOperations,
   AnalysisFilters,
   ArchivedReport,
@@ -214,6 +220,26 @@ export class DashboardApiService {
     return this.http
       .get<unknown>(`${this.baseUrl}/questionnaires/${questionnaireId}/${version}/interview-review`, { params })
       .pipe(map((response) => normalizeKeys(response) as InterviewReviewPage));
+  }
+
+  autoReject(questionnaireId: string, version: number): Observable<AutoRejectOverview> {
+    return this.http.get<AutoRejectOverview>(`${this.baseUrl}/questionnaires/${questionnaireId}/${version}/auto-reject`);
+  }
+
+  saveAutoReject(
+    questionnaireId: string,
+    version: number,
+    settings: { mode: AutoRejectMode; maxHqRejections: number; rules: AutoRejectRule[] }
+  ): Observable<AutoRejectSettings> {
+    return this.http.put<AutoRejectSettings>(`${this.baseUrl}/questionnaires/${questionnaireId}/${version}/auto-reject`, settings);
+  }
+
+  previewAutoReject(questionnaireId: string, version: number): Observable<AutoRejectPreview> {
+    return this.http.get<AutoRejectPreview>(`${this.baseUrl}/questionnaires/${questionnaireId}/${version}/auto-reject/preview`);
+  }
+
+  runAutoReject(questionnaireId: string, version: number): Observable<AutoRejectRunResult> {
+    return this.http.post<AutoRejectRunResult>(`${this.baseUrl}/questionnaires/${questionnaireId}/${version}/auto-reject/run`, {});
   }
 
   interviewHistory(interviewId: string): Observable<InterviewHistory> {

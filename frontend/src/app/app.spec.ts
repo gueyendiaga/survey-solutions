@@ -62,6 +62,14 @@ describe('Application routée', () => {
     harness.detectChanges();
   }
 
+  function flushAutoReject(): void {
+    http.expectOne(`${BASE}/auto-reject`).flush({
+      settings: { mode: 'OFF', maxHqRejections: 2, rules: [], updatedAt: null, updatedBy: null },
+      recentEvents: []
+    });
+    harness.detectChanges();
+  }
+
   async function openQuestionnaire(tab = 'suivi-terrain', questions = [ageQuestion()]): Promise<void> {
     await harness.navigateByUrl(`${QUESTIONNAIRE_URL}/${tab}`);
     http.expectOne('/api/dashboard').flush(dashboardResponse());
@@ -289,6 +297,7 @@ describe('Application routée', () => {
 
   it('ouvre une variable depuis l’écran qualité', async () => {
     await openQuestionnaire('qualite');
+    flushAutoReject();
     const row = page().querySelector('tbody tr') as HTMLElement;
     expect(page().querySelector('.kpis')?.textContent).toContain('50 %');
     expect(row.textContent).toContain('age');
@@ -300,6 +309,40 @@ describe('Application routée', () => {
     http.match((request) => request.url === `${BASE}/question-analytics`).forEach((r) => r.flush(analyticsResponse()));
     harness.detectChanges();
     expect(url()).toBe(`${QUESTIONNAIRE_URL}/variables`);
+  });
+
+  it('simule puis enregistre des règles de rejet automatique', async () => {
+    await openQuestionnaire('qualite');
+    flushAutoReject();
+    const card = page().querySelector('app-auto-reject') as HTMLElement;
+    expect(card.textContent).toContain('Aucune règle');
+
+    [...card.querySelectorAll<HTMLButtonElement>('.ar-add')].find((b) => b.textContent?.includes('Durée trop courte'))!.click();
+    [...card.querySelectorAll<HTMLButtonElement>('.ar-segmented button')].find((b) => b.textContent?.includes('Simulation'))!.click();
+    harness.detectChanges();
+    await harness.fixture.whenStable();
+    (card.querySelector('.ar-btn.primary') as HTMLButtonElement).click();
+
+    const save = http.expectOne((request) => request.method === 'PUT' && request.url === `${BASE}/auto-reject`);
+    expect(save.request.body).toEqual({
+      mode: 'SIMULATION',
+      maxHqRejections: 2,
+      rules: [{ id: null, type: 'MIN_DURATION', variable: null, minValue: 15, maxValue: null, message: null, enabled: true }]
+    });
+    save.flush({ mode: 'SIMULATION', maxHqRejections: 2, updatedAt: null, updatedBy: null,
+      rules: [{ id: 7, type: 'MIN_DURATION', variable: null, minValue: 15, maxValue: null, message: null, enabled: true }] });
+    http.expectOne(`${BASE}/auto-reject/preview`).flush({
+      evaluated: 3,
+      perRule: [{ ruleId: 7, type: 'MIN_DURATION', variable: null, interviews: 1 }],
+      candidates: [{ interviewId: 'i1', interviewKey: '11-22-33-44', status: 'Completed', responsible: 'enq1',
+        hqRejections: 0, overLimit: false, violations: [{ ruleId: 7, type: 'MIN_DURATION', variable: null,
+          reason: 'Durée d’interview trop courte (6 min, minimum 15 min)' }] }]
+    });
+    harness.detectChanges();
+
+    expect(card.querySelector('.ar-hit')?.textContent).toContain('1 interview(s)');
+    expect(card.querySelector('.ar-preview')?.textContent).toContain('11-22-33-44');
+    expect(card.querySelector('.ar-preview')?.textContent).toContain('trop courte (6 min');
   });
 
   it('transmet les filtres appliqués au suivi terrain, à la complétude et aux analyses', async () => {

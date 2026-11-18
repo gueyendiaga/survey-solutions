@@ -1,0 +1,127 @@
+<div class="ih-backdrop" (click)="close()"></div>
+<aside class="ih-panel" role="dialog" aria-modal="true" aria-labelledby="ih-title">
+  <header class="ih-header">
+    <div class="ih-heading">
+      <span class="ih-kicker">Historique de l’interview</span>
+      <h2 id="ih-title" class="mono">{{ interviewKey ?? interviewId }}</h2>
+      @if (statusLabel) {
+        <span class="ih-status">{{ statusLabel }}</span>
+      }
+    </div>
+    <div class="ih-header-actions">
+      <button type="button" class="ih-button" [disabled]="!model()" (click)="exportCsv()">Exporter CSV</button>
+      <button type="button" class="ih-close" aria-label="Fermer l’historique" (click)="close()">×</button>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <app-loading-state label="Chargement de l’historique…" />
+  } @else if (error(); as message) {
+    <div class="ih-error" role="alert">
+      <span>{{ message }}</span>
+      <button type="button" class="ih-button" (click)="load()">Réessayer</button>
+    </div>
+  } @else if (model(); as history) {
+    <div class="ih-body">
+      <section class="ih-summary" aria-label="Résumé">
+        <div class="ih-stat">
+          <span>Saisie active</span>
+          <strong>{{ formatDuration(history.summary.activeSeconds) }}</strong>
+          <small>{{ history.summary.sessions }} session(s)</small>
+        </div>
+        <div class="ih-stat">
+          <span>Réponses saisies</span>
+          <strong>{{ history.summary.answers }}</strong>
+          <small>{{ history.summary.removals }} effacement(s)</small>
+        </div>
+        <div class="ih-stat" [class.warn]="history.summary.corrections > 0">
+          <span>Corrections</span>
+          <strong>{{ history.summary.corrections }}</strong>
+          <small>réponses modifiées</small>
+        </div>
+        <div class="ih-stat" [class.danger]="history.summary.rejections > 0">
+          <span>Rejets</span>
+          <strong>{{ history.summary.rejections }}</strong>
+          <small>{{ history.summary.comments }} commentaire(s)</small>
+        </div>
+      </section>
+
+      <ol class="ih-milestones" aria-label="Étapes clés">
+        @for (step of history.milestones; track step.label) {
+          <li [class]="'tone-' + step.tone" [class.pending]="!step.at">
+            <span class="ih-dot" aria-hidden="true"></span>
+            <strong>{{ step.label }}</strong>
+            <time>{{ shortDate(step.at) }}</time>
+          </li>
+        }
+      </ol>
+
+      <div class="ih-toolbar">
+        <div class="ih-chips" role="group" aria-label="Type d’événements">
+          @for (item of filters; track item.id) {
+            <button type="button" class="ih-chip" [class.active]="filter() === item.id" [attr.aria-pressed]="filter() === item.id"
+              [title]="item.hint" (click)="setFilter(item.id)">
+              {{ item.label }} <span>{{ history.counts[item.id] }}</span>
+            </button>
+          }
+        </div>
+        <div class="ih-search-row">
+          <input type="search" class="ih-search" placeholder="Rechercher une variable, un auteur, une valeur…"
+            aria-label="Rechercher dans l’historique" [ngModel]="search()" (ngModelChange)="search.set($event)" />
+          @if (filter() === 'answer') {
+            <label class="ih-toggle">
+              <input type="checkbox" [ngModel]="correctionsOnly()" (ngModelChange)="correctionsOnly.set($event)" />
+              Corrections seulement
+            </label>
+          }
+        </div>
+      </div>
+
+      <div class="ih-timeline" aria-live="polite">
+        @for (group of days(); track group.day) {
+          <h3 class="ih-day">{{ group.day }}</h3>
+          <ol>
+            @for (entry of group.entries; track entry.index) {
+              <li [class]="'ih-entry tone-' + entry.tone + ' cat-' + entry.category">
+                <time class="ih-time">{{ time(entry) }}</time>
+                <span class="ih-marker" aria-hidden="true"></span>
+                <div class="ih-content">
+                  <div class="ih-line">
+                    <strong>{{ entry.label }}</strong>
+                    @if (entry.correction) {
+                      <span class="ih-badge warn">Correction</span>
+                    }
+                    @if (entry.grouped > 1) {
+                      <span class="ih-badge">{{ entry.grouped }}</span>
+                    }
+                  </div>
+                  @if (entry.question) {
+                    <p class="ih-answer">
+                      <code>{{ entry.question }}</code>
+                      @if (entry.roster) {
+                        <span class="ih-roster">{{ entry.roster }}</span>
+                      }
+                      @if (entry.correction) {
+                        <span class="ih-old">{{ entry.previous }}</span><span aria-label="devient"> → </span>
+                      }
+                      @if (entry.action === 'AnswerRemoved') {
+                        <em>réponse effacée</em>
+                      } @else if (entry.value !== null) {
+                        <span class="ih-value">{{ entry.value }}</span>
+                      }
+                    </p>
+                  } @else if (entry.detail) {
+                    <p class="ih-detail">{{ entry.detail }}</p>
+                  }
+                  <p class="ih-actor">{{ entry.actor }}@if (entry.role) { · {{ entry.role }} }</p>
+                </div>
+              </li>
+            }
+          </ol>
+        } @empty {
+          <p class="ih-empty">Aucun événement ne correspond à ces critères.</p>
+        }
+      </div>
+    </div>
+  }
+</aside>
