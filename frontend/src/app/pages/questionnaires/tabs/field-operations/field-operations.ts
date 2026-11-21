@@ -1,5 +1,5 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   FieldOperations,
@@ -9,6 +9,14 @@ import {
   ZoneProgress
 } from '../../../../core/models/dashboard.models';
 import { InfoTooltipComponent } from '../../../../shared/components/info-tooltip/info-tooltip';
+import { KpiCardComponent } from '../../../../shared/components/kpi-card/kpi-card';
+import { RegionMapComponent, RegionValue } from '../../../../shared/components/region-map/region-map';
+import { TablePagerComponent } from '../../../../shared/components/table-pager/table-pager';
+import { TableSearchComponent } from '../../../../shared/components/table-search/table-search';
+import { chartColor } from '../../../../shared/utils/chart-options';
+import { htmlToText } from '../../../../shared/utils/html-text';
+import { matchRegions } from '../../../../shared/utils/senegal-regions';
+import { createTableState } from '../../../../shared/utils/table-state';
 import {
   SearchSelectComponent,
   SearchSelectOption
@@ -17,7 +25,7 @@ import { statusLabel } from '../../../../shared/utils/labels';
 
 interface StateView {
   label: string;
-  tone: 'ok' | 'warn' | 'danger' | 'muted';
+  tone: 'ok' | 'warn' | 'danger' | 'muted' | 'blue';
 }
 
 const STATES: Record<TabletState, StateView> = {
@@ -36,6 +44,14 @@ interface Bucket {
   tone: 'b1' | 'b2' | 'b3' | 'b4';
 }
 
+type MapMetric = 'interviews' | 'completed' | 'approvalRate';
+
+const MAP_METRIC_LABELS: Record<MapMetric, string> = {
+  interviews: 'Interviews',
+  completed: 'Interviews terminées',
+  approvalRate: 'Part approuvée'
+};
+
 /**
  * Opérations de terrain : activité des tablettes, file de validation, rendez-vous, mode de
  * collecte et avancement par zone (métadonnées HQ hors export Tabular).
@@ -43,13 +59,58 @@ interface Bucket {
 @Component({
   selector: 'app-field-operations',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, FormsModule, InfoTooltipComponent, SearchSelectComponent],
+  imports: [
+    DatePipe,
+    DecimalPipe,
+    FormsModule,
+    InfoTooltipComponent,
+    KpiCardComponent,
+    RegionMapComponent,
+    SearchSelectComponent,
+    TablePagerComponent,
+    TableSearchComponent
+  ],
   templateUrl: './field-operations.html',
   styleUrl: './field-operations.css'
 })
-export class FieldOperationsComponent {
+export class FieldOperationsComponent implements OnChanges {
   @Input({ required: true }) operations!: FieldOperations;
   @Output() readonly zoneVariableChange = new EventEmitter<string | null>();
+
+  /** Copie de l'entrée en signal, pour les calculs dérivés (tri, recherche, carte). */
+  private readonly data = signal<FieldOperations | null>(null);
+  private readonly sorted = computed(() => {
+    const operations = this.data();
+    return operations ? this.sortInterviewers(operations.interviewers) : [];
+  });
+  protected readonly tablets = createTableState(
+    () => this.sorted(),
+    (row) => `${row.interviewer} ${row.supervisor ?? ''}`
+  );
+  protected readonly mapMetric = signal<MapMetric>('interviews');
+  /** Modalités reconnues comme régions du Sénégal (vide : pas de carte). */
+  protected readonly regionMatches = computed(() => {
+    const zones = this.data()?.zones;
+    return zones ? matchRegions(zones.rows, (row) => htmlToText(row.label), (row) => row.code, zones.variable) : [];
+  });
+  protected readonly mapValues = computed<RegionValue[]>(() => {
+    const metric = this.mapMetric();
+    return this.regionMatches().map(({ region, row }) => ({
+      name: region.name,
+      value: row[metric],
+      details: [
+        `Interviews : ${row.interviews.toLocaleString('fr-FR')}`,
+        `Terminées : ${row.completed.toLocaleString('fr-FR')} · approuvées : ${row.approved.toLocaleString('fr-FR')}`,
+        `Rejetées : ${row.rejected.toLocaleString('fr-FR')} · en cours : ${row.inProgress.toLocaleString('fr-FR')}`
+      ]
+    }));
+  });
+  protected readonly mapMetricLabel = computed(() => MAP_METRIC_LABELS[this.mapMetric()]);
+  protected readonly color = chartColor;
+
+  ngOnChanges(): void {
+    this.data.set(this.operations);
+  }
 
   protected readonly statusLabel = statusLabel;
   protected readonly buckets: Bucket[] = [
@@ -74,12 +135,22 @@ export class FieldOperationsComponent {
   }
 
   /** Enquêteurs, situations à traiter d'abord puis par ancienneté d'activité. */
-  protected sortedInterviewers(): InterviewerTablet[] {
-    return [...this.operations.interviewers].sort((a, b) =>
+  private sortInterviewers(interviewers: InterviewerTablet[]): InterviewerTablet[] {
+    return [...interviewers].sort((a, b) =>
       STATE_ORDER.indexOf(a.state) - STATE_ORDER.indexOf(b.state)
       || (b.daysSinceActivity ?? -1) - (a.daysSinceActivity ?? -1)
       || b.pendingAssignments - a.pendingAssignments
       || a.interviewer.localeCompare(b.interviewer, 'fr'));
+  }
+
+  protected activeShare(): number | null {
+    const tablets = this.operations.tablets;
+    return tablets.interviewers ? (tablets.active * 100) / tablets.interviewers : null;
+  }
+
+  /** Couleur de la pastille de part approuvée. */
+  protected rateTone(rate: number): string {
+    return rate >= 80 ? 'green' : rate >= 50 ? 'blue' : 'orange';
   }
 
   protected waitingTotal(): number {

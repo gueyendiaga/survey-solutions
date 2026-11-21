@@ -15,6 +15,7 @@ import { apiErrorMessage, saveFile } from '../../../../shared/utils/http-utils';
 import { LoadingStateComponent } from '../../../../shared/components/loading-state/loading-state';
 import { InfoTooltipComponent } from '../../../../shared/components/info-tooltip/info-tooltip';
 import { QuestionnaireStore } from '../../questionnaire.store';
+import { TablePagerComponent } from '../../../../shared/components/table-pager/table-pager';
 
 const REVIEW_STATUSES = [
   'Completed',
@@ -49,7 +50,7 @@ const PAGE_SIZE = 20;
 @Component({
   selector: 'app-interview-review',
   standalone: true,
-  imports: [DatePipe, FormsModule, LoadingStateComponent, SearchSelectComponent, InfoTooltipComponent],
+  imports: [DatePipe, FormsModule, LoadingStateComponent, SearchSelectComponent, InfoTooltipComponent, TablePagerComponent],
   templateUrl: './interview-review.html'
 })
 export class InterviewReviewComponent implements OnInit, OnDestroy {
@@ -95,6 +96,7 @@ export class InterviewReviewComponent implements OnInit, OnDestroy {
   protected readonly transcriptLoading = signal(false);
 
   protected page = 1;
+  protected readonly pageSize = PAGE_SIZE;
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
   private queueRequest = 0;
   private responsiblesLoaded = false;
@@ -140,13 +142,7 @@ export class InterviewReviewComponent implements OnInit, OnDestroy {
     return Math.max(1, Math.ceil((this.queue()?.totalCount ?? 0) / PAGE_SIZE));
   }
 
-  protected rangeStart(): number {
-    return this.queue()?.totalCount ? (this.page - 1) * PAGE_SIZE + 1 : 0;
-  }
 
-  protected rangeEnd(): number {
-    return Math.min(this.page * PAGE_SIZE, this.queue()?.totalCount ?? 0);
-  }
 
   protected statusLabel(status: string): string {
     return REVIEW_STATUS_LABELS[status] ?? status;

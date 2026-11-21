@@ -1,3 +1,53 @@
 :host {
   display: block;
 }
+
+.title-cell {
+  min-width: 260px;
+}
+
+.open-questionnaire-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 140ms ease;
+}
+
+.open-questionnaire-button:hover {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.open-questionnaire-button svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.catalog-empty {
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.catalog-empty h3 {
+  margin: 0;
+  color: var(--text-strong);
+}
+
+.catalog-empty p {
+  margin: 6px 0 0;
+  color: var(--text-2);
+  font-size: var(--fs-small);
+}

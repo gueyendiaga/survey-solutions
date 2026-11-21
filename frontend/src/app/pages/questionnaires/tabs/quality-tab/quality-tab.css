@@ -1,3 +1,42 @@
 :host {
   display: block;
 }
+
+.tab-alert {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 14px 18px;
+  border: 1px solid #fed7aa;
+  border-radius: 12px;
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.tab-alert p {
+  margin: 0;
+}
+
+.link {
+  border: 0;
+  cursor: pointer;
+}
+
+.link:hover {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.question-cell {
+  min-width: 260px;
+  max-width: 520px;
+  color: #374151;
+  line-height: 1.45;
+}
+
+.rate-col {
+  min-width: 190px;
+}

@@ -1,9 +1,15 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { Component, Input, signal } from '@angular/core';
+import { Component, Input, OnChanges, computed, signal } from '@angular/core';
 import type { EChartsCoreOption } from 'echarts/core';
 import { DashboardChartComponent } from '../../../../shared/components/dashboard-chart/dashboard-chart';
 import { DailyProgress, FieldworkOverview, InterviewerProgress, TeamProgress } from '../../../../core/models/dashboard.models';
 import { InfoTooltipComponent } from '../../../../shared/components/info-tooltip/info-tooltip';
+import { KpiCardComponent } from '../../../../shared/components/kpi-card/kpi-card';
+import { ScoreGaugeComponent } from '../../../../shared/components/score-gauge/score-gauge';
+import { TablePagerComponent } from '../../../../shared/components/table-pager/table-pager';
+import { TableSearchComponent } from '../../../../shared/components/table-search/table-search';
+import { chartColor } from '../../../../shared/utils/chart-options';
+import { createTableState, normalizeText } from '../../../../shared/utils/table-state';
 
 /** Point d'attention calculé à partir des chiffres du suivi. */
 export interface AttentionPoint {
@@ -18,12 +24,47 @@ type Period = '7' | '30' | 'all';
 @Component({
   selector: 'app-fieldwork-panel',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, DashboardChartComponent, InfoTooltipComponent],
+  imports: [
+    DatePipe,
+    DecimalPipe,
+    DashboardChartComponent,
+    InfoTooltipComponent,
+    KpiCardComponent,
+    ScoreGaugeComponent,
+    TablePagerComponent,
+    TableSearchComponent
+  ],
   templateUrl: './fieldwork-panel.html',
   styleUrl: './fieldwork-panel.css'
 })
-export class FieldworkPanelComponent {
+export class FieldworkPanelComponent implements OnChanges {
   @Input({ required: true }) overview!: FieldworkOverview;
+
+  private readonly data = signal<FieldworkOverview | null>(null);
+  /** Équipes paginées ; la recherche porte sur le superviseur et les enquêteurs. */
+  protected readonly teams = createTableState(
+    () => this.data()?.teams ?? [],
+    (team) => [team.supervisor, ...team.interviewers.map((row) => row.interviewer)].join(' ')
+  );
+  private readonly query = computed(() => normalizeText(this.teams.search()));
+  protected readonly color = chartColor;
+
+  ngOnChanges(): void {
+    this.data.set(this.overview);
+  }
+
+  /** Enquêteurs affichés sous une équipe : tous, sauf si la recherche ne vise que certains d'entre eux. */
+  protected interviewersOf(team: TeamProgress): InterviewerProgress[] {
+    const query = this.query();
+    if (!query || normalizeText(team.supervisor).includes(query)) {
+      return team.interviewers;
+    }
+    return team.interviewers.filter((row) => normalizeText(row.interviewer).includes(query));
+  }
+
+  protected approvedRate(): number | null {
+    return this.overview.completed ? (this.overview.approved * 100) / this.overview.completed : null;
+  }
 
   protected readonly completionRateHelp =
     'Interviews réalisées ÷ objectif des affectations × 100. Sans objectif chiffré, le taux ne peut pas être calculé.';
@@ -147,11 +188,6 @@ export class FieldworkPanelComponent {
     return days.length ? days[days.length - 1] : null;
   }
 
-  protected donutDash(): string {
-    const circumference = 2 * Math.PI * 44;
-    return `${(circumference * this.cap(this.overview.completionRate)) / 100} ${circumference}`;
-  }
-
   /** Mêmes règles que le rapport PDF : enquêteurs inactifs, affectations non confiées, rejets, erreurs. */
   protected attention(): AttentionPoint[] {
     const rows = this.overview.teams.flatMap((team) => team.interviewers);
@@ -189,9 +225,9 @@ export class FieldworkPanelComponent {
         name: 'Cumul',
         type: 'line',
         data: days.map((day) => day.cumulative),
-        lineStyle: { color: '#9aa5dc', width: 2 },
-        itemStyle: { color: '#9aa5dc' },
-        areaStyle: { color: 'rgba(214, 219, 242, 0.75)' },
+        lineStyle: { color: '#8b5cf6', width: 2.5 },
+        itemStyle: { color: '#8b5cf6' },
+        areaStyle: { color: 'rgba(139, 92, 246, 0.12)' },
         symbol: 'none',
         z: 1,
         // Masquée quand le cumul égale la dernière barre (premier jour) : la valeur est déjà affichée.
@@ -199,7 +235,7 @@ export class FieldworkPanelComponent {
           show: !!last && last.cumulative !== last.completed,
           distance: 8,
           formatter: (item: { value: number }) => `Cumul ${item.value}`,
-          color: '#16267a',
+          color: '#6d28d9',
           fontWeight: 600
         }
       },
@@ -207,7 +243,20 @@ export class FieldworkPanelComponent {
         name: 'Terminées dans la journée',
         type: 'bar',
         data: days.map((day) => day.completed),
-        itemStyle: { color: '#1e3398', borderRadius: [6, 6, 0, 0] },
+        itemStyle: {
+          borderRadius: [8, 8, 0, 0],
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: '#60a5fa' },
+              { offset: 1, color: '#2563eb' }
+            ]
+          }
+        },
         barMaxWidth: 36,
         label: {
           show: days.length <= 16,
@@ -228,17 +277,17 @@ export class FieldworkPanelComponent {
         type: 'line',
         data: days.map(() => target),
         lineStyle: { opacity: 0 },
-        itemStyle: { color: '#c27c1e' },
+        itemStyle: { color: '#f59e0b' },
         symbol: 'none',
         markLine: {
           silent: true,
           symbol: 'none',
           data: [{ yAxis: target }],
-          lineStyle: { type: 'dashed', color: '#c27c1e', width: 1.5 },
+          lineStyle: { type: 'dashed', color: '#f59e0b', width: 1.5 },
           label: {
             position: 'insideStartTop',
             formatter: `Objectif ${target}`,
-            color: '#8a4f0c',
+            color: '#c2410c',
             fontWeight: 600,
             backgroundColor: 'rgba(255, 255, 255, 0.85)',
             padding: [2, 4]
@@ -250,22 +299,22 @@ export class FieldworkPanelComponent {
       animation: false,
       textStyle: { fontFamily: 'Inter, sans-serif' },
       grid: { left: 36, right: 72, top: 24, bottom: 28 },
-      tooltip: { trigger: 'axis' },
+      tooltip: { trigger: 'axis', backgroundColor: '#ffffff', borderColor: '#e5e7eb', textStyle: { color: '#1f2937' } },
       xAxis: {
         type: 'category',
         data: days.map((day) =>
           new Date(`${day.date}T00:00:00Z`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', timeZone: 'UTC' })),
-        axisLine: { lineStyle: { color: '#e6eaf0' } },
+        axisLine: { lineStyle: { color: '#d1d5db' } },
         axisTick: { show: false },
-        axisLabel: { color: '#6b7280' }
+        axisLabel: { color: '#4b5563' }
       },
       yAxis: {
         type: 'value',
         minInterval: 1,
         // Marge au-dessus de l'objectif et des barres pour les étiquettes.
         max: (extent: { max: number }) => Math.max(1, Math.ceil(Math.max(extent.max, target) * 1.15)),
-        splitLine: { lineStyle: { color: '#f0f2f6' } },
-        axisLabel: { color: '#6b7280' }
+        splitLine: { lineStyle: { color: '#eef0f4', type: 'dashed' } },
+        axisLabel: { color: '#4b5563' }
       },
       series
     };

@@ -10,9 +10,10 @@ import {
   signal
 } from '@angular/core';
 import { BarChart, LineChart, PieChart } from 'echarts/charts';
-import { GridComponent, MarkLineComponent, TooltipComponent } from 'echarts/components';
+import { AriaComponent, GridComponent, MarkLineComponent, TooltipComponent } from 'echarts/components';
 import * as echarts from 'echarts/core';
 import type { ECharts, EChartsCoreOption } from 'echarts/core';
+import { LegacyGridContainLabel } from 'echarts/features';
 import { CanvasRenderer } from 'echarts/renderers';
 
 /** Événement ECharts émis au survol d'un libellé d'axe (axe déclaré avec triggerEvent: true). */
@@ -29,7 +30,19 @@ export interface AxisLabelTip {
   y: number;
 }
 
-echarts.use([BarChart, LineChart, PieChart, GridComponent, MarkLineComponent, TooltipComponent, CanvasRenderer]);
+echarts.use([
+  BarChart,
+  LineChart,
+  PieChart,
+
+  GridComponent,
+  MarkLineComponent,
+  TooltipComponent,
+  LegacyGridContainLabel,
+  CanvasRenderer
+]);
+
+
 
 @Component({
   selector: 'app-dashboard-chart',

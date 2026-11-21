@@ -1,1 +1,69 @@
+:host {
+  display: block;
+}
 
+/* Chiffres de la variable : petites cartes en dégradé pastel, une couleur par indicateur. */
+.kstrip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin: 18px 0 10px;
+}
+
+.kstrip.flush {
+  margin: 0 0 10px;
+}
+
+.kstrip > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  color: #1d4ed8;
+}
+
+.kstrip > div:nth-child(4n + 2) {
+  border-color: #bbf7d0;
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  color: #15803d;
+}
+
+.kstrip > div:nth-child(4n + 3) {
+  border-color: #e9d5ff;
+  background: linear-gradient(135deg, #faf5ff, #f3e8ff);
+  color: #7e22ce;
+}
+
+.kstrip > div:nth-child(4n + 4) {
+  border-color: #fed7aa;
+  background: linear-gradient(135deg, #fff7ed, #ffedd5);
+  color: #c2410c;
+}
+
+.kstrip strong {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.kstrip span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.distribution-table {
+  margin-top: 12px;
+  border-top: 1px solid #eef0f4;
+}
+
+.ds-card.pad .distribution-table {
+  margin-right: -24px;
+  margin-left: -24px;
+}

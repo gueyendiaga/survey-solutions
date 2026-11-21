@@ -332,19 +332,11 @@
 .ar-confirm { display: inline-flex; gap: 8px; align-items: center; color: #a7443e; font-size: var(--fs-small); font-weight: 600; }
 
 /* ---- Simulation et journal -------------------------------------------------------------- */
-.ar-table { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
-.ar-table table { width: 100%; border-collapse: collapse; font-size: var(--fs-small); }
-.ar-table th {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--line);
-  background: #f7f9fc;
-  color: var(--text-2);
-  font-size: var(--fs-caption);
-  text-align: left;
-  white-space: nowrap;
-}
-.ar-table td { padding: 10px 12px; border-bottom: 1px solid var(--line-2); vertical-align: top; }
-.ar-table tr:last-child td { border-bottom: 0; }
+/* Tableau de simulation : carte bordée avec recherche, .ds-table et pied paginé. */
+.ar-table-card { overflow: hidden; border: 1px solid #eceff4; border-radius: 14px; background: var(--surface); }
+.ar-table-tools { display: flex; justify-content: flex-end; padding: 12px 16px; }
+.ar-table-card .ds-table tbody td { vertical-align: top; }
+.ar-status { display: block; margin-bottom: 6px; }
 .mono { font-family: var(--mono), monospace; font-size: 12px; white-space: nowrap; }
 .ar-reasons { margin: 0; padding-left: 16px; }
 

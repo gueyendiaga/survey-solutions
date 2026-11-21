@@ -11,6 +11,9 @@ import { DashboardApiService } from '../../../../core/services/dashboard-api.ser
 import { SearchSelectComponent, SearchSelectOption } from '../../../../shared/components/search-select/search-select';
 import { MultiSearchSelectComponent } from '../../../../shared/components/multi-search-select/multi-search-select';
 import { apiErrorMessage } from '../../../../shared/utils/http-utils';
+import { TablePagerComponent } from '../../../../shared/components/table-pager/table-pager';
+import { TableSearchComponent } from '../../../../shared/components/table-search/table-search';
+import { createTableState } from '../../../../shared/utils/table-state';
 import { QuestionnaireStore } from '../../questionnaire.store';
 import {
   GLOBAL_TYPES,
@@ -48,7 +51,7 @@ const MODES: { id: AutoRejectMode; label: string; help: string }[] = [
 @Component({
   selector: 'app-auto-reject',
   standalone: true,
-  imports: [FormsModule, SearchSelectComponent, MultiSearchSelectComponent],
+  imports: [FormsModule, SearchSelectComponent, MultiSearchSelectComponent, TablePagerComponent, TableSearchComponent],
   templateUrl: './auto-reject.html',
   styleUrl: './auto-reject.css'
 })
@@ -71,6 +74,11 @@ export class AutoRejectComponent {
   protected readonly autoConfirmed = signal(false);
   protected readonly preview = signal<AutoRejectPreview | null>(null);
   protected readonly previewing = signal(false);
+  /** Interviews en infraction de la dernière simulation, paginées. */
+  protected readonly candidates = createTableState(
+    () => this.preview()?.candidates ?? [],
+    (candidate) => `${candidate.interviewKey ?? ''} ${candidate.responsible ?? ''} ${candidate.violations.map((v) => v.reason).join(' ')}`
+  );
   protected readonly running = signal(false);
   protected readonly confirmRun = signal(false);
 
