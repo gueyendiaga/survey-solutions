@@ -47,6 +47,15 @@
   --fs-caption: 12px;
   --fs-figure: 28px;
   --radius: 16px;
+  /* Palette catégorielle (graphiques, cartes KPI, pastilles) : une couleur par série ou modalité. */
+  --c-blue: #3b82f6;
+  --c-red: #ef4444;
+  --c-emerald: #10b981;
+  --c-orange: #f59e0b;
+  --c-violet: #8b5cf6;
+  --c-pink: #ec4899;
+  --c-cyan: #06b6d4;
+  --c-lime: #84cc16;
   --shadow: 0 2px 8px rgba(27, 39, 73, 0.035), 0 10px 24px rgba(27, 39, 73, 0.025);
   font-family: var(--sans), serif;
   font-size: var(--fs-body);
@@ -142,7 +151,658 @@ h3 {
   }
 }
 
-/* ---- Tableaux ------------------------------------------------------------------------- */
+/* ---- Carte de section (.ds-card) ------------------------------------------------------- */
+
+.ds-card {
+  min-width: 0;
+  margin-bottom: 18px;
+  border: 1px solid #eceff4;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03), 0 8px 24px rgba(16, 24, 40, 0.04);
+}
+
+.ds-card.pad {
+  padding: 22px 24px;
+}
+
+.ds-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  padding: 22px 24px 18px;
+}
+
+.ds-card.pad > .ds-card-head {
+  padding: 0 0 16px;
+}
+
+.ds-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+}
+
+.ds-card-title .ds-title-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: var(--c-blue);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ds-card-sub {
+  margin: 4px 0 0;
+  color: var(--text-2);
+  font-size: var(--fs-small);
+}
+
+.ds-card-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Compteur discret à droite d'un titre (« Régions analysées : 14 »). */
+.ds-count {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: #f3f4f6;
+  color: #4b5563;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.ds-empty {
+  margin: 0;
+  padding: 28px 24px;
+  color: var(--text-2);
+  text-align: center;
+}
+
+.ds-footnote {
+  margin: 0;
+  padding: 12px 24px 16px;
+  color: var(--text-2);
+  font-size: var(--fs-caption);
+}
+
+/* ---- Tableaux (.ds-table) ------------------------------------------------------------- */
+
+.ds-table-scroll {
+  overflow-x: auto;
+}
+
+.ds-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text);
+  font-size: var(--fs-body);
+  font-variant-numeric: tabular-nums;
+}
+
+.ds-table thead th {
+  padding: 15px 16px;
+  border-top: 1px solid #f0f2f5;
+  border-bottom: 1px solid #eceff4;
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ds-table tbody td {
+  padding: 16px;
+  border-bottom: 1px solid #eef0f4;
+  vertical-align: middle;
+}
+
+.ds-table th:first-child,
+.ds-table td:first-child {
+  padding-left: 24px;
+}
+
+.ds-table th:last-child,
+.ds-table td:last-child {
+  padding-right: 24px;
+}
+
+.ds-table tbody tr {
+  transition: background-color 120ms ease;
+}
+
+.ds-table tbody tr:hover > td {
+  background: #f8fafc;
+}
+
+.ds-table tbody tr:last-child > td {
+  border-bottom: 0;
+}
+
+.ds-table .num,
+.ds-table th.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ds-table .center {
+  text-align: center;
+}
+
+.ds-table .strong {
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.ds-table .muted {
+  color: var(--text-2);
+}
+
+.ds-table .mono {
+  font-family: var(--mono);
+  font-size: var(--fs-small);
+}
+
+.ds-table.compact tbody td {
+  padding-top: 11px;
+  padding-bottom: 11px;
+}
+
+/* Cellule avec barre de progression et valeur. */
+.ds-bar-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 160px;
+}
+
+.ds-bar-cell .ds-progress {
+  flex: 1;
+}
+
+/* ---- Pastilles (.ds-pill) ------------------------------------------------------------ */
+
+.ds-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: #eff4ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.ds-pill .dot {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.ds-pill.green,
+.ds-pill.ok {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.ds-pill.orange,
+.ds-pill.warn {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.ds-pill.red,
+.ds-pill.danger {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.ds-pill.violet {
+  background: #f5f3ff;
+  color: #6d28d9;
+}
+
+.ds-pill.pink {
+  background: #fdf2f8;
+  color: #be185d;
+}
+
+.ds-pill.cyan {
+  background: #ecfeff;
+  color: #0e7490;
+}
+
+.ds-pill.gray,
+.ds-pill.muted {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.ds-pill.mono {
+  font-family: var(--mono);
+  font-weight: 500;
+}
+
+/* ---- Barres de progression (.ds-progress) ------------------------------------------- */
+
+.ds-progress {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e5e7eb;
+}
+
+.ds-progress.thin {
+  height: 5px;
+}
+
+.ds-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #60a5fa, #2563eb);
+  transition: width 300ms ease;
+}
+
+.ds-progress.green > span,
+.ds-progress.ok > span {
+  background: linear-gradient(90deg, #4ade80, #16a34a);
+}
+
+.ds-progress.orange > span,
+.ds-progress.warn > span {
+  background: linear-gradient(90deg, #fbbf24, #ea580c);
+}
+
+.ds-progress.violet > span {
+  background: linear-gradient(90deg, #c084fc, #7c3aed);
+}
+
+.ds-progress.yellow > span {
+  background: linear-gradient(90deg, #facc15, #ca8a04);
+}
+
+.ds-progress.red > span {
+  background: linear-gradient(90deg, #f87171, #dc2626);
+}
+
+/* ---- Recherche dans un tableau ------------------------------------------------------- */
+
+.ds-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(320px, 100%);
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid #dfe3ea;
+  border-radius: 12px;
+  background: var(--surface);
+  color: #9ca3af;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.ds-search:focus-within {
+  border-color: #93b4f8;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.14);
+}
+
+.ds-search svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+.ds-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: var(--fs-body);
+}
+
+.ds-search input::placeholder {
+  color: #6b7280;
+}
+
+.ds-search input::-webkit-search-cancel-button {
+  cursor: pointer;
+}
+
+/* ---- Pied de tableau paginé ---------------------------------------------------------- */
+
+.ds-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #eef0f4;
+  color: #4b5563;
+  font-size: var(--fs-body);
+}
+
+.ds-pager-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ds-pager-btn {
+  min-height: 40px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 10px;
+  background: #f3f4f6;
+  color: #374151;
+  font-weight: 500;
+  transition: background 140ms ease;
+}
+
+.ds-pager-btn:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.ds-pager-btn:disabled {
+  color: #9ca3af;
+  cursor: default;
+  opacity: 0.7;
+}
+
+/* ---- Cartes KPI en dégradé pastel (.ds-kpi) ----------------------------------------- */
+
+.ds-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.ds-kpi {
+  --kpi-from: #eff6ff;
+  --kpi-to: #dbeafe;
+  --kpi-line: #bfdbfe;
+  --kpi-title: #1d4ed8;
+  --kpi-value: #1e3a8a;
+  --kpi-accent: #3b82f6;
+  --kpi-track: #bfdbfe;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  min-height: 150px;
+  padding: 20px 22px;
+  border: 1px solid var(--kpi-line);
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--kpi-from), var(--kpi-to));
+  color: var(--kpi-title);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.ds-kpi:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(16, 24, 40, 0.07);
+}
+
+.ds-kpi.green {
+  --kpi-from: #f0fdf4;
+  --kpi-to: #dcfce7;
+  --kpi-line: #bbf7d0;
+  --kpi-title: #15803d;
+  --kpi-value: #14532d;
+  --kpi-accent: #22c55e;
+  --kpi-track: #bbf7d0;
+}
+
+.ds-kpi.violet {
+  --kpi-from: #faf5ff;
+  --kpi-to: #f3e8ff;
+  --kpi-line: #e9d5ff;
+  --kpi-title: #7e22ce;
+  --kpi-value: #581c87;
+  --kpi-accent: #a855f7;
+  --kpi-track: #e9d5ff;
+}
+
+.ds-kpi.orange {
+  --kpi-from: #fff7ed;
+  --kpi-to: #ffedd5;
+  --kpi-line: #fed7aa;
+  --kpi-title: #c2410c;
+  --kpi-value: #7c2d12;
+  --kpi-accent: #f97316;
+  --kpi-track: #fed7aa;
+}
+
+.ds-kpi.red {
+  --kpi-from: #fef2f2;
+  --kpi-to: #fee2e2;
+  --kpi-line: #fecaca;
+  --kpi-title: #b91c1c;
+  --kpi-value: #7f1d1d;
+  --kpi-accent: #ef4444;
+  --kpi-track: #fecaca;
+}
+
+.ds-kpi.cyan {
+  --kpi-from: #ecfeff;
+  --kpi-to: #cffafe;
+  --kpi-line: #a5f3fc;
+  --kpi-title: #0e7490;
+  --kpi-value: #164e63;
+  --kpi-accent: #06b6d4;
+  --kpi-track: #a5f3fc;
+}
+
+.ds-kpi-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ds-kpi-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--kpi-title);
+  font-size: var(--fs-body);
+  font-weight: 600;
+}
+
+.ds-kpi-marker {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--kpi-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--kpi-accent) 22%, transparent);
+}
+
+.ds-kpi-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: var(--kpi-accent);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ds-kpi-value {
+  color: var(--kpi-value);
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ds-kpi-value small {
+  font-size: 17px;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.ds-kpi-sub {
+  color: var(--kpi-title);
+  font-size: var(--fs-body);
+  line-height: 1.4;
+}
+
+.ds-kpi-note {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--kpi-title);
+  font-size: var(--fs-small);
+  opacity: 0.9;
+}
+
+.ds-kpi .ds-progress {
+  height: 5px;
+  margin-top: auto;
+  background: var(--kpi-track);
+}
+
+.ds-kpi .ds-progress > span {
+  background: var(--kpi-accent);
+}
+
+/* ---- Indicateurs (barres colorées libellées) ---------------------------------------- */
+
+.ds-indicators {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ds-indicator-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 15px;
+}
+
+.ds-indicator-head strong {
+  color: var(--text-strong);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Segments (choix exclusif) -------------------------------------------------------- */
+
+.ds-segmented {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 10px;
+  background: #f3f4f6;
+}
+
+.ds-segmented button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #4b5563;
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.ds-segmented button[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--text-strong);
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.1);
+}
+
+/* ---- Légendes ----------------------------------------------------------------------- */
+
+.ds-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  color: var(--text-2);
+  font-size: var(--fs-caption);
+}
+
+.ds-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ds-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+@media (max-width: 600px) {
+  .ds-card-head {
+    padding: 18px 16px 14px;
+  }
+
+  .ds-card.pad {
+    padding: 18px 16px;
+  }
+
+  .ds-search {
+    width: 100%;
+  }
+
+  .ds-table th:first-child,
+  .ds-table td:first-child {
+    padding-left: 16px;
+  }
+
+  .ds-pager {
+    padding: 14px 16px;
+  }
+}
 
 /* ---- Variables ------------------------------------------------------------------------ */
 

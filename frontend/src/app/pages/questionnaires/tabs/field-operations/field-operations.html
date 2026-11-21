@@ -1,40 +1,32 @@
 <section class="ops" aria-labelledby="ops-title">
   <header class="ops-head">
-    <div>
-      <h2 id="ops-title">Opérations de terrain</h2>
-      <p>Tablettes, file de validation, rendez-vous et avancement par zone</p>
-    </div>
+    <h2 id="ops-title" class="ds-card-title">
+      <svg class="ds-title-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8" /><path d="M15 7h6v6" /></svg>
+      Opérations de terrain
+    </h2>
+    <p class="ds-card-sub">Tablettes, file de validation, rendez-vous et avancement par zone</p>
   </header>
 
-  <div class="ops-kpis">
-    <article class="ops-kpi">
-      <span class="ops-kpi-label">Enquêteurs actifs</span>
-      <strong class="ops-kpi-value">{{ operations.tablets.active }}<small> / {{ operations.tablets.interviewers }}</small></strong>
-      <span class="ops-kpi-note">activité dans les {{ operations.inactivityDays }} derniers jours</span>
-    </article>
-    <article class="ops-kpi" [class.warn]="operations.tablets.inactive + operations.tablets.neverActive > 0">
-      <span class="ops-kpi-label">Sans activité</span>
-      <strong class="ops-kpi-value">{{ operations.tablets.inactive + operations.tablets.neverActive }}</strong>
-      <span class="ops-kpi-note">{{ operations.tablets.inactive }} inactif(s) · {{ operations.tablets.neverActive }} jamais actif(s)</span>
-    </article>
-    <article class="ops-kpi" [class.warn]="operations.tablets.pendingAssignments > 0">
-      <span class="ops-kpi-label">Affectations non reçues</span>
-      <strong class="ops-kpi-value">{{ operations.tablets.pendingAssignments | number: '1.0-0' : 'fr-FR' }}</strong>
-      <span class="ops-kpi-note">pas encore synchronisées sur une tablette</span>
-    </article>
-    <article class="ops-kpi" [class.warn]="overdueWaiting() > 0">
-      <span class="ops-kpi-label">En attente de validation</span>
-      <strong class="ops-kpi-value">{{ waitingTotal() | number: '1.0-0' : 'fr-FR' }}</strong>
-      <span class="ops-kpi-note">dont {{ overdueWaiting() }} depuis plus de 3 jours</span>
-    </article>
+  <div class="ops-kpis ds-kpi-grid">
+    <app-kpi-card tone="green" label="Enquêteurs actifs" [value]="operations.tablets.active"
+      [sub]="'activité dans les ' + operations.inactivityDays + ' derniers jours'" [progress]="activeShare()">
+      <small kpiValue> / {{ operations.tablets.interviewers }}</small>
+    </app-kpi-card>
+    <app-kpi-card [tone]="operations.tablets.inactive + operations.tablets.neverActive > 0 ? 'red' : 'blue'" label="Sans activité"
+      [value]="operations.tablets.inactive + operations.tablets.neverActive"
+      [sub]="operations.tablets.inactive + ' inactif(s) · ' + operations.tablets.neverActive + ' jamais actif(s)'" />
+    <app-kpi-card tone="violet" label="Affectations non reçues" [value]="(operations.tablets.pendingAssignments | number: '1.0-0' : 'fr-FR') ?? '0'"
+      sub="pas encore synchronisées sur une tablette" />
+    <app-kpi-card tone="orange" label="En attente de validation" [value]="(waitingTotal() | number: '1.0-0' : 'fr-FR') ?? '0'"
+      [sub]="'dont ' + overdueWaiting() + ' depuis plus de 3 jours'" />
   </div>
 
   <div class="ops-grid">
-    <section class="ops-card validation">
-      <div class="ops-card-head">
+    <section class="ds-card pad validation">
+      <div class="ds-card-head">
         <div>
-          <h3>File de validation <app-info-tooltip [text]="validationHelp" /></h3>
-          <p>Interviews terminées qui attendent une décision, par ancienneté</p>
+          <h3 class="ds-card-title">File de validation <app-info-tooltip [text]="validationHelp" /></h3>
+          <p class="ds-card-sub">Interviews terminées qui attendent une décision, par ancienneté</p>
         </div>
       </div>
       @for (stage of [
@@ -58,7 +50,7 @@
           <div class="queue-meta">Délai médian de validation : <strong>{{ hours(stage.median) }}</strong></div>
         </div>
       }
-      <div class="legend">
+      <div class="ds-legend legend">
         @for (bucket of buckets; track bucket.key) {
           <span><i [class]="'sw ' + bucket.tone"></i>{{ bucket.label }}</span>
         }
@@ -69,28 +61,28 @@
         <ul class="waiting">
           @for (item of operations.validation.oldest; track item.interviewId) {
             <li>
-              <span class="mono">{{ item.interviewKey }}</span>
+              <span class="ds-pill gray mono">{{ item.interviewKey }}</span>
               <span class="who">{{ item.interviewer ?? '—' }}<small>{{ statusLabel(item.status) }}</small></span>
-              <span class="age" [class.late]="(item.waitingDays ?? 0) >= 3">{{ days(item.waitingDays) }}</span>
+              <span class="ds-pill gray age" [class.orange]="(item.waitingDays ?? 0) >= 3" [class.late]="(item.waitingDays ?? 0) >= 3">{{ days(item.waitingDays) }}</span>
             </li>
           }
         </ul>
       } @else {
-        <p class="empty">Aucune interview en attente de validation.</p>
+        <p class="ds-empty">Aucune interview en attente de validation.</p>
       }
     </section>
 
     <div class="ops-side">
-      <section class="ops-card">
-        <div class="ops-card-head">
+      <section class="ds-card pad">
+        <div class="ds-card-head">
           <div>
-            <h3>Rendez-vous</h3>
-            <p>Planifiés dans le calendrier HQ, non honorés</p>
+            <h3 class="ds-card-title">Rendez-vous</h3>
+            <p class="ds-card-sub">Planifiés dans le calendrier HQ, non honorés</p>
           </div>
         </div>
         <div class="appt-counts">
-          <div [class.late]="operations.appointments.overdue > 0"><strong>{{ operations.appointments.overdue }}</strong><span>en retard</span></div>
-          <div><strong>{{ operations.appointments.upcoming }}</strong><span>à venir</span></div>
+          <div class="appt late-box" [class.late]="operations.appointments.overdue > 0"><strong>{{ operations.appointments.overdue }}</strong><span>en retard</span></div>
+          <div class="appt"><strong>{{ operations.appointments.upcoming }}</strong><span>à venir</span></div>
         </div>
         @if (operations.appointments.items.length) {
           <ul class="appts">
@@ -102,19 +94,18 @@
             }
           </ul>
         } @else {
-          <p class="empty">Aucun rendez-vous planifié.</p>
+          <p class="ds-empty">Aucun rendez-vous planifié.</p>
         }
       </section>
 
       @if (showModes()) {
-        <section class="ops-card">
-          <h3>Mode de collecte</h3>
-          <ul class="modes">
-            @for (item of operations.modes; track item.mode) {
+        <section class="ds-card pad">
+          <h3 class="ds-card-title">Mode de collecte</h3>
+          <ul class="modes ds-indicators">
+            @for (item of operations.modes; track item.mode; let i = $index) {
               <li>
-                <span>{{ modeLabel(item.mode) }}</span>
-                <span class="track"><span class="fill" [style.width.%]="modeShare(item.count)"></span></span>
-                <strong>{{ item.count | number: '1.0-0' : 'fr-FR' }}</strong>
+                <div class="ds-indicator-head"><span>{{ modeLabel(item.mode) }}</span><strong>{{ item.count | number: '1.0-0' : 'fr-FR' }}</strong></div>
+                <span class="ds-progress" [class.green]="i === 1" [class.violet]="i > 1"><span [style.width.%]="modeShare(item.count)"></span></span>
               </li>
             }
           </ul>
@@ -123,58 +114,70 @@
     </div>
   </div>
 
-  <section class="ops-card flush">
-    <div class="ops-card-head padded">
+  <section class="ds-card">
+    <div class="ds-card-head">
       <div>
-        <h3>Activité des tablettes <app-info-tooltip [text]="tabletHelp" /></h3>
-        <p>Enquêteurs sans activité depuis {{ operations.inactivityDays }} jours ou plus, affectations en attente de réception</p>
+        <h3 class="ds-card-title">Activité des tablettes <app-info-tooltip [text]="tabletHelp" /></h3>
+        <p class="ds-card-sub">
+          Enquêteurs sans activité depuis {{ operations.inactivityDays }} jours ou plus, affectations en attente de réception ·
+          {{ operations.tablets.interviewers }} enquêteur(s){{ operations.tablets.withoutDevice ? ' · ' + operations.tablets.withoutDevice + ' sans tablette liée' : '' }}
+        </p>
       </div>
-      <span class="count">{{ operations.tablets.interviewers }} enquêteur(s){{ operations.tablets.withoutDevice ? ' · ' + operations.tablets.withoutDevice + ' sans tablette liée' : '' }}</span>
+      @if (operations.interviewers.length) {
+        <app-table-search placeholder="Rechercher un enquêteur" [value]="tablets.search()" (valueChange)="tablets.setSearch($event)" />
+      }
     </div>
     @if (operations.interviewers.length) {
-      <div class="table-scroll">
-        <table class="ops-table tablet-table">
+      <div class="ds-table-scroll">
+        <table class="ds-table tablet-table">
           <thead>
             <tr>
-              <th class="l">Enquêteur</th>
-              <th class="l">État</th>
-              <th class="l">Dernier contact tablette</th>
-              <th class="l">Dernière interview terminée</th>
-              <th>Sans activité</th>
-              <th>Affectations non reçues</th>
-              <th class="l">Tablette</th>
+              <th>Enquêteur</th>
+              <th>État</th>
+              <th>Dernier contact tablette</th>
+              <th>Dernière interview terminée</th>
+              <th class="num">Sans activité</th>
+              <th class="num">Affectations non reçues</th>
+              <th>Tablette</th>
             </tr>
           </thead>
           <tbody>
-            @for (row of sortedInterviewers(); track row.interviewer) {
+            @for (row of tablets.visible(); track row.interviewer) {
               <tr [attr.data-state]="row.state">
-                <td class="l"><span class="who">{{ row.interviewer }}<small>{{ row.supervisor ? 'Équipe ' + row.supervisor : 'Sans équipe' }}</small></span></td>
-                <td class="l"><span [class]="'pill ' + state(row).tone">{{ state(row).label }}</span></td>
-                <td class="l">{{ row.lastTabletContact ? (row.lastTabletContact | date: 'd MMM, HH:mm' : '' : 'fr-FR') : '—' }}</td>
-                <td class="l">{{ row.lastCompletion ? (row.lastCompletion | date: 'd MMM, HH:mm' : '' : 'fr-FR') : '—' }}</td>
-                <td>{{ row.daysSinceActivity === null ? '—' : row.daysSinceActivity + ' j' }}</td>
-                <td>
+                <td><span class="who"><span class="strong">{{ row.interviewer }}</span><small>{{ row.supervisor ? 'Équipe ' + row.supervisor : 'Sans équipe' }}</small></span></td>
+                <td><span [class]="'ds-pill ' + state(row).tone"><i class="dot"></i>{{ state(row).label }}</span></td>
+                <td class="muted">{{ row.lastTabletContact ? (row.lastTabletContact | date: 'd MMM, HH:mm' : '' : 'fr-FR') : '—' }}</td>
+                <td class="muted">{{ row.lastCompletion ? (row.lastCompletion | date: 'd MMM, HH:mm' : '' : 'fr-FR') : '—' }}</td>
+                <td class="num">{{ row.daysSinceActivity === null ? '—' : row.daysSinceActivity + ' j' }}</td>
+                <td class="num">
                   @if (row.pendingAssignments) {
                     <span class="pending">{{ row.pendingAssignments }}</span>
                     @if (row.oldestPendingSince) { <small class="since">depuis le {{ row.oldestPendingSince | date: 'd MMM' : '' : 'fr-FR' }}</small> }
                   } @else { 0 }
                 </td>
-                <td class="l">{{ row.deviceLinked === null ? '—' : row.deviceLinked ? 'Liée' : 'Aucune' }}</td>
+                <td>
+                  @if (row.deviceLinked === null) { — } @else {
+                    <span class="ds-pill" [class.blue]="row.deviceLinked" [class.gray]="!row.deviceLinked">{{ row.deviceLinked ? 'Liée' : 'Aucune' }}</span>
+                  }
+                </td>
               </tr>
+            } @empty {
+              <tr><td colspan="7" class="ds-empty">Aucun enquêteur ne correspond à la recherche.</td></tr>
             }
           </tbody>
         </table>
       </div>
+      <app-table-pager unit="enquêteurs" [page]="tablets.page()" [pageSize]="tablets.pageSize" [total]="tablets.total()" (pageChange)="tablets.setPage($event)" />
     } @else {
-      <p class="empty">Aucun enquêteur n’a d’affectation ni d’interview sur cette version.</p>
+      <p class="ds-empty">Aucun enquêteur n’a d’affectation ni d’interview sur cette version.</p>
     }
   </section>
 
-  <section class="ops-card flush">
-    <div class="ops-card-head padded">
+  <section class="ds-card zones">
+    <div class="ds-card-head">
       <div>
-        <h3>Avancement par zone <app-info-tooltip [text]="zoneHelp" /></h3>
-        <p>Interviews par modalité d’une variable géographique ou de stratification</p>
+        <h3 class="ds-card-title">Avancement par zone <app-info-tooltip [text]="zoneHelp" /></h3>
+        <p class="ds-card-sub">Interviews par modalité d’une variable géographique ou de stratification</p>
       </div>
       @if (operations.zones.candidates.length) {
         <div class="zone-select">
@@ -191,38 +194,57 @@
       }
     </div>
     @if (operations.zones.rows.length) {
-      <div class="table-scroll">
-        <table class="ops-table zone-table">
-          <thead>
-            <tr>
-              <th class="l">Zone</th>
-              <th class="l bar-col">Interviews</th>
-              <th>Terminées</th>
-              <th>Approuvées</th>
-              <th>Rejetées</th>
-              <th>En cours</th>
-              <th>Part approuvée</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (row of operations.zones.rows; track row.code) {
+      <div class="zone-layout" [class.with-map]="regionMatches().length">
+        @if (regionMatches().length; as matched) {
+          <div class="zone-map">
+            <div class="zone-map-head">
+              <span class="ds-count">Régions cartographiées : {{ matched }} / 14</span>
+              <div class="ds-segmented" role="group" aria-label="Indicateur de la carte">
+                <button type="button" [attr.aria-pressed]="mapMetric() === 'interviews'" (click)="mapMetric.set('interviews')">Interviews</button>
+                <button type="button" [attr.aria-pressed]="mapMetric() === 'completed'" (click)="mapMetric.set('completed')">Terminées</button>
+                <button type="button" [attr.aria-pressed]="mapMetric() === 'approvalRate'" (click)="mapMetric.set('approvalRate')">Part approuvée</button>
+              </div>
+            </div>
+            <app-region-map [values]="mapValues()" [metric]="mapMetricLabel()" [unit]="mapMetric() === 'approvalRate' ? '%' : ''" [height]="400" downloadFilename="carte-avancement-regions" />
+          </div>
+        }
+        <div class="ds-table-scroll zone-table-wrap">
+          <table class="ds-table compact zone-table">
+            <thead>
               <tr>
-                <td class="l" [innerHTML]="row.label"></td>
-                <td class="l"><span class="bar-cell"><span class="track"><span class="fill" [style.width.%]="zoneShare(row)"></span></span>{{ row.interviews | number: '1.0-0' : 'fr-FR' }}</span></td>
-                <td>{{ row.completed | number: '1.0-0' : 'fr-FR' }}</td>
-                <td>{{ row.approved | number: '1.0-0' : 'fr-FR' }}</td>
-                <td [class.warn-text]="row.rejected > 0">{{ row.rejected | number: '1.0-0' : 'fr-FR' }}</td>
-                <td>{{ row.inProgress | number: '1.0-0' : 'fr-FR' }}</td>
-                <td>{{ row.approvalRate === null ? '—' : (row.approvalRate | number: '1.0-1' : 'fr-FR') + ' %' }}</td>
+                <th>Zone</th>
+                <th class="bar-col">Interviews</th>
+                <th class="num">Terminées</th>
+                <th class="num">Approuvées</th>
+                <th class="num">Rejetées</th>
+                <th class="num">En cours</th>
+                <th class="num">Part approuvée</th>
               </tr>
-            }
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              @for (row of operations.zones.rows; track row.code; let i = $index) {
+                <tr>
+                  <td class="strong"><span class="zone-name"><i class="zone-dot" [style.background]="color(i)"></i><span [innerHTML]="row.label"></span></span></td>
+                  <td><span class="ds-bar-cell"><span class="ds-progress thin"><span [style.width.%]="zoneShare(row)" [style.background]="color(i)"></span></span>{{ row.interviews | number: '1.0-0' : 'fr-FR' }}</span></td>
+                  <td class="num">{{ row.completed | number: '1.0-0' : 'fr-FR' }}</td>
+                  <td class="num">{{ row.approved | number: '1.0-0' : 'fr-FR' }}</td>
+                  <td class="num" [class.warn-text]="row.rejected > 0">{{ row.rejected | number: '1.0-0' : 'fr-FR' }}</td>
+                  <td class="num">{{ row.inProgress | number: '1.0-0' : 'fr-FR' }}</td>
+                  <td class="num">
+                    @if (row.approvalRate === null) { — } @else {
+                      <span [class]="'ds-pill ' + rateTone(row.approvalRate)">{{ (row.approvalRate | number: '1.0-1' : 'fr-FR') + ' %' }}</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
       </div>
     } @else if (operations.zones.candidates.length) {
-      <p class="empty">{{ operations.zones.variable ? 'Aucune interview pour cette variable.' : 'Aucune question d’identification à choix unique : choisissez une variable de ventilation.' }}</p>
+      <p class="ds-empty">{{ operations.zones.variable ? 'Aucune interview pour cette variable.' : 'Aucune question d’identification à choix unique : choisissez une variable de ventilation.' }}</p>
     } @else {
-      <p class="empty">Aucune variable à choix unique au niveau principal du questionnaire.</p>
+      <p class="ds-empty">Aucune variable à choix unique au niveau principal du questionnaire.</p>
     }
   </section>
 </section>

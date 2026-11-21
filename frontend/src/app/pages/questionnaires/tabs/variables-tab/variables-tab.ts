@@ -18,6 +18,10 @@ import { LoadingStateComponent } from '../../../../shared/components/loading-sta
 import { InterviewHistoryComponent } from '../../../../shared/components/interview-history/interview-history';
 import { apiErrorMessage, blobErrorDetail, saveFile } from '../../../../shared/utils/http-utils';
 import { QuestionnaireStore } from '../../questionnaire.store';
+import { TablePagerComponent } from '../../../../shared/components/table-pager/table-pager';
+import { TableSearchComponent } from '../../../../shared/components/table-search/table-search';
+import { htmlToText } from '../../../../shared/utils/html-text';
+import { createTableState } from '../../../../shared/utils/table-state';
 
 interface InterviewReviewRow {
   interviewId: string;
@@ -34,7 +38,17 @@ interface PendingInterviewAction {
 @Component({
   selector: 'app-variables-tab',
   standalone: true,
-  imports: [DecimalPipe, FormsModule, DashboardChartComponent, LoadingStateComponent, CompletenessStatusComponent, InfoTooltipComponent, InterviewHistoryComponent],
+  imports: [
+    DecimalPipe,
+    FormsModule,
+    DashboardChartComponent,
+    LoadingStateComponent,
+    CompletenessStatusComponent,
+    InfoTooltipComponent,
+    InterviewHistoryComponent,
+    TablePagerComponent,
+    TableSearchComponent
+  ],
   templateUrl: './variables-tab.html',
   styleUrl: './variables-tab.css'
 })
@@ -53,6 +67,19 @@ export class VariablesTabComponent {
   protected readonly detailInterview = signal<InterviewReviewRow | null>(null);
   /** Interview dont l'historique complet est affiché dans le panneau latéral. */
   protected readonly historyInterview = signal<InterviewReviewRow | null>(null);
+  /** Interviews de la variable ouverte, recherche sur la clé HQ et le statut. */
+  protected readonly reviewTable = createTableState(
+    () => {
+      const analytics = this.store.analytics();
+      return analytics ? this.interviews(analytics) : [];
+    },
+    (interview) => `${interview.interviewKey ?? ''} ${this.interviewStatusLabel(interview.status)}`
+  );
+  /** Réponses individuelles, recherche sur la clé, la ligne et la valeur. */
+  protected readonly observationTable = createTableState(
+    () => this.store.analytics()?.observations ?? [],
+    (observation) => `${observation.interviewKey ?? ''} ${observation.rowKey} ${htmlToText(observation.value)}`
+  );
   protected readonly interviewAnswers = signal<InterviewAnswer[]>([]);
   private readonly rosterTitles = computed(() => {
     const titles = new Map<string, string>();

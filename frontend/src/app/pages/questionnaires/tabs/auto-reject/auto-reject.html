@@ -203,35 +203,45 @@
             </p>
           }
           @if (result.candidates.length) {
-            <div class="ar-table">
-              <table>
-                <thead><tr><th>Clé HQ</th><th>Enquêteur</th><th>Statut</th><th>Motifs envoyés à l’enquêteur</th></tr></thead>
-                <tbody>
-                  @for (candidate of result.candidates; track candidate.interviewId) {
-                    <tr [class.ar-out-of-queue]="!candidate.rejectable">
-                      <td class="mono">{{ candidate.interviewKey ?? '—' }}</td>
-                      <td>{{ candidate.responsible ?? '—' }}</td>
-                      <td>
-                        {{ statusLabel(candidate.status) }}
-                        @if (!candidate.rejectable) {
-                          <span class="ar-tag" title="Hors de la file de validation : le rejet automatique ne s’applique pas">Non rejetée</span>
-                        } @else if (candidate.overLimit) {
-                          <span class="ar-tag warn" title="Plafond de rejets atteint : revue manuelle">Revue manuelle</span>
-                        } @else if (candidate.hqRejections) {
-                          <span class="ar-tag">{{ candidate.hqRejections }} rejet(s)</span>
-                        }
-                      </td>
-                      <td>
-                        <ul class="ar-reasons">
-                          @for (violation of candidate.violations; track $index) {
-                            <li>{{ violation.reason }}</li>
+            <div class="ar-table-card">
+              <div class="ar-table-tools">
+                <app-table-search placeholder="Rechercher une interview ou un enquêteur" [value]="candidates.search()" (valueChange)="candidates.setSearch($event)" />
+              </div>
+              <div class="ds-table-scroll">
+                <table class="ds-table compact">
+                  <thead><tr><th>Clé HQ</th><th>Enquêteur</th><th>Statut</th><th>Motifs envoyés à l’enquêteur</th></tr></thead>
+                  <tbody>
+                    @for (candidate of candidates.visible(); track candidate.interviewId) {
+                      <tr [class.ar-out-of-queue]="!candidate.rejectable">
+                        <td><span class="ds-pill gray mono">{{ candidate.interviewKey ?? '—' }}</span></td>
+                        <td class="strong">{{ candidate.responsible ?? '—' }}</td>
+                        <td>
+                          <span class="ar-status">{{ statusLabel(candidate.status) }}</span>
+                          @if (!candidate.rejectable) {
+                            <span class="ds-pill gray" title="Hors de la file de validation : le rejet automatique ne s’applique pas">Non rejetée</span>
+                          } @else if (candidate.overLimit) {
+                            <span class="ds-pill orange" title="Plafond de rejets atteint : revue manuelle">Revue manuelle</span>
+                          } @else if (candidate.hqRejections) {
+                            <span class="ds-pill red">{{ candidate.hqRejections }} rejet(s)</span>
+                          } @else {
+                            <span class="ds-pill red">À rejeter</span>
                           }
-                        </ul>
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
+                        </td>
+                        <td>
+                          <ul class="ar-reasons">
+                            @for (violation of candidate.violations; track $index) {
+                              <li>{{ violation.reason }}</li>
+                            }
+                          </ul>
+                        </td>
+                      </tr>
+                    } @empty {
+                      <tr><td colspan="4" class="ds-empty">Aucune interview ne correspond à la recherche.</td></tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              <app-table-pager unit="interviews" [page]="candidates.page()" [pageSize]="candidates.pageSize" [total]="candidates.total()" (pageChange)="candidates.setPage($event)" />
             </div>
           } @else {
             <p class="ar-muted">Aucune interview n’enfreint les règles actives.</p>

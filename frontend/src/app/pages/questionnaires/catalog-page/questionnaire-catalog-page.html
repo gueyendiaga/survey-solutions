@@ -38,15 +38,6 @@
   @if (catalog.loading() && !catalog.questionnaires().length) {
     <app-loading-state label="Chargement des questionnaires…" />
   } @else {
-    <section class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_8px_24px_rgba(27,39,73,0.045)]">
-      <header class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
-        <div>
-          <h2 class="text-sm font-semibold text-slate-800">Questionnaires disponibles</h2>
-          <p class="mt-1 text-xs text-slate-500">Sélectionnez une version pour consulter la collecte, la qualité et les rapports.</p>
-        </div>
-        <span class="rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs font-semibold tabular-nums text-slate-600 ring-1 ring-inset ring-slate-200">{{ catalog.questionnaires().length }} version(s)</span>
-      </header>
-      <app-questionnaire-catalog [questionnaires]="catalog.questionnaires()" />
-    </section>
+    <app-questionnaire-catalog heading="Questionnaires disponibles" subtitle="Sélectionnez une version pour consulter la collecte, la qualité et les rapports." [questionnaires]="catalog.questionnaires()" />
   }
 </main>
