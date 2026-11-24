@@ -39,4 +39,27 @@ describe('InfoTooltipComponent', () => {
       .toContain('Réponses ÷ total × 100.');
     expect(button.getAttribute('aria-expanded')).toBe('true');
   });
+
+  it('reste collée à l’icône dans une carte transformée', () => {
+    const host = fixture.nativeElement as HTMLElement;
+    host.style.transform = 'translateY(-2px)';
+    host.style.marginLeft = '40px';
+    const trigger = host.querySelector('button') as HTMLButtonElement;
+
+    host.querySelector('.info-tooltip')!.dispatchEvent(new MouseEvent('mouseenter'));
+
+    const bubble = host.querySelector('[role="tooltip"]')!.getBoundingClientRect();
+    expect(bubble.left - trigger.getBoundingClientRect().right).toBeCloseTo(8, 0);
+  });
+
+  it('se ferme avec Échap', () => {
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector('button')!.dispatchEvent(new FocusEvent('focus'));
+    fixture.detectChanges();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+
+    expect(host.querySelector('[role="tooltip"]')).toBeNull();
+  });
 });
