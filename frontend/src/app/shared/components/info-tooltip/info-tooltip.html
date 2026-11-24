@@ -1,21 +1,24 @@
-<span class="info-tooltip" (mouseenter)="show($event)" (mouseleave)="hide()">
+<span class="info-tooltip" (mouseenter)="show()" (mouseleave)="hide()">
   <button
+    #trigger
     type="button"
     class="info-tooltip__trigger"
     [attr.aria-label]="'Comment ce chiffre est calculé : ' + text"
     [attr.aria-describedby]="tooltipId"
     [attr.aria-expanded]="visible"
-    (focus)="show($event)"
+    (focus)="show()"
     (blur)="hide()"
-    (click)="show($event)">
+    (click)="show()">
     i
   </button>
   @if (visible) {
     <span
-      class="info-tooltip__bubble"
-      [class.info-tooltip__bubble--above]="placement === 'above'"
-      [style.left.px]="left"
-      [style.top.px]="top"
+      #bubble
+      popover="manual"
+      [class]="'info-tooltip__bubble info-tooltip__bubble--' + position.side"
+      [style.left.px]="position.left"
+      [style.top.px]="position.top"
+      [style.--arrow.px]="position.arrow"
       [attr.id]="tooltipId"
       role="tooltip">{{ text }}</span>
   }

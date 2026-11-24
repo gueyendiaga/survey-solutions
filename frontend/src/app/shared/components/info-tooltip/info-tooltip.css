@@ -33,19 +33,35 @@
 .info-tooltip__bubble {
   position: fixed;
   z-index: 1000;
+  inset: auto;
   width: max-content;
   max-width: min(300px, calc(100vw - 24px));
+  margin: 0;
   padding: 9px 11px;
-  border: 1px solid #dfe3eb;
+  overflow: visible;
+  border: 0;
   border-radius: 9px;
   background: #202a42;
   box-shadow: 0 6px 20px rgba(16, 24, 40, 0.2);
   color: #fff;
   font: 400 12px/1.45 Inter, sans-serif;
+  letter-spacing: normal;
   text-align: left;
+  text-transform: none;
   white-space: normal;
 }
 
-.info-tooltip__bubble--above {
-  transform: translateY(-100%);
+/* Flèche tournée vers l’icône. */
+.info-tooltip__bubble::before {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: inherit;
+  content: '';
+  transform: translate(-50%, -50%) rotate(45deg);
 }
+
+.info-tooltip__bubble--right::before { top: var(--arrow); left: 0; }
+.info-tooltip__bubble--left::before { top: var(--arrow); left: 100%; }
+.info-tooltip__bubble--above::before { top: 100%; left: var(--arrow); }
+.info-tooltip__bubble--below::before { top: 0; left: var(--arrow); }
